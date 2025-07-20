@@ -1,0 +1,61 @@
+# Free Pascal / Lazarus .gitignore
+
+# Compiled Object files
+*.o
+*.ppu
+*.compiled
+*.a
+*.lib
+*.dcu
+*.dcp
+*.bpi
+*.bpl
+*.drc
+*.map
+*.rst
+*.rsj
+link.res
+
+# Executables
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Lazarus IDE files
+*.lps
+*.lrs
+*.lrt
+*.identcache
+*.projdata
+*.tvsconfig
+*.dsk
+*.stat
+
+# Backup files
+*.bak
+*.backup
+*.~*
+*~
+
+# Directories
+lib/
+**/lib/
+backup/
+**/backup/
+bin/
+**/bin/
+__history/
+debug/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Local config
+*.local
+*.cfg
