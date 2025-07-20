@@ -51,7 +51,6 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
     - [Build Requirements](#build-requirements)
   - [📚 Documentation](#-documentation)
   - [📊 Real-World Examples](#-real-world-examples)
-  - [💬 Community \& Support](#-community--support)
   - [⚠️ Known Limitations](#️-known-limitations)
   - [✅ Testing](#-testing)
   - [🤝 Contributing](#-contributing)
@@ -172,11 +171,6 @@ You can use ChronoKit-FP to build all kinds of applications:
 | Add Business Days | Calculate next business day, accounting for weekends and holidays | [View Example](examples/AddBusinessDays/) |
 | Quick Start Demo | Shows off what the library can do | [View Example](examples/ChronoKitQuickStart/) |
 
-## 💬 Community & Support
-
-- **Questions?** [Open a discussion](https://github.com/ikelaiah/chronokit-fp/discussions)
-- **Found a bug?** [Report an issue](https://github.com/ikelaiah/chronokit-fp/issues)
-
 ## ⚠️ Known Limitations
 
 - **Platform Support**: Currently works on Windows 11 and Ubuntu 24.04.
@@ -198,9 +192,9 @@ cd tests
 Want to help out? Great! Feel free to submit a Pull Request. For big changes, please open an issue first so we can chat about it.
 
 1. Fork the Project
-2. Create your Feature Branch (git checkout -b feature/AmazingFeature)
-3. Commit your Changes (git commit -m 'Add some AmazingFeature')
-4. Push to the Branch (git push origin feature/AmazingFeature)
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ## ⚖️ License
