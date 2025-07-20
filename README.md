@@ -152,7 +152,7 @@ end.
 ### Build Requirements
 
 - Free Pascal Compiler (FPC) 3.2.2+
-- Lazarus 4.0+ (or compatible IDE)
+- Lazarus 4.0+ (for compiling example projects and test suites)
 - Git for version control
 
 ## 📚 Documentation
