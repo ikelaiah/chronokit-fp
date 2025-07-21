@@ -31,7 +31,6 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
 
 - 🌍 **Cross-Platform Timezone Support** - Works on Windows and Linux
 - ⏰ **50+ DateTime Functions** - Everything you need for date/time work
-- 🔄 **DST Handling** - Daylight saving time support for major regions
 - 💼 **Business Day Calculations** - Built-in workday calculations
 - 🎯 **Simple API** - Clean, easy-to-use function names
 - 🧪 **Well Tested** - 130+ tests ensure everything works
@@ -175,6 +174,10 @@ You can use ChronoKit-FP to build all kinds of applications:
 
 - **Platform Support**: Currently works on Windows 11 and Ubuntu 24.04.
 - **Timezone Database**: Linux systems need timezone data installed (usually comes with most distributions).
+- **DST Detection**:
+  - Windows: Has hardcoded US DST rules
+  - Linux: Uses the system's timezone database
+  - The library detects whether a given date/time falls within DST period
 
 ## ✅ Testing
 
