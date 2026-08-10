@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-08-10
+
+### Added
+
+- Verified installation instructions for Lazarus and source-based Free Pascal
+  projects.
+- A first-five-minutes guide covering date creation, formatting, parsing, and
+  date addition.
+- A troubleshooting guide for compiler search paths, date formats, and
+  Windows/Linux platform setup.
+- Pull-request checks that compile every shipped example on Windows and Linux.
+
+### Changed
+
+- Refreshed the quick-start example to use the same focused, non-interactive
+  console style as the other shipped examples.
+- Updated the business-day example to use a deterministic input and output.
+
 ## [1.0.0] - 2025-07-20
 
 ### Added

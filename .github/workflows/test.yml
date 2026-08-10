@@ -64,3 +64,16 @@ jobs:
         run: |
           fpc "-Fu$GITHUB_WORKSPACE/src" TestRunner.lpr
           ./TestRunner -a --format=plain
+
+      - name: Compile examples on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem examples -Recurse -File -Include *.lpr,*.pas |
+            ForEach-Object { fpc "-Fu$env:GITHUB_WORKSPACE\src" $_.FullName }
+
+      - name: Compile examples on Linux
+        if: runner.os == 'Linux'
+        run: |
+          find examples -type f \( -name '*.lpr' -o -name '*.pas' \) -print0 |
+            xargs -0 -n1 fpc "-Fu$GITHUB_WORKSPACE/src"

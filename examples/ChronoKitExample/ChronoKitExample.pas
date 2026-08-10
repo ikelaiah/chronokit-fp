@@ -428,13 +428,11 @@ begin
     DemonstrateSpecialOperations;
     
     WriteLn;
-    WriteLn('Press Enter to exit...');
-    ReadLn;
+    WriteLn('Demonstration complete.');
   except
     on E: Exception do
     begin
       WriteLn('Error: ', E.Message);
-      ReadLn;
     end;
   end;
 end. 

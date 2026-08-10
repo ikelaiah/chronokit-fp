@@ -5,7 +5,7 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-4.0+-60A5FA.svg)](https://www.lazarus-ide.org/)
 ![Supports Windows](https://img.shields.io/badge/support-Windows-F59E0B?logo=Windows)
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
-[![Version](https://img.shields.io/badge/version-1.0.0-8B5CF6.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
@@ -43,12 +43,8 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
   - [🌟 Why ChronoKit-FP?](#-why-chronokit-fp)
   - [📑 Table of Contents](#-table-of-contents)
   - [💻 Installation (Lazarus IDE)](#-installation-lazarus-ide)
-  - [💻 Installation (General)](#-installation-general)
-  - [📝 Library Usage](#-library-usage)
+  - [💻 Installation (Source-based projects)](#-installation-source-based-projects)
   - [🚀 Quick Start](#-quick-start)
-    - [📅 DateTime Operations](#-datetime-operations)
-    - [Dependencies](#dependencies)
-    - [Build Requirements](#build-requirements)
   - [📚 Documentation](#-documentation)
   - [🗺️ Roadmap](#️-roadmap)
   - [📊 Real-World Examples](#-real-world-examples)
@@ -60,25 +56,7 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
 
 ## 💻 Installation (Lazarus IDE)
 
-1. Clone the repository:
-
-```bash
-git clone https://github.com/ikelaiah/chronokit-fp
-```
-
-2. Open / start a new project in Lazarus IDE
-
-3. Go to `Package` → `Open Package File (.lpk)...`
-
-4. Navigate to the ChronoKit packages in the `packages/lazarus/` folder and select `chronokit_fp.lpk`
-
-5. In the package window that opens, click `Compile`
-
-6. Click `Use → Add to Project` to install the package
-
-The ChronoKit-FP package is now ready to use in your Lazarus project.
-
-## 💻 Installation (General)
+This is the verified Lazarus installation path.
 
 1. Clone the repository:
 
@@ -86,43 +64,77 @@ The ChronoKit-FP package is now ready to use in your Lazarus project.
 git clone https://github.com/ikelaiah/chronokit-fp
 ```
 
-2. Add the source directory to your project's search path.
+2. In Lazarus, open the project that will use ChronoKit.
+3. Select `Package` → `Open Package File (.lpk)...`, then open
+   `packages/lazarus/chronokit_fp.lpk` from the cloned repository.
+4. In the package window, select `Compile`, then select `Use` → `Add to
+   Project`.
+5. Add `ChronoKit` to your project's `uses` clause and build the project.
 
+## 💻 Installation (Source-based projects)
 
-## 📝 Library Usage
+This is the verified command-line installation path. Keep the cloned
+repository (or copy its `src/` directory) alongside your project.
 
-```pascal
-uses
-  // Date Time manipulation unit
-  ChronoKit;          // Date Time operations
+1. Clone the repository:
+
+```bash
+git clone https://github.com/ikelaiah/chronokit-fp
+```
+
+2. Compile your program with ChronoKit's `src` directory on the unit search
+   path. On Windows PowerShell:
+
+```powershell
+fpc "-FuC:\path\to\chronokit-fp\src" MyProgram.lpr
+```
+
+On Linux:
+
+```bash
+fpc "-Fu/path/to/chronokit-fp/src" MyProgram.lpr
 ```
 
 ## 🚀 Quick Start
 
-
-### 📅 Your first date calculation
-
-Start with plain dates. This example gets today's date, adds one week, and
-formats the result. It has no timezone setup or hidden configuration.
+Start with ordinary calendar dates. This complete example creates a date,
+formats it, parses a date supplied as text, and adds seven days. It has no
+timezone setup or hidden configuration.
 
 ```pascal
 program FirstChronoKitProgram;
 
 uses
-  ChronoKit, SysUtils;
+  SysUtils,
+  ChronoKit;
 
 var
-  Today, NextWeek: TDateTime;
+  CreatedDate, ParsedDate, NextWeek: TDateTime;
 begin
-  Today := TChronoKit.GetToday;
-  NextWeek := TChronoKit.AddDays(Today, 7);
+  CreatedDate := EncodeDate(2026, 8, 10);
+  WriteLn('Created: ', TChronoKit.GetAsString(CreatedDate, 'yyyy-mm-dd'));
 
-  WriteLn('Next week: ', TChronoKit.GetAsString(NextWeek, 'yyyy-mm-dd'));
+  ParsedDate := TChronoKit.FromString('2026-08-10', 'yyyy-mm-dd');
+  NextWeek := TChronoKit.AddDays(ParsedDate, 7);
+
+  WriteLn('One week later: ', TChronoKit.GetAsString(NextWeek, 'yyyy-mm-dd'));
 end.
 ```
 
-Once that works, use the sections below for business days, intervals, and
-timezones.
+The output is deterministic:
+
+```text
+Created: 2026-08-10
+One week later: 2026-08-17
+```
+
+Use `TChronoKit.GetToday` when you need the current date at midnight and
+`TChronoKit.GetNow` when you need the current local date and time. A
+`TDateTime` value does not retain a timezone name: a date is conventionally a
+`TDateTime` at midnight, a local date/time is a wall-clock value from the
+computer, and `WithTimeZone` is the separate operation for a conversion to an
+explicit timezone. Use the [Getting Started guide](docs/Getting-Started.md)
+before moving on to business days or timezones.
 
 ### 📅 DateTime Operations
 
@@ -183,6 +195,8 @@ end.
 
 For detailed documentation, check out:
 
+- 🚀 [Getting Started](docs/Getting-Started.md) - First installation and date operations
+- 🛠️ [Troubleshooting](docs/Troubleshooting.md) - Search paths, formats, and platforms
 - 📋 [API Cheat Sheet](docs/Cheat-Sheet.md) - Quick reference for all functions
 - 📖 [Complete Documentation](docs/ChronoKit-FP.md) - Full guide and examples
 
@@ -199,16 +213,15 @@ You can use ChronoKit-FP to build all kinds of applications:
 |-----------------|-------------|-------------|
 | ChronoKit Example | Demonstrates the library's capabilities with practical use cases | [View Example](examples/ChronoKitExample/) |
 | Add Business Days | Calculate next business day, accounting for weekends and holidays | [View Example](examples/AddBusinessDays/) |
-| Quick Start Demo | Shows off what the library can do | [View Example](examples/ChronoKitQuickStart/) |
+| Quick Start Demo | Creates, formats, parses, and adds calendar dates | [View Example](examples/ChronoKitQuickStart/) |
 
 ## ⚠️ Known Limitations
 
 - **Platform Support**: Currently works on Windows 11 and Ubuntu 24.04.
 - **Timezone Database**: Linux systems need timezone data installed (usually comes with most distributions).
-- **DST Detection**:
-  - Windows: Has hardcoded US DST rules
-  - Linux: Uses the system's timezone database
-  - The library detects whether a given date/time falls within DST period
+- **Timezone handling**: Use `WithTimeZone` only when an explicit timezone
+  conversion is required. Keep the timezone name with values whose intended
+  timezone must be preserved by your application.
 
 ## ✅ Testing
 
