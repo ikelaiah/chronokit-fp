@@ -5,7 +5,7 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-4.0+-60A5FA.svg)](https://www.lazarus-ide.org/)
 ![Supports Windows](https://img.shields.io/badge/support-Windows-F59E0B?logo=Windows)
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
-[![Version](https://img.shields.io/badge/version-1.1.0-8B5CF6.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
@@ -32,9 +32,9 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
 
 - 🌍 **Cross-Platform Timezone Support** - Works on Windows and Linux
 - ⏰ **50+ DateTime Functions** - Everything you need for date/time work
-- 💼 **Business Day Calculations** - Built-in workday calculations
+- 💼 **Business Calendars** - Configure holidays and alternative working weeks
 - 🎯 **Simple API** - Clean, easy-to-use function names
-- 🧪 **Well Tested** - 130+ tests ensure everything works
+- 🧪 **Well Tested** - 140+ tests ensure everything works
 - 📚 **Good Documentation** - Complete API reference with examples
 
 ## 📑 Table of Contents 
@@ -136,6 +136,26 @@ computer, and `WithTimeZone` is the separate operation for a conversion to an
 explicit timezone. Use the [Getting Started guide](docs/Getting-Started.md)
 before moving on to business days or timezones.
 
+Configure holidays when a Monday-to-Friday calculation needs local calendar
+rules:
+
+```pascal
+var
+  Calendar: TBusinessCalendar;
+  DueDate: TDateTime;
+begin
+  Calendar := TChronoKit.CreateBusinessCalendar([
+    EncodeDate(2026, 8, 10)
+  ]);
+  DueDate := TChronoKit.AddBusinessDays(
+    EncodeDate(2026, 8, 7), 5, Calendar
+  );
+end;
+```
+
+See [Business calendars](docs/Business-Calendars.md) for alternative working
+weeks and recipes for deadlines, reporting periods, and date ranges.
+
 ### 📅 DateTime Operations
 
 ```pascal
@@ -197,6 +217,7 @@ For detailed documentation, check out:
 
 - 🚀 [Getting Started](docs/Getting-Started.md) - First installation and date operations
 - 🛠️ [Troubleshooting](docs/Troubleshooting.md) - Search paths, formats, and platforms
+- 💼 [Business Calendars](docs/Business-Calendars.md) - Holidays, working weeks, and recipes
 - 📋 [API Cheat Sheet](docs/Cheat-Sheet.md) - Quick reference for all functions
 - 📖 [Complete Documentation](docs/ChronoKit-FP.md) - Full guide and examples
 

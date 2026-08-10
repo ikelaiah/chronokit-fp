@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-10
+
+### Added
+
+- `TBusinessCalendar`, `TBusinessWeek`, and `TBusinessWeekday` for explicit
+  working-week and holiday rules.
+- `CreateBusinessCalendar` factories and calendar-aware overloads for
+  `IsBusinessDay`, `NextBusinessDay`, `PreviousBusinessDay`, and
+  `AddBusinessDays`.
+- Business-calendar recipes for deadlines, reporting periods, and inclusive
+  date ranges.
+- Deterministic coverage for holidays, alternative working weeks, leap days,
+  month ends, week starts, zero-day additions, and preserved time values.
+
+### Changed
+
+- The `AddBusinessDays` example now demonstrates excluding a holiday.
+- Invalid `FromString`, `YMD`, `MDY`, `DMY`, and `YQ` input errors now identify
+  the rejected value and explain the expected format or range.
+
+### Compatibility
+
+- Existing business-day calls retain their Monday-to-Friday behavior and do
+  not exclude holidays unless a `TBusinessCalendar` is passed.
+- `NextBusinessDay` and `PreviousBusinessDay` remain strict, and adding zero
+  business days continues to return the original value unchanged.
+
 ## [1.1.0] - 2026-08-10
 
 ### Added

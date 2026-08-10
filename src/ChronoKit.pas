@@ -46,6 +46,26 @@ const
 type
   { Custom exceptions }
   ETimeZoneError = class(Exception);
+  EBusinessCalendarError = class(Exception);
+
+  { Days that may belong to a business calendar's working week. }
+  TBusinessWeekday = (
+    bwdSunday,
+    bwdMonday,
+    bwdTuesday,
+    bwdWednesday,
+    bwdThursday,
+    bwdFriday,
+    bwdSaturday
+  );
+  TBusinessWeek = set of TBusinessWeekday;
+  TBusinessHolidayArray = array of TDateTime;
+
+  { Explicit working-week and holiday rules for business-day calculations. }
+  TBusinessCalendar = record
+    WorkingDays: TBusinessWeek;
+    Holidays: TBusinessHolidayArray;
+  end;
 
   {$IFDEF WINDOWS}
   // Windows timezone structures
@@ -255,13 +275,20 @@ type
     repeatedly with the same timezone.
     
     @author ChronoKit Development Team
-    @version 1.1.0
+    @version 1.2.0
     @since Object Pascal / Free Pascal
     @see TDateTime for the underlying date/time type
     @see DateUtils for additional RTL date functions
   }
   TChronoKit = class
   private
+    class function DefaultBusinessCalendar: TBusinessCalendar; static;
+    class procedure ValidateBusinessCalendar(
+      const ACalendar: TBusinessCalendar); static;
+    class function IsHoliday(const AValue: TDateTime;
+      const ACalendar: TBusinessCalendar): Boolean; static;
+    class function IsBusinessDayUnchecked(const AValue: TDateTime;
+      const ACalendar: TBusinessCalendar): Boolean; static;
     {$IFDEF UNIX}
     // Helper functions for Unix platforms
     class function CalculateDSTDate(const Year, Month, Week, DayOfWeek, Hour: Integer): TDateTime; static;
@@ -1378,12 +1405,29 @@ type
     }
     class function IsSameYear(const AValue, ADateTime: TDateTime): Boolean; static;
     
-    { Business Day Functions
-      These functions help with business day calculations,
-      treating Monday-Friday as business days based on DayOfWeek results. }
+    { Business Day Functions }
+
+    {
+      @description Creates business-calendar rules from holidays and an optional
+                   explicit working week. The one-parameter overload uses Monday
+                   through Friday.
+
+      @param AWorkingDays Weekdays that count as working days.
+      @param AHolidays Dates excluded from the working week. Time portions are ignored.
+
+      @returns TBusinessCalendar - Rules for the configurable business-day overloads.
+
+      @raises EBusinessCalendarError when AWorkingDays is empty.
+    }
+    class function CreateBusinessCalendar(
+      const AHolidays: array of TDateTime): TBusinessCalendar; overload; static;
+    class function CreateBusinessCalendar(const AWorkingDays: TBusinessWeek;
+      const AHolidays: array of TDateTime): TBusinessCalendar; overload; static;
     
     {
-      @description Checks if a given TDateTime value falls on a business day (Monday to Friday).
+      @description Checks whether a date is a business day. Without a calendar,
+                   Monday through Friday are business days. The calendar overload
+                   also applies its working week and holidays.
       
       @usage Use to determine if a specific date is a weekday or weekend.
       
@@ -1391,8 +1435,7 @@ type
         
       @returns Boolean - True if the day of the week is Monday (2) through Friday (6), False otherwise.
       
-      @warning Considers only Saturday (7) and Sunday (1) as non-business days. Does not account
-               for public holidays. Uses the 1=Sunday..7=Saturday convention.
+      @warning The overload without ACalendar does not account for holidays.
       
       @example
         var
@@ -1406,11 +1449,13 @@ type
           IsWorkday := TChronoKit.IsBusinessDay(Sunday); // False
         end;
     }
-    class function IsBusinessDay(const AValue: TDateTime): Boolean; static;
+    class function IsBusinessDay(const AValue: TDateTime): Boolean; overload; static;
+    class function IsBusinessDay(const AValue: TDateTime;
+      const ACalendar: TBusinessCalendar): Boolean; overload; static;
     
     {
-      @description Finds the next business day (Monday-Friday) following the given date.
-                   If the given date is already a business day, it finds the next one.
+      @description Finds the next business day strictly after the given date.
+                   The calendar overload applies configured weekdays and holidays.
       
       @usage Use to calculate deadlines or follow-up dates that must fall on a workday.
       
@@ -1418,8 +1463,8 @@ type
         
       @returns TDateTime - The date of the next business day.
       
-      @warning If the input is Friday, returns the following Monday. If Saturday or Sunday,
-               returns the following Monday. Does not account for holidays.
+      @warning The overload without ACalendar uses Monday through Friday and
+               does not account for holidays.
       
       @example
         var
@@ -1435,11 +1480,13 @@ type
           // NextDay is Monday, July 15, 2024
         end;
     }
-    class function NextBusinessDay(const AValue: TDateTime): TDateTime; static;
+    class function NextBusinessDay(const AValue: TDateTime): TDateTime; overload; static;
+    class function NextBusinessDay(const AValue: TDateTime;
+      const ACalendar: TBusinessCalendar): TDateTime; overload; static;
     
     {
-      @description Finds the previous business day (Monday-Friday) before the given date.
-                   If the given date is already a business day, it finds the previous one.
+      @description Finds the previous business day strictly before the given date.
+                   The calendar overload applies configured weekdays and holidays.
       
       @usage Use to find the last workday before a specific date.
       
@@ -1447,8 +1494,8 @@ type
         
       @returns TDateTime - The date of the previous business day.
       
-      @warning If the input is Monday, returns the preceding Friday. If Sunday or Saturday,
-               returns the preceding Friday. Does not account for holidays.
+      @warning The overload without ACalendar uses Monday through Friday and
+               does not account for holidays.
       
       @example
         var
@@ -1464,11 +1511,13 @@ type
           // PrevDay is Friday, July 12, 2024
         end;
     }
-    class function PreviousBusinessDay(const AValue: TDateTime): TDateTime; static;
+    class function PreviousBusinessDay(const AValue: TDateTime): TDateTime; overload; static;
+    class function PreviousBusinessDay(const AValue: TDateTime;
+      const ACalendar: TBusinessCalendar): TDateTime; overload; static;
     
     {
-      @description Adds (or subtracts if negative) a specified number of business days (Mon-Fri)
-                   to a TDateTime value, skipping weekends.
+      @description Adds or subtracts business days. The calendar overload applies
+                   configured weekdays and holidays.
       
       @usage Use to calculate work-related deadlines or schedules, like "due in 5 business days".
       
@@ -1477,9 +1526,8 @@ type
         
       @returns TDateTime - A new date adjusted by the specified number of business days.
       
-      @warning Skips Saturdays and Sundays when counting. Does not account for public holidays.
-               Adding/subtracting 0 days returns the next/previous business day if the start date
-               is not a business day, otherwise returns the start date.
+      @warning The overload without ACalendar skips Saturdays and Sundays but
+               not holidays. Zero days always returns AValue unchanged.
       
       @example
         var
@@ -1494,7 +1542,10 @@ type
           // DueDate is Thursday, July 11, 2024 (Skips Sun, Sat)
         end;
     }
-    class function AddBusinessDays(const AValue: TDateTime; const ADays: Integer): TDateTime; static;
+    class function AddBusinessDays(const AValue: TDateTime;
+      const ADays: Integer): TDateTime; overload; static;
+    class function AddBusinessDays(const AValue: TDateTime; const ADays: Integer;
+      const ACalendar: TBusinessCalendar): TDateTime; overload; static;
     
     {
       @description Returns the calendar quarter (1-4) for the given date.
@@ -2823,7 +2874,10 @@ begin
     end;
     
     // If both failed, raise an exception
-    raise EConvertError.CreateFmt('Could not convert "%s" to date/time', [AValue]);
+    raise EConvertError.CreateFmt(
+      'Invalid date/time input "%s". Expected a valid value in the system ' +
+      'date/time format using "-" or "/" as the date separator',
+      [AValue]);
   end
   else
   begin
@@ -2832,7 +2886,9 @@ begin
       Result := ScanDateTime(AFormat, AValue);
     except
       on E: Exception do
-        raise EConvertError.CreateFmt('Could not convert "%s" to date/time using format "%s"', [AValue, AFormat]);
+        raise EConvertError.CreateFmt(
+          'Invalid date/time input "%s". Expected format "%s" with valid calendar values',
+          [AValue, AFormat]);
     end;
   end;
 end;
@@ -3132,52 +3188,132 @@ begin
   Result := Y1 = Y2;
 end;
 
-class function TChronoKit.IsBusinessDay(const AValue: TDateTime): Boolean;
-var
-  DayOfWeek: Integer;
+class function TChronoKit.DefaultBusinessCalendar: TBusinessCalendar;
 begin
-  // Get day of week (1=Sunday, 2=Monday, ..., 7=Saturday)
-  DayOfWeek := GetDayOfWeek(AValue);
-  // Check if it's Monday through Friday (2-6)
-  Result := (DayOfWeek > 1) and (DayOfWeek < 7);
+  Result.WorkingDays := [bwdMonday, bwdTuesday, bwdWednesday, bwdThursday,
+    bwdFriday];
+  Result.Holidays := nil;
+end;
+
+class procedure TChronoKit.ValidateBusinessCalendar(
+  const ACalendar: TBusinessCalendar);
+begin
+  if ACalendar.WorkingDays = [] then
+    raise EBusinessCalendarError.Create(
+      'Invalid business calendar: select at least one working day');
+end;
+
+class function TChronoKit.IsHoliday(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): Boolean;
+var
+  I: Integer;
+begin
+  for I := Low(ACalendar.Holidays) to High(ACalendar.Holidays) do
+    if SameDate(AValue, ACalendar.Holidays[I]) then
+      Exit(True);
+  Result := False;
+end;
+
+class function TChronoKit.IsBusinessDayUnchecked(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): Boolean;
+var
+  Weekday: TBusinessWeekday;
+begin
+  Weekday := TBusinessWeekday(GetDayOfWeek(AValue) - 1);
+  Result := (Weekday in ACalendar.WorkingDays) and
+    not IsHoliday(AValue, ACalendar);
+end;
+
+class function TChronoKit.CreateBusinessCalendar(
+  const AHolidays: array of TDateTime): TBusinessCalendar;
+begin
+  Result := CreateBusinessCalendar(DefaultBusinessCalendar.WorkingDays,
+    AHolidays);
+end;
+
+class function TChronoKit.CreateBusinessCalendar(
+  const AWorkingDays: TBusinessWeek;
+  const AHolidays: array of TDateTime): TBusinessCalendar;
+var
+  I: Integer;
+begin
+  Result.WorkingDays := AWorkingDays;
+  SetLength(Result.Holidays, Length(AHolidays));
+  for I := Low(AHolidays) to High(AHolidays) do
+    Result.Holidays[I] := AHolidays[I];
+  ValidateBusinessCalendar(Result);
+end;
+
+class function TChronoKit.IsBusinessDay(const AValue: TDateTime): Boolean;
+begin
+  Result := IsBusinessDayUnchecked(AValue, DefaultBusinessCalendar);
+end;
+
+class function TChronoKit.IsBusinessDay(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): Boolean;
+begin
+  ValidateBusinessCalendar(ACalendar);
+  Result := IsBusinessDayUnchecked(AValue, ACalendar);
 end;
 
 class function TChronoKit.NextBusinessDay(const AValue: TDateTime): TDateTime;
 begin
+  Result := NextBusinessDay(AValue, DefaultBusinessCalendar);
+end;
+
+class function TChronoKit.NextBusinessDay(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): TDateTime;
+begin
+  ValidateBusinessCalendar(ACalendar);
   Result := AValue;
-  // Keep adding days until we find a business day
   repeat
     Result := AddDays(Result, 1);
-  until IsBusinessDay(Result);
+  until IsBusinessDayUnchecked(Result, ACalendar);
 end;
 
-class function TChronoKit.PreviousBusinessDay(const AValue: TDateTime): TDateTime;
+class function TChronoKit.PreviousBusinessDay(
+  const AValue: TDateTime): TDateTime;
 begin
+  Result := PreviousBusinessDay(AValue, DefaultBusinessCalendar);
+end;
+
+class function TChronoKit.PreviousBusinessDay(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): TDateTime;
+begin
+  ValidateBusinessCalendar(ACalendar);
   Result := AValue;
-  // Keep subtracting days until we find a business day
   repeat
     Result := AddDays(Result, -1);
-  until IsBusinessDay(Result);
+  until IsBusinessDayUnchecked(Result, ACalendar);
 end;
 
-class function TChronoKit.AddBusinessDays(const AValue: TDateTime; const ADays: Integer): TDateTime;
-var
-  Step, RemainingDays: Integer;
+class function TChronoKit.AddBusinessDays(const AValue: TDateTime;
+  const ADays: Integer): TDateTime;
 begin
+  Result := AddBusinessDays(AValue, ADays, DefaultBusinessCalendar);
+end;
+
+class function TChronoKit.AddBusinessDays(const AValue: TDateTime;
+  const ADays: Integer; const ACalendar: TBusinessCalendar): TDateTime;
+var
+  Step: Integer;
+  RemainingDays: Int64;
+begin
+  ValidateBusinessCalendar(ACalendar);
   Result := AValue;
   if ADays = 0 then
     Exit;
-    
-  // Determine direction (1 for forward, -1 for backward)
-  Step := ADays div Abs(ADays);
-  // Get absolute number of days to add/subtract
-  RemainingDays := Abs(ADays);
-  
-  // Keep adding/subtracting days until we've found enough business days
+
+  if ADays < 0 then
+    Step := -1
+  else
+    Step := 1;
+  RemainingDays := Abs(Int64(ADays));
+
   while RemainingDays > 0 do
   begin
     Result := AddDays(Result, Step);
-    if IsBusinessDay(Result) then
+    if IsBusinessDayUnchecked(Result, ACalendar) then
       Dec(RemainingDays);
   end;
 end;
@@ -3566,7 +3702,9 @@ begin
     if TryStrToDate(AValue, Value, FormatSettings) then
       Result := Value
     else
-      raise EConvertError.Create('Invalid YMD format. Expected YYYY-MM-DD or YYYY/MM/DD');
+      raise EConvertError.CreateFmt(
+        'Invalid YMD date "%s". Expected YYYY-MM-DD or YYYY/MM/DD with a valid calendar date',
+        [AValue]);
   end;
 end;
 
@@ -3587,7 +3725,10 @@ begin
     if TryStrToDate(AValue, Value, FormatSettings) then
       Result := Value
     else
-      raise EConvertError.Create('Invalid MDY format. Expected MM-DD-YYYY or MM/DD/YYYY');
+      raise EConvertError.CreateFmt(
+        'Invalid MDY date "%s". Expected MM-DD-YYYY or MM/DD/YYYY with a ' +
+        'valid calendar date; two-digit years are also accepted',
+        [AValue]);
   end;
 end;
 
@@ -3608,7 +3749,10 @@ begin
     if TryStrToDate(AValue, Value, FormatSettings) then
       Result := Value
     else
-      raise EConvertError.Create('Invalid DMY format. Expected DD-MM-YYYY or DD/MM/YYYY');
+      raise EConvertError.CreateFmt(
+        'Invalid DMY date "%s". Expected DD-MM-YYYY or DD/MM/YYYY with a ' +
+        'valid calendar date; two-digit years are also accepted',
+        [AValue]);
   end;
 end;
 
@@ -3624,15 +3768,22 @@ begin
     // If hyphen didn't work, try slash
     Parts := SplitString(AValue, '/');
     if Length(Parts) <> 2 then
-      raise EConvertError.Create('Invalid YQ format. Expected YYYY-Q or YYYY/Q');
+      raise EConvertError.CreateFmt(
+        'Invalid YQ value "%s". Expected YYYY-Q or YYYY/Q', [AValue]);
   end;
     
   if not TryStrToInt(Parts[0], Year) or
      not TryStrToInt(Parts[1], Quarter) then
-    raise EConvertError.Create('Invalid YQ format. All parts must be numbers');
+    raise EConvertError.CreateFmt(
+      'Invalid YQ value "%s". Year and quarter must be numbers', [AValue]);
+
+  if (Year < 1) or (Year > 9999) then
+    raise EConvertError.CreateFmt(
+      'Invalid YQ value "%s". Year must be between 1 and 9999', [AValue]);
     
   if (Quarter < 1) or (Quarter > 4) then
-    raise EConvertError.Create('Invalid quarter value. Must be between 1 and 4');
+    raise EConvertError.CreateFmt(
+      'Invalid YQ value "%s". Quarter must be between 1 and 4', [AValue]);
     
   // Convert quarter to month (Q1=1, Q2=4, Q3=7, Q4=10)
   Result := EncodeDate(Year, 1 + (Quarter - 1) * 3, 1);

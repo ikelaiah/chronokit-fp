@@ -51,6 +51,8 @@ date/time, and a timezone conversion without inferring missing setup steps.
 
 ## 1.2.0 — Business calendars
 
+**Status:** Released 2026-08-10
+
 Extend the existing Monday-to-Friday business-day helpers without surprising
 current users.
 

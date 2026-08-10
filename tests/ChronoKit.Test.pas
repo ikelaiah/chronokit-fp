@@ -59,6 +59,21 @@ type
     procedure Test31_NextBusinessDay;
     procedure Test32_PreviousBusinessDay;
     procedure Test33_AddBusinessDays;
+    procedure Test131_DefaultBusinessCalendarCompatibility;
+    procedure Test132_BusinessCalendarHolidays;
+    procedure Test133_AlternativeWorkingWeek;
+    procedure Test134_ConfiguredBusinessDayNavigation;
+    procedure Test135_InvalidBusinessCalendar;
+    procedure Test136_LeapDayHolidayBoundary;
+    procedure Test137_MonthEndBusinessDayBoundary;
+    procedure Test138_WeekStartBusinessDayBoundary;
+    procedure Test139_ZeroBusinessDaysPreservesInput;
+    procedure Test140_YMDValidationMessage;
+    procedure Test141_MDYValidationMessage;
+    procedure Test142_DMYValidationMessage;
+    procedure Test143_YQValidationMessage;
+    procedure Test144_FromStringValidationMessage;
+    procedure Test145_YQYearValidationMessage;
     // Time Span Tests
     procedure Test34_CreatePeriod;
     procedure Test35_CreateDuration;
@@ -678,6 +693,277 @@ begin
   AssertEquals('AddBusinessDays should skip weekends',
     Expected, TChronoKit.AddBusinessDays(StartDate, 4));
   WriteLn('Test33_AddBusinessDays:Finished');
+end;
+
+procedure TDateTimeTests.Test131_DefaultBusinessCalendarCompatibility;
+var
+  Friday: TDateTime;
+begin
+  WriteLn('Test131_DefaultBusinessCalendarCompatibility:Starting');
+  Friday := EncodeDate(2026, 12, 25);
+
+  AssertTrue('Legacy IsBusinessDay should still treat Friday as a business day',
+    TChronoKit.IsBusinessDay(Friday));
+  AssertEquals('Legacy AddBusinessDays should still use Monday through Friday',
+    Friday, TChronoKit.AddBusinessDays(EncodeDate(2026, 12, 24), 1));
+  WriteLn('Test131_DefaultBusinessCalendarCompatibility:Finished');
+end;
+
+procedure TDateTimeTests.Test132_BusinessCalendarHolidays;
+var
+  Calendar: TBusinessCalendar;
+  Holiday, Tuesday: TDateTime;
+begin
+  WriteLn('Test132_BusinessCalendarHolidays:Starting');
+  Holiday := EncodeDateTime(2024, 1, 1, 12, 30, 0, 0);
+  Tuesday := EncodeDate(2024, 1, 2);
+  Calendar := TChronoKit.CreateBusinessCalendar([Holiday]);
+
+  AssertFalse('Configured holiday should not be a business day',
+    TChronoKit.IsBusinessDay(EncodeDate(2024, 1, 1), Calendar));
+  AssertTrue('Non-holiday weekday should remain a business day',
+    TChronoKit.IsBusinessDay(Tuesday, Calendar));
+  WriteLn('Test132_BusinessCalendarHolidays:Finished');
+end;
+
+procedure TDateTimeTests.Test133_AlternativeWorkingWeek;
+var
+  Calendar: TBusinessCalendar;
+  Sunday, Friday: TDateTime;
+begin
+  WriteLn('Test133_AlternativeWorkingWeek:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar(
+    [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday], []);
+  Sunday := EncodeDate(2024, 1, 7);
+  Friday := EncodeDate(2024, 1, 5);
+
+  AssertTrue('Sunday should be configurable as a working day',
+    TChronoKit.IsBusinessDay(Sunday, Calendar));
+  AssertFalse('Friday should be configurable as a non-working day',
+    TChronoKit.IsBusinessDay(Friday, Calendar));
+  WriteLn('Test133_AlternativeWorkingWeek:Finished');
+end;
+
+procedure TDateTimeTests.Test134_ConfiguredBusinessDayNavigation;
+var
+  Calendar: TBusinessCalendar;
+  Friday, MondayHoliday, Tuesday: TDateTime;
+begin
+  WriteLn('Test134_ConfiguredBusinessDayNavigation:Starting');
+  Friday := EncodeDate(2023, 12, 29);
+  MondayHoliday := EncodeDate(2024, 1, 1);
+  Tuesday := EncodeDate(2024, 1, 2);
+  Calendar := TChronoKit.CreateBusinessCalendar([MondayHoliday]);
+
+  AssertEquals('NextBusinessDay should skip weekends and holidays',
+    Tuesday, TChronoKit.NextBusinessDay(Friday, Calendar));
+  AssertEquals('PreviousBusinessDay should skip weekends and holidays',
+    Friday, TChronoKit.PreviousBusinessDay(Tuesday, Calendar));
+  AssertEquals('AddBusinessDays should skip holidays when moving forward',
+    Tuesday, TChronoKit.AddBusinessDays(Friday, 1, Calendar));
+  AssertEquals('AddBusinessDays should skip holidays when moving backward',
+    Friday, TChronoKit.AddBusinessDays(Tuesday, -1, Calendar));
+  WriteLn('Test134_ConfiguredBusinessDayNavigation:Finished');
+end;
+
+procedure TDateTimeTests.Test135_InvalidBusinessCalendar;
+var
+  Calendar: TBusinessCalendar;
+begin
+  WriteLn('Test135_InvalidBusinessCalendar:Starting');
+  try
+    TChronoKit.CreateBusinessCalendar([], []);
+    Fail('CreateBusinessCalendar should reject an empty working week');
+  except
+    on E: EBusinessCalendarError do
+      AssertTrue('Calendar validation should explain the working-day requirement',
+        Pos('working day', LowerCase(E.Message)) > 0);
+  end;
+
+  Calendar.WorkingDays := [];
+  SetLength(Calendar.Holidays, 0);
+  try
+    TChronoKit.NextBusinessDay(EncodeDate(2024, 1, 1), Calendar);
+    Fail('Business-day operations should reject directly assigned invalid calendars');
+  except
+    on E: EBusinessCalendarError do
+      AssertTrue('Operation validation should explain the working-day requirement',
+        Pos('working day', LowerCase(E.Message)) > 0);
+  end;
+  WriteLn('Test135_InvalidBusinessCalendar:Finished');
+end;
+
+procedure TDateTimeTests.Test136_LeapDayHolidayBoundary;
+var
+  Calendar: TBusinessCalendar;
+  StartDate, Expected: TDateTime;
+begin
+  WriteLn('Test136_LeapDayHolidayBoundary:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar([EncodeDate(2024, 2, 29)]);
+  StartDate := EncodeDateTime(2024, 2, 28, 15, 45, 30, 125);
+  Expected := EncodeDateTime(2024, 3, 1, 15, 45, 30, 125);
+
+  AssertEquals('A leap-day holiday should be skipped and preserve the time',
+    Expected, TChronoKit.AddBusinessDays(StartDate, 1, Calendar));
+  WriteLn('Test136_LeapDayHolidayBoundary:Finished');
+end;
+
+procedure TDateTimeTests.Test137_MonthEndBusinessDayBoundary;
+var
+  Calendar: TBusinessCalendar;
+  January30, January31Holiday, February1: TDateTime;
+begin
+  WriteLn('Test137_MonthEndBusinessDayBoundary:Starting');
+  January30 := EncodeDate(2024, 1, 30);
+  January31Holiday := EncodeDate(2024, 1, 31);
+  February1 := EncodeDate(2024, 2, 1);
+  Calendar := TChronoKit.CreateBusinessCalendar([January31Holiday]);
+
+  AssertEquals('Forward calculation should cross month end after a holiday',
+    February1, TChronoKit.AddBusinessDays(January30, 1, Calendar));
+  AssertEquals('Backward calculation should cross month end after a holiday',
+    January30, TChronoKit.AddBusinessDays(February1, -1, Calendar));
+  WriteLn('Test137_MonthEndBusinessDayBoundary:Finished');
+end;
+
+procedure TDateTimeTests.Test138_WeekStartBusinessDayBoundary;
+var
+  Calendar: TBusinessCalendar;
+  Thursday, Sunday: TDateTime;
+begin
+  WriteLn('Test138_WeekStartBusinessDayBoundary:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar(
+    [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday], []);
+  Thursday := EncodeDate(2024, 1, 4);
+  Sunday := EncodeDate(2024, 1, 7);
+
+  AssertEquals('Next business day should honor a Sunday week start',
+    Sunday, TChronoKit.NextBusinessDay(Thursday, Calendar));
+  AssertEquals('Previous business day should remain strict at the week start',
+    Thursday, TChronoKit.PreviousBusinessDay(Sunday, Calendar));
+  WriteLn('Test138_WeekStartBusinessDayBoundary:Finished');
+end;
+
+procedure TDateTimeTests.Test139_ZeroBusinessDaysPreservesInput;
+var
+  Calendar: TBusinessCalendar;
+  Saturday: TDateTime;
+begin
+  WriteLn('Test139_ZeroBusinessDaysPreservesInput:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar([]);
+  Saturday := EncodeDateTime(2024, 1, 6, 9, 15, 30, 250);
+
+  AssertEquals('Zero business days should return the exact input value',
+    Saturday, TChronoKit.AddBusinessDays(Saturday, 0, Calendar));
+  WriteLn('Test139_ZeroBusinessDaysPreservesInput:Finished');
+end;
+
+procedure TDateTimeTests.Test140_YMDValidationMessage;
+begin
+  WriteLn('Test140_YMDValidationMessage:Starting');
+  try
+    TChronoKit.YMD('2024-02-30');
+    Fail('YMD should reject a day outside the calendar month');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('YMD error should include the rejected input',
+        Pos('2024-02-30', E.Message) > 0);
+      AssertTrue('YMD error should show the accepted shape',
+        Pos('YYYY-MM-DD', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test140_YMDValidationMessage:Finished');
+end;
+
+procedure TDateTimeTests.Test141_MDYValidationMessage;
+begin
+  WriteLn('Test141_MDYValidationMessage:Starting');
+  try
+    TChronoKit.MDY('02-30-2024');
+    Fail('MDY should reject a day outside the calendar month');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('MDY error should include the rejected input',
+        Pos('02-30-2024', E.Message) > 0);
+      AssertTrue('MDY error should show the accepted shape',
+        Pos('MM-DD-YYYY', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test141_MDYValidationMessage:Finished');
+end;
+
+procedure TDateTimeTests.Test142_DMYValidationMessage;
+begin
+  WriteLn('Test142_DMYValidationMessage:Starting');
+  try
+    TChronoKit.DMY('30-02-2024');
+    Fail('DMY should reject a day outside the calendar month');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('DMY error should include the rejected input',
+        Pos('30-02-2024', E.Message) > 0);
+      AssertTrue('DMY error should show the accepted shape',
+        Pos('DD-MM-YYYY', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test142_DMYValidationMessage:Finished');
+end;
+
+procedure TDateTimeTests.Test143_YQValidationMessage;
+begin
+  WriteLn('Test143_YQValidationMessage:Starting');
+  try
+    TChronoKit.YQ('2024-5');
+    Fail('YQ should reject a quarter outside 1 through 4');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('YQ error should include the rejected input',
+        Pos('2024-5', E.Message) > 0);
+      AssertTrue('YQ error should explain the valid quarter range',
+        Pos('between 1 and 4', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test143_YQValidationMessage:Finished');
+end;
+
+procedure TDateTimeTests.Test144_FromStringValidationMessage;
+begin
+  WriteLn('Test144_FromStringValidationMessage:Starting');
+  try
+    TChronoKit.FromString('not-a-date');
+    Fail('FromString should reject invalid date/time input');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('FromString error should include the rejected input',
+        Pos('not-a-date', E.Message) > 0);
+      AssertTrue('FromString error should explain the expected input',
+        Pos('system date/time format', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test144_FromStringValidationMessage:Finished');
+end;
+
+procedure TDateTimeTests.Test145_YQYearValidationMessage;
+begin
+  WriteLn('Test145_YQYearValidationMessage:Starting');
+  try
+    TChronoKit.YQ('0-1');
+    Fail('YQ should reject a year outside the TDateTime range');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('YQ year error should include the rejected input',
+        Pos('0-1', E.Message) > 0);
+      AssertTrue('YQ year error should explain the valid year range',
+        Pos('between 1 and 9999', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test145_YQYearValidationMessage:Finished');
 end;
 
 procedure TDateTimeTests.Test34_CreatePeriod;
