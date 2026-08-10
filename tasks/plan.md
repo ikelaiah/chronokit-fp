@@ -40,8 +40,8 @@ recipes and release documentation.
 
 ### Phase 2: Boundaries and validation
 
-- [ ] Task 4: Add failing leap-year, month-end, week-start, zero-day, and
-  time-preservation tests, then satisfy them.
+- [x] Task 4: Add leap-year, month-end, week-start, zero-day, and
+  time-preservation contract tests.
 - [ ] Task 5: Add failing assertions for actionable invalid-date messages,
   then update the parsing errors.
 

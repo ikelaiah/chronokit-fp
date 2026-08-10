@@ -64,6 +64,10 @@ type
     procedure Test133_AlternativeWorkingWeek;
     procedure Test134_ConfiguredBusinessDayNavigation;
     procedure Test135_InvalidBusinessCalendar;
+    procedure Test136_LeapDayHolidayBoundary;
+    procedure Test137_MonthEndBusinessDayBoundary;
+    procedure Test138_WeekStartBusinessDayBoundary;
+    procedure Test139_ZeroBusinessDaysPreservesInput;
     // Time Span Tests
     procedure Test34_CreatePeriod;
     procedure Test35_CreateDuration;
@@ -781,6 +785,71 @@ begin
         Pos('working day', LowerCase(E.Message)) > 0);
   end;
   WriteLn('Test135_InvalidBusinessCalendar:Finished');
+end;
+
+procedure TDateTimeTests.Test136_LeapDayHolidayBoundary;
+var
+  Calendar: TBusinessCalendar;
+  StartDate, Expected: TDateTime;
+begin
+  WriteLn('Test136_LeapDayHolidayBoundary:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar([EncodeDate(2024, 2, 29)]);
+  StartDate := EncodeDateTime(2024, 2, 28, 15, 45, 30, 125);
+  Expected := EncodeDateTime(2024, 3, 1, 15, 45, 30, 125);
+
+  AssertEquals('A leap-day holiday should be skipped and preserve the time',
+    Expected, TChronoKit.AddBusinessDays(StartDate, 1, Calendar));
+  WriteLn('Test136_LeapDayHolidayBoundary:Finished');
+end;
+
+procedure TDateTimeTests.Test137_MonthEndBusinessDayBoundary;
+var
+  Calendar: TBusinessCalendar;
+  January30, January31Holiday, February1: TDateTime;
+begin
+  WriteLn('Test137_MonthEndBusinessDayBoundary:Starting');
+  January30 := EncodeDate(2024, 1, 30);
+  January31Holiday := EncodeDate(2024, 1, 31);
+  February1 := EncodeDate(2024, 2, 1);
+  Calendar := TChronoKit.CreateBusinessCalendar([January31Holiday]);
+
+  AssertEquals('Forward calculation should cross month end after a holiday',
+    February1, TChronoKit.AddBusinessDays(January30, 1, Calendar));
+  AssertEquals('Backward calculation should cross month end after a holiday',
+    January30, TChronoKit.AddBusinessDays(February1, -1, Calendar));
+  WriteLn('Test137_MonthEndBusinessDayBoundary:Finished');
+end;
+
+procedure TDateTimeTests.Test138_WeekStartBusinessDayBoundary;
+var
+  Calendar: TBusinessCalendar;
+  Thursday, Sunday: TDateTime;
+begin
+  WriteLn('Test138_WeekStartBusinessDayBoundary:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar(
+    [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday], []);
+  Thursday := EncodeDate(2024, 1, 4);
+  Sunday := EncodeDate(2024, 1, 7);
+
+  AssertEquals('Next business day should honor a Sunday week start',
+    Sunday, TChronoKit.NextBusinessDay(Thursday, Calendar));
+  AssertEquals('Previous business day should remain strict at the week start',
+    Thursday, TChronoKit.PreviousBusinessDay(Sunday, Calendar));
+  WriteLn('Test138_WeekStartBusinessDayBoundary:Finished');
+end;
+
+procedure TDateTimeTests.Test139_ZeroBusinessDaysPreservesInput;
+var
+  Calendar: TBusinessCalendar;
+  Saturday: TDateTime;
+begin
+  WriteLn('Test139_ZeroBusinessDaysPreservesInput:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar([]);
+  Saturday := EncodeDateTime(2024, 1, 6, 9, 15, 30, 250);
+
+  AssertEquals('Zero business days should return the exact input value',
+    Saturday, TChronoKit.AddBusinessDays(Saturday, 0, Calendar));
+  WriteLn('Test139_ZeroBusinessDaysPreservesInput:Finished');
 end;
 
 procedure TDateTimeTests.Test34_CreatePeriod;

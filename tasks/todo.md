@@ -5,7 +5,7 @@
 - [x] Business-calendar API contract published and reviewed
 - [x] Backwards-compatible configurable business-day API implemented
 - [x] Holidays and alternative working weeks tested
-- [ ] Leap-year, month-end, week-start, and zero-day behavior tested
+- [x] Leap-year, month-end, week-start, and zero-day behavior tested
 - [ ] Invalid-date validation messages improved and tested
 - [ ] Reporting-period, deadline, and date-range recipes added
 - [ ] README, API guide, cheat sheet, changelog, roadmap, and release docs updated
