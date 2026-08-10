@@ -27,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Linux compilation with Free Pascal 3.2.2 by avoiding a Windows-only numeric
   `IfThen` overload in timezone-offset parsing.
-- Windows CI compiler discovery after Chocolatey installation.
+- Windows CI compiler discovery and FPCUnit unit lookup after Chocolatey
+  installation.
 
 ## [1.0.0] - 2025-07-20
 

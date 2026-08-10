@@ -36,7 +36,7 @@ Closes # (not applicable; release milestone)
 - [x] Ran the quick-start and business-day examples; their output is
   deterministic.
 - [x] Fixed the Linux Free Pascal 3.2.2 compilation error in timezone-offset
-  parsing and Windows Chocolatey compiler discovery.
+  parsing and Windows Chocolatey compiler/FPCUnit discovery.
 
 ### Windows (PowerShell)
 

@@ -56,7 +56,7 @@ jobs:
         shell: pwsh
         working-directory: tests
         run: |
-          fpc "-Fu$env:GITHUB_WORKSPACE\src" TestRunner.lpr
+          fpc "-FuC:\tools\freepascal\units\i386-win32\fcl-fpcunit" "-Fu$env:GITHUB_WORKSPACE\src" TestRunner.lpr
           .\TestRunner.exe -a --format=plain
 
       - name: Compile and run tests on Linux
