@@ -5,7 +5,7 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-4.0+-60A5FA.svg)](https://www.lazarus-ide.org/)
 ![Supports Windows](https://img.shields.io/badge/support-Windows-F59E0B?logo=Windows)
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
-[![Version](https://img.shields.io/badge/version-1.2.0-8B5CF6.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.3.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
@@ -133,8 +133,10 @@ Use `TChronoKit.GetToday` when you need the current date at midnight and
 `TDateTime` value does not retain a timezone name: a date is conventionally a
 `TDateTime` at midnight, a local date/time is a wall-clock value from the
 computer, and `WithTimeZone` is the separate operation for a conversion to an
-explicit timezone. Use the [Getting Started guide](docs/Getting-Started.md)
-before moving on to business days or timezones.
+explicit timezone. `UTC` is the only identifier guaranteed on Windows and
+Linux; other identifiers use each platform's native naming system. Read the
+[timezone contract](docs/Timezone-Contract.md) before relying on named zones or
+DST-boundary behavior.
 
 Configure holidays when a Monday-to-Friday calculation needs local calendar
 rules:
@@ -218,6 +220,7 @@ For detailed documentation, check out:
 - 🚀 [Getting Started](docs/Getting-Started.md) - First installation and date operations
 - 🛠️ [Troubleshooting](docs/Troubleshooting.md) - Search paths, formats, and platforms
 - 💼 [Business Calendars](docs/Business-Calendars.md) - Holidays, working weeks, and recipes
+- 🌐 [Timezone Contract](docs/Timezone-Contract.md) - Identifiers, conversion semantics, and DST failures
 - 📋 [API Cheat Sheet](docs/Cheat-Sheet.md) - Quick reference for all functions
 - 📖 [Complete Documentation](docs/ChronoKit-FP.md) - Full guide and examples
 
@@ -240,9 +243,9 @@ You can use ChronoKit-FP to build all kinds of applications:
 
 - **Platform Support**: Currently works on Windows 11 and Ubuntu 24.04.
 - **Timezone Database**: Linux systems need timezone data installed (usually comes with most distributions).
-- **Timezone handling**: Use `WithTimeZone` only when an explicit timezone
-  conversion is required. Keep the timezone name with values whose intended
-  timezone must be preserved by your application.
+- **Timezone handling**: `UTC` is portable; IANA and Windows identifiers are
+  platform-native. Keep the timezone name beside every `TDateTime` whose zone
+  must be known later, and handle `ETimeZoneError` at DST discontinuities.
 
 ## ✅ Testing
 
@@ -252,7 +255,7 @@ on Windows:
 ```powershell
 cd tests
 $sourcePath = (Resolve-Path ../src).Path
-fpc "-Fu$sourcePath" TestRunner.lpr
+fpc "-FU." "-Fu$sourcePath" TestRunner.lpr
 .\TestRunner.exe -a --format=plain
 ```
 
@@ -260,7 +263,7 @@ On Linux:
 
 ```bash
 cd tests
-fpc "-Fu$(pwd)/../src" TestRunner.lpr
+fpc "-FU." "-Fu$(pwd)/../src" TestRunner.lpr
 ./TestRunner -a --format=plain
 ```
 

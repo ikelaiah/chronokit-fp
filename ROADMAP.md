@@ -70,6 +70,8 @@ keeps its current behaviour by default, and edge cases are documented.
 
 ## 1.3.0 — Timezone contract and regression suite
 
+**Status:** Released 2026-08-11
+
 Define what the existing timezone API must mean before changing its
 implementation. This is a correctness release, not a feature-expansion
 release.

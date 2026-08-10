@@ -148,52 +148,30 @@ RoundToYear := TChronoKit.CeilingDate(Now, duYear);     // 2023-04-15 -> 2024-01
 ```
 
 ### Timezone Operations
+
 ```pascal
-// Timezone information
-TZInfo := TChronoKit.GetTimeZone(Now);
+// AValue is interpreted in the computer's system timezone.
+TZInfo := TChronoKit.GetTimeZone(AValue);
 WriteLn('Timezone: ', TZInfo.Name);
-WriteLn('Offset: ', TZInfo.Offset, ' minutes');
+WriteLn('Offset east of UTC: ', TZInfo.Offset, ' minutes');
 WriteLn('DST: ', BoolToStr(TZInfo.IsDST, True));
 
-// Get available timezones
+// Preserve the instant and return its UTC wall-clock representation.
+UTCValue := TChronoKit.WithTimeZone(AValue, 'UTC');
+
+// Interpret a UTC wall clock and return the equivalent system-local value.
+LocalValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
+
+// UTC is the only portable identifier. Other exact names come from the OS.
 TZNames := TChronoKit.GetTimeZoneNames;
-for I := Low(TZNames) to High(TZNames) do
-  WriteLn(TZNames[I]);
-
-// Cross-platform environment variable handling
-// Save original timezone
-OriginalTZ := GetEnvVar('TZ');
-try
-  // Set timezone for testing
-  SetEnvVar('TZ', 'America/New_York');
-  // Now timezone operations will use this setting...
-  
-  // Special date checks for DST transitions
-  DSTDate := EncodeDateTime(2024, 10, 6, 2, 0, 0, 0); // First Sunday in October
-  TZInfo := TChronoKit.GetTimeZone(DSTDate);
-  if TZInfo.IsDST then
-    WriteLn('Australian DST is in effect');
-finally
-  // Restore original timezone
-  SetEnvVar('TZ', OriginalTZ);
-end;
-
-// DST transition examples for different regions
-// Create date values near DST transition points
-AustralianDate := EncodeDateTime(2024, 10, 6, 2, 0, 0, 0); // First Sunday in October
-USDate := EncodeDateTime(2024, 3, 10, 2, 0, 0, 0);        // Second Sunday in March
-EUDate := EncodeDateTime(2024, 3, 31, 1, 0, 0, 0);        // Last Sunday in March
-
-// Check if each date is in DST period using GetTimeZone
-AUInfo := TChronoKit.GetTimeZone(AustralianDate);
-WriteLn('Australia DST active: ', BoolToStr(AUInfo.IsDST, True));
-
-USInfo := TChronoKit.GetTimeZone(USDate);
-WriteLn('US DST active: ', BoolToStr(USInfo.IsDST, True));
-
-EUInfo := TChronoKit.GetTimeZone(EUDate);
-WriteLn('EU DST active: ', BoolToStr(EUInfo.IsDST, True));
 ```
+
+`TDateTime` does not retain `TZInfo.Name`. Keep the name beside the value when
+it is needed later. IANA identifiers such as `America/New_York` are native to
+Linux; Windows uses identifiers such as `Eastern Standard Time`. Catch
+`ETimeZoneError` for unsupported identifiers and DST-discontinuity inputs. See
+the [timezone contract](Timezone-Contract.md) for mappings and the precise
+ambiguous/nonexistent-time policy.
 
 ### Specialized Date Parsing
 ```pascal

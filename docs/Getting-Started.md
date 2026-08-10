@@ -67,7 +67,10 @@ ChronoKit uses Free Pascal's `TDateTime` type. A **date** is conventionally a
 the value returned by `GetNow`. A **timezone conversion** is an explicit
 operation—use `WithTimeZone` only when the target timezone matters. The result
 is still a `TDateTime`; keep the intended timezone alongside the value in your
-application when it must be known later.
+application when it must be known later. `UTC` is the only portable timezone
+identifier. Before converting named zones, read the
+[timezone contract](Timezone-Contract.md) for Windows/Linux identifier
+mappings and DST-boundary errors.
 
 ## Formats
 
@@ -91,5 +94,7 @@ For example, parse `2026-08-10 09:30` with
   weeks, deadlines, reporting periods, and date ranges.
 - [Troubleshooting](Troubleshooting.md) for search-path, format, and platform
   issues.
+- [Timezone contract](Timezone-Contract.md) for identifier, conversion, and
+  DST rules.
 - [API Cheat Sheet](Cheat-Sheet.md) for a compact function reference.
 - [Complete documentation](ChronoKit-FP.md) for the wider API.

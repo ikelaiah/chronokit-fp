@@ -174,29 +174,29 @@ type
     procedure Test97b_IntervalGap_Overlapping;
     
     // Timezone Tests
-    procedure Test101_GetTimeZone;
-    procedure Test102_GetSystemTimeZone;
-    procedure Test103_GetTimeZoneNames;
-    procedure Test104_WithTimeZone;
-    procedure Test105_ForceTimeZone;
-    procedure Test106_DSTTransition;
-    procedure Test107_DateBoundaryConversion;
-    procedure Test108_InvalidTimezones;
-    procedure Test109_ExtremeOffsets;
-    procedure Test110_DSTTransitionExactTime;
-    procedure Test111_DSTEndExactTime;
-    procedure Test112_LeapYearDST;
-    procedure Test113_InvalidTimeZoneEdgeCases;
-    procedure Test114_UTCOffsetEdgeCases;
-    procedure Test115_CrossBoundaryConversions;
+    procedure Test101_TimeZoneInfoIsBounded;
+    procedure Test102_SystemTimeZoneIsListed;
+    procedure Test103_PortableUTCIsListed;
+    procedure Test104_SameZoneConversionIsIdentity;
+    procedure Test105_LocalToUTCUsesSourceOffset;
+    procedure Test106_UTCInterpretationUsesSystemOffset;
+    procedure Test107_UTCRoundTripPreservesClock;
+    procedure Test108_UnsupportedTimeZonesRaise;
+    procedure Test109_UTCOffsetBounds;
+    procedure Test110_DSTStartMatrix;
+    procedure Test111_DSTEndMatrix;
+    procedure Test112_LeapYearDSTMatrix;
+    procedure Test113_MalformedTimeZonesRaise;
+    procedure Test114_UTCOffsetOutOfRangeRaises;
+    procedure Test115_DateBoundaryConversion;
     
     // More Date parsing tests
     procedure Test116_YMD;
     procedure Test117_MDY;
     procedure Test118_DMY;
     
-    // Region-specific DST tests
-    procedure Test114_RegionSpecificDST;
+    // Shared logical-zone matrix
+    procedure Test119_SeasonalOffsetMatrix;
   end;
 
 implementation
@@ -2285,558 +2285,283 @@ begin
 end;
 
 
-procedure TDateTimeTests.Test101_GetTimeZone;
+procedure TDateTimeTests.Test101_TimeZoneInfoIsBounded;
 var
-  TZInfo: TTimeZoneInfo;
   TestDate: TDateTime;
+  TZInfo: TTimeZoneInfo;
 begin
-  WriteLn('Test101_GetTimeZone:Starting');
-  TestDate := EncodeDate(2024, 1, 1) + EncodeTime(12, 0, 0, 0);
+  TestDate := EncodeDateTime(2024, 6, 1, 12, 0, 0, 0);
   TZInfo := TChronoKit.GetTimeZone(TestDate);
-  
-  // Basic checks
-  AssertTrue('Timezone name should not be empty', TZInfo.Name <> '');
-  AssertTrue('Offset should be within reasonable range', (TZInfo.Offset >= -720) and (TZInfo.Offset <= 720));
-  WriteLn('Test101_GetTimeZone:Finished');
+
+  AssertTrue('Timezone name must not be empty', TZInfo.Name <> '');
+  AssertTrue('Timezone offset must be within the supported contract range',
+    (TZInfo.Offset >= -12 * 60) and (TZInfo.Offset <= 14 * 60));
 end;
 
-procedure TDateTimeTests.Test102_GetSystemTimeZone;
+procedure TDateTimeTests.Test102_SystemTimeZoneIsListed;
 var
+  I: Integer;
+  IsListed: Boolean;
   SystemTZ: string;
-begin
-  WriteLn('Test102_GetSystemTimeZone:Starting');
-  SystemTZ := TChronoKit.GetSystemTimeZone;
-  AssertTrue('System timezone should not be empty', SystemTZ <> '');
-  WriteLn('Test102_GetSystemTimeZone:Finished');
-end;
-
-procedure TDateTimeTests.Test103_GetTimeZoneNames;
-var
   TZNames: TStringArray;
 begin
-  WriteLn('Test103_GetTimeZoneNames:Starting');
-  TZNames := TChronoKit.GetTimeZoneNames;
-  AssertTrue('Should have at least one timezone name', Length(TZNames) > 0);
-  AssertTrue('First timezone name should not be empty', TZNames[0] <> '');
-  WriteLn('Test103_GetTimeZoneNames:Finished');
-end;
-
-procedure TDateTimeTests.Test104_WithTimeZone;
-var
-  TestDate: TDateTime;
-  CurrentTZ: string;
-  ConvertedDate: TDateTime;
-begin
-  WriteLn('Test104_WithTimeZone:Starting');
-  TestDate := EncodeDate(2024, 1, 1) + EncodeTime(12, 0, 0, 0);
-  CurrentTZ := TChronoKit.GetSystemTimeZone;
-  
-  try
-    // Convert to current timezone (should not change the time)
-    ConvertedDate := TChronoKit.WithTimeZone(TestDate, CurrentTZ);
-    AssertEquals('Time should not change when converting to same timezone',
-      TestDate, ConvertedDate);
-      
-    // Try invalid timezone
-    try
-      ConvertedDate := TChronoKit.WithTimeZone(TestDate, 'Invalid/Timezone');
-      Fail('Should raise exception for invalid timezone');
-    except
-      on E: Exception do
-        AssertTrue('Should raise appropriate exception', 
-          Pos('not found', E.Message) > 0);
-    end;
-  except
-    on E: Exception do
-      Fail('Unexpected exception: ' + E.Message);
-  end;
-  WriteLn('Test104_WithTimeZone:Finished');
-end;
-
-procedure TDateTimeTests.Test105_ForceTimeZone;
-var
-  TestDate: TDateTime;
-  CurrentTZ: string;
-  ForcedDate: TDateTime;
-begin
-  WriteLn('Test105_ForceTimeZone:Starting');
-  TestDate := EncodeDate(2024, 1, 1) + EncodeTime(12, 0, 0, 0);
-  CurrentTZ := TChronoKit.GetSystemTimeZone;
-  
-  try
-    // Force to current timezone
-    ForcedDate := TChronoKit.ForceTimeZone(TestDate, CurrentTZ);
-    AssertTrue('Forced timezone date should be different from original',
-      TestDate <> ForcedDate);
-      
-    // Try invalid timezone
-    try
-      ForcedDate := TChronoKit.ForceTimeZone(TestDate, 'Invalid/Timezone');
-      Fail('Should raise exception for invalid timezone');
-    except
-      on E: Exception do
-        AssertTrue('Should raise appropriate exception', 
-          Pos('not found', E.Message) > 0);
-    end;
-  except
-    on E: Exception do
-      Fail('Unexpected exception: ' + E.Message);
-  end;
-  WriteLn('Test105_ForceTimeZone:Finished');
-end;
-
-procedure TDateTimeTests.Test106_DSTTransition;
-var
-  TestDate: TDateTime;
-  DSTDate: TDateTime;
-  NonDSTDate: TDateTime;
-  TZInfo: TTimeZoneInfo;
-  OriginalTZ: string;
-begin
-  WriteLn('Test106_DSTTransition:Starting');
-  // Test DST transition dates (using 2024 dates for US)
-  DSTDate := EncodeDate(2024, 3, 10) + EncodeTime(2, 0, 0, 0);    // 2 AM on DST start
-  NonDSTDate := EncodeDate(2024, 11, 3) + EncodeTime(2, 0, 0, 0); // 2 AM on DST end
-  
-  // Save original TZ environment variable
-  OriginalTZ := GetEnvVar('TZ');
-  
-  try
-    // Set to US Eastern timezone for testing
-    SetEnvVar('TZ', 'America/New_York');
-    
-    // Check DST start transition
-    TZInfo := TChronoKit.GetTimeZone(DSTDate);
-    WriteLn('DST Date: ', DateTimeToStr(DSTDate), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    
-    {$IFDEF UNIX}
-    // On Linux, the specific date handling might vary based on system settings
-    // Just report the value without asserting
-    WriteLn('Linux: Not enforcing DST start check, actual IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    {$ELSE}
-    AssertTrue('Should be in DST during summer', TZInfo.IsDST);
-    {$ENDIF}
-    
-    // Check DST end transition
-    TZInfo := TChronoKit.GetTimeZone(NonDSTDate);
-    AssertFalse('Should not be in DST during winter', TZInfo.IsDST);
-    
-    // Test time conversion around DST transition
-    TestDate := TChronoKit.WithTimeZone(DSTDate, 'UTC');
-    
-    {$IFDEF WINDOWS}
-    // Skip assertion but report values for debugging on Windows
-    WriteLn('Windows: UTC conversion test - Difference (hours): ', 
-      FormatFloat('0.####', Abs(TestDate - DSTDate) * 24));
-    WriteLn('Windows: UTC conversion test skipped due to platform differences');
-    {$ELSE}
-    // Run the real assertion on Linux
-    AssertTrue('UTC conversion should handle DST transition',
-      Abs(TestDate - DSTDate) <= 2/24); // Within 2 hours difference
-    {$ENDIF}
-  finally
-    // Restore original TZ
-    if OriginalTZ <> '' then
-      SetEnvVar('TZ', OriginalTZ)
-    else
-      SetEnvVar('TZ', '');
-  end;
-  
-  WriteLn('Test106_DSTTransition:Finished');
-end;
-
-procedure TDateTimeTests.Test107_DateBoundaryConversion;
-var
-  UTCDate: TDateTime;
-  LocalDate: TDateTime;
-  ConvertedDate: TDateTime;
-  SystemTZ: string;
-  {$IFDEF WINDOWS}
-  Epsilon: Double;
-  {$ENDIF}
-begin
-  WriteLn('Test107_DateBoundaryConversion:Starting');
-  // Test date boundary conversion (11 PM UTC on Jan 1 should be next day in some timezones)
-  UTCDate := EncodeDate(2024, 1, 1) + EncodeTime(23, 0, 0, 0);
   SystemTZ := TChronoKit.GetSystemTimeZone;
-  
-  // Convert UTC to local time
-  LocalDate := TChronoKit.WithTimeZone(UTCDate, SystemTZ);
-  
-  // Convert back to UTC
-  ConvertedDate := TChronoKit.WithTimeZone(LocalDate, 'UTC');
-  
-  {$IFDEF WINDOWS}
-  // Windows needs an epsilon-based comparison (10 hours tolerance)
-  Epsilon := 10 / 24; // 10 hours as a fraction of a day
-  AssertTrue('Round-trip timezone conversion should preserve time',
-    Abs(UTCDate - ConvertedDate) < Epsilon);
-  WriteLn('Windows original UTC: ', FormatFloat('0.######', UTCDate));
-  WriteLn('Windows converted UTC: ', FormatFloat('0.######', ConvertedDate));
-  WriteLn('Windows difference (hours): ', FormatFloat('0.##', Abs(UTCDate - ConvertedDate) * 24));
-  {$ELSE}
-  // Linux can use exact comparison
-  AssertEquals('Round-trip timezone conversion should preserve time',
-    UTCDate, ConvertedDate);
-  {$ENDIF}
-  WriteLn('Test107_DateBoundaryConversion:Finished');
+  TZNames := TChronoKit.GetTimeZoneNames;
+  IsListed := False;
+
+  for I := Low(TZNames) to High(TZNames) do
+    if TZNames[I] = SystemTZ then
+      IsListed := True;
+
+  AssertTrue('System timezone must not be empty', SystemTZ <> '');
+  AssertTrue('System timezone must be returned by GetTimeZoneNames', IsListed);
 end;
 
-procedure TDateTimeTests.Test108_InvalidTimezones;
+procedure TDateTimeTests.Test103_PortableUTCIsListed;
+var
+  I: Integer;
+  HasUTC: Boolean;
+  TZNames: TStringArray;
+begin
+  TZNames := TChronoKit.GetTimeZoneNames;
+  HasUTC := False;
+
+  AssertTrue('Timezone list must not be empty', Length(TZNames) > 0);
+  for I := Low(TZNames) to High(TZNames) do
+  begin
+    AssertTrue('Timezone identifiers must not be empty', TZNames[I] <> '');
+    if TZNames[I] = 'UTC' then
+      HasUTC := True;
+  end;
+
+  AssertTrue('UTC must be available on every platform', HasUTC);
+end;
+
+procedure TDateTimeTests.Test104_SameZoneConversionIsIdentity;
+var
+  ConvertedDate, TestDate: TDateTime;
+begin
+  TestDate := EncodeDateTime(2024, 6, 1, 12, 0, 0, 0);
+  ConvertedDate := TChronoKit.WithTimeZone(
+    TestDate, TChronoKit.GetSystemTimeZone);
+
+  AssertEquals('Converting to the system timezone must be an identity',
+    TestDate, ConvertedDate, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test105_LocalToUTCUsesSourceOffset;
+var
+  ExpectedUTC, LocalDate, UTCDate: TDateTime;
+  SourceTZ: TTimeZoneInfo;
+begin
+  LocalDate := EncodeDateTime(2024, 6, 1, 12, 0, 0, 0);
+  SourceTZ := TChronoKit.GetTimeZone(LocalDate);
+  ExpectedUTC := LocalDate - (SourceTZ.Offset / MinutesPerDay);
+
+  UTCDate := TChronoKit.WithTimeZone(LocalDate, 'UTC');
+
+  AssertEquals('Local-to-UTC conversion must use the source offset',
+    ExpectedUTC, UTCDate, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test106_UTCInterpretationUsesSystemOffset;
+var
+  LocalDate, UTCDate: TDateTime;
+  LocalTZ: TTimeZoneInfo;
+begin
+  UTCDate := EncodeDateTime(2024, 6, 1, 12, 0, 0, 0);
+  LocalTZ := TChronoKit.GetTimeZone(UTCDate);
+  LocalDate := TChronoKit.ForceTimeZone(UTCDate, 'UTC');
+
+  AssertEquals('Interpreting UTC must apply the system offset',
+    UTCDate + (LocalTZ.Offset / MinutesPerDay),
+    LocalDate, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test107_UTCRoundTripPreservesClock;
+var
+  LocalDate, RoundTrip, UTCDate: TDateTime;
+begin
+  LocalDate := EncodeDateTime(2024, 6, 1, 12, 0, 0, 0);
+  UTCDate := TChronoKit.WithTimeZone(LocalDate, 'UTC');
+  RoundTrip := TChronoKit.ForceTimeZone(UTCDate, 'UTC');
+
+  AssertEquals('Local-to-UTC round trip must preserve the local clock',
+    LocalDate, RoundTrip, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test108_UnsupportedTimeZonesRaise;
 var
   TestDate: TDateTime;
 begin
-  WriteLn('Test108_InvalidTimezones:Starting');
-  TestDate := Now;
-  
-  // Test various invalid timezone names
+  TestDate := EncodeDateTime(2024, 6, 1, 12, 0, 0, 0);
+
   try
     TChronoKit.WithTimeZone(TestDate, '');
-    Fail('Empty timezone should raise exception');
+    Fail('Empty timezone must raise ETimeZoneError');
   except
-    on E: Exception do
-      AssertTrue('Should raise appropriate exception for empty timezone',
+    on E: ETimeZoneError do
+      AssertTrue('Empty timezone diagnostic must identify lookup failure',
         Pos('not found', E.Message) > 0);
   end;
-  
+
   try
-    TChronoKit.WithTimeZone(TestDate, 'Invalid/TZ');
-    Fail('Invalid timezone format should raise exception');
+    TChronoKit.WithTimeZone(TestDate, 'Invalid/Timezone');
+    Fail('Unsupported timezone must raise ETimeZoneError');
   except
-    on E: Exception do
-      AssertTrue('Should raise appropriate exception for invalid format',
-        Pos('not found', E.Message) > 0);
+    on E: ETimeZoneError do
+      AssertTrue('Unsupported timezone diagnostic must include the identifier',
+        Pos('Invalid/Timezone', E.Message) > 0);
   end;
-  
-  try
-    TChronoKit.WithTimeZone(TestDate, 'UTC+Invalid');
-    Fail('Invalid UTC offset should raise exception');
-  except
-    on E: Exception do
-      AssertTrue('Should raise appropriate exception for invalid UTC offset',
-        Pos('not found', E.Message) > 0);
-  end;
-  WriteLn('Test108_InvalidTimezones:Finished');
 end;
 
-procedure TDateTimeTests.Test109_ExtremeOffsets;
+procedure TDateTimeTests.Test109_UTCOffsetBounds;
+begin
+  AssertEquals('Minimum UTC offset must be accepted',
+    -12 * 60, TChronoKit.ValidateTimeZoneOffset(-12 * 60));
+  AssertEquals('Maximum UTC offset must be accepted',
+    14 * 60, TChronoKit.ValidateTimeZoneOffset(14 * 60));
+end;
+
+procedure TDateTimeTests.Test110_DSTStartMatrix;
+var
+  AfterTransition, BeforeTransition: TTimeZoneInfo;
+  OriginalTZ: string;
+begin
+  OriginalTZ := GetEnvVar('TZ');
+  try
+    SetEnvVar('TZ', 'America/New_York');
+    BeforeTransition := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 3, 10, 1, 59, 59, 0));
+    AfterTransition := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 3, 10, 3, 0, 0, 0));
+
+    AssertFalse('Last valid clock second before DST start is standard time',
+      BeforeTransition.IsDST);
+    AssertTrue('First valid clock second after DST start is daylight time',
+      AfterTransition.IsDST);
+    AssertEquals('DST start advances the UTC offset by 60 minutes',
+      60, AfterTransition.Offset - BeforeTransition.Offset);
+  finally
+    SetEnvVar('TZ', OriginalTZ);
+  end;
+end;
+
+procedure TDateTimeTests.Test111_DSTEndMatrix;
+var
+  AfterTransition, BeforeTransition: TTimeZoneInfo;
+  OriginalTZ: string;
+begin
+  OriginalTZ := GetEnvVar('TZ');
+  try
+    SetEnvVar('TZ', 'America/New_York');
+    BeforeTransition := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 11, 3, 0, 59, 59, 0));
+    AfterTransition := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 11, 3, 2, 0, 0, 0));
+
+    AssertTrue('Last unambiguous clock hour before DST end is daylight time',
+      BeforeTransition.IsDST);
+    AssertFalse('First valid clock second after DST end is standard time',
+      AfterTransition.IsDST);
+    AssertEquals('DST end reduces the UTC offset by 60 minutes',
+      -60, AfterTransition.Offset - BeforeTransition.Offset);
+  finally
+    SetEnvVar('TZ', OriginalTZ);
+  end;
+end;
+
+procedure TDateTimeTests.Test112_LeapYearDSTMatrix;
+var
+  LeapDay, PostTransition: TTimeZoneInfo;
+  OriginalTZ: string;
+begin
+  OriginalTZ := GetEnvVar('TZ');
+  try
+    SetEnvVar('TZ', 'America/New_York');
+    LeapDay := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 2, 29, 23, 59, 59, 0));
+    PostTransition := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 3, 10, 3, 0, 0, 0));
+
+    AssertFalse('Leap day is standard time in the New York fixture',
+      LeapDay.IsDST);
+    AssertTrue('DST transition remains correct in a leap year',
+      PostTransition.IsDST);
+  finally
+    SetEnvVar('TZ', OriginalTZ);
+  end;
+end;
+
+procedure TDateTimeTests.Test113_MalformedTimeZonesRaise;
 var
   TestDate: TDateTime;
-  ConvertedDate: TDateTime;
-  TZInfo: TTimeZoneInfo;
 begin
-  WriteLn('Test109_ExtremeOffsets:Starting');
-  TestDate := Now;
-  
-  // Test conversion with extreme positive offset (+14:00)
-  TZInfo := TChronoKit.GetTimeZone(TestDate);
-  if TZInfo.Offset = 14 * 60 then // +14:00
-  begin
-    ConvertedDate := TChronoKit.WithTimeZone(TestDate, 'UTC');
-    AssertTrue('Extreme positive offset should be handled',
-      Abs(ConvertedDate - TestDate) <= 14/24); // Within 14 hours
-  end;
-  
-  // Test conversion with extreme negative offset (-12:00)
-  if TZInfo.Offset = -12 * 60 then // -12:00
-  begin
-    ConvertedDate := TChronoKit.WithTimeZone(TestDate, 'UTC');
-    AssertTrue('Extreme negative offset should be handled',
-      Abs(ConvertedDate - TestDate) <= 12/24); // Within 12 hours
-  end;
-  WriteLn('Test109_ExtremeOffsets:Finished');
-end;
+  TestDate := EncodeDateTime(2024, 6, 1, 12, 0, 0, 0);
 
-procedure TDateTimeTests.Test110_DSTTransitionExactTime;
-var
-  // March 10, 2024 1:59:59 AM (just before DST)
-  PreDST: TDateTime;
-  // March 10, 2024 2:00:00 AM (DST start - skipped hour)
-  DSTStart: TDateTime;
-  // March 10, 2024 3:00:00 AM (after DST start)
-  PostDST: TDateTime;
-  TZInfo: TTimeZoneInfo;
-  OriginalTZ: string;
-begin
-  WriteLn('Test110_DSTTransitionExactTime:Starting'); 
-  PreDST := EncodeDateTime(2024, 3, 10, 1, 59, 59, 0);
-  DSTStart := EncodeDateTime(2024, 3, 10, 2, 0, 0, 0);
-  PostDST := EncodeDateTime(2024, 3, 10, 3, 0, 0, 0);
-  
-  {$IFDEF UNIX}
-  // Force pass the test on Linux
-  AssertTrue('Time at DST start should be in DST', True);
-  {$ELSE}
-  // Save original TZ environment variable
-  OriginalTZ := GetEnvVar('TZ');
-  
   try
-    // Set to US Eastern timezone for DST testing
-    SetEnvVar('TZ', 'America/New_York');
-    
-    // Before DST
-    TZInfo := TChronoKit.GetTimeZone(PreDST);
-    AssertFalse('Time before DST should not be in DST', TZInfo.IsDST);
-    
-    // At DST start (2 AM becomes 3 AM)
-    TZInfo := TChronoKit.GetTimeZone(DSTStart);
-    WriteLn('DST Start: ', DateTimeToStr(DSTStart), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    
-    // For Linux tests, we'll force this specific DST case
-    AssertTrue('Time at DST start should be in DST', TZInfo.IsDST);
-    
-    // After DST
-    TZInfo := TChronoKit.GetTimeZone(PostDST);
-    AssertTrue('Time after DST start should be in DST', TZInfo.IsDST);
-  finally
-    // Restore original TZ
-    if OriginalTZ <> '' then
-      SetEnvVar('TZ', OriginalTZ)
-    else
-      SetEnvVar('TZ', '');
-  end;
-  {$ENDIF}
-  
-  WriteLn('Test110_DSTTransitionExactTime:Finished');
-end;
-
-procedure TDateTimeTests.Test111_DSTEndExactTime;
-var
-  // November 3, 2024 1:59:59 AM (before DST end)
-  PreStandard: TDateTime;
-  // November 3, 2024 2:00:00 AM (DST end - ambiguous hour)
-  DSTEnd: TDateTime;
-  // November 3, 2024 3:00:00 AM (after DST end)
-  PostStandard: TDateTime;
-  TZInfo: TTimeZoneInfo;
-  OriginalTZ: string;
-begin
-  WriteLn('Test111_DSTEndExactTime:Starting');
-  PreStandard := EncodeDateTime(2024, 11, 3, 1, 59, 59, 0);
-  DSTEnd := EncodeDateTime(2024, 11, 3, 2, 0, 0, 0);
-  PostStandard := EncodeDateTime(2024, 11, 3, 3, 0, 0, 0);
-  
-  {$IFDEF UNIX}
-  // Force pass the test on Linux
-  AssertTrue('Time before DST end should be in DST', True);
-  {$ELSE}
-  // Save original TZ environment variable
-  OriginalTZ := GetEnvVar('TZ');
-  
-  try
-    // Set to US Eastern timezone for DST testing
-    SetEnvVar('TZ', 'America/New_York');
-    
-    // Before standard time
-    TZInfo := TChronoKit.GetTimeZone(PreStandard);
-    WriteLn('Before DST end: ', DateTimeToStr(PreStandard), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    // For Linux tests, we'll force this specific DST case
-    AssertTrue('Time before DST end should be in DST', TZInfo.IsDST);
-    
-    // At DST end (first 2 AM)
-    TZInfo := TChronoKit.GetTimeZone(DSTEnd);
-    AssertFalse('Time at DST end should not be in DST', TZInfo.IsDST);
-    
-    // After standard time
-    TZInfo := TChronoKit.GetTimeZone(PostStandard);
-    AssertFalse('Time after DST end should not be in DST', TZInfo.IsDST);
-  finally
-    // Restore original TZ
-    if OriginalTZ <> '' then
-      SetEnvVar('TZ', OriginalTZ)
-    else
-      SetEnvVar('TZ', '');
-  end;
-  {$ENDIF}
-  
-  WriteLn('Test111_DSTEndExactTime:Finished');
-end;
-
-procedure TDateTimeTests.Test112_LeapYearDST;
-var
-  // February 29, 2024 23:59:59 (leap day)
-  LeapDayEnd: TDateTime;
-  // March 1, 2024 00:00:00 (after leap day)
-  PostLeap: TDateTime;
-  // March 10, 2024 02:00:00 (DST start on leap year)
-  LeapDST: TDateTime;
-  TZInfo: TTimeZoneInfo;
-  OriginalTZ: string;
-begin
-  WriteLn('Test112_LeapYearDST:Starting');
-  LeapDayEnd := EncodeDateTime(2024, 2, 29, 23, 59, 59, 0);
-  PostLeap := EncodeDateTime(2024, 3, 1, 0, 0, 0, 0);
-  LeapDST := EncodeDateTime(2024, 3, 10, 2, 0, 0, 0);
-  
-  {$IFDEF UNIX}
-  // Force pass the test on Linux
-  AssertTrue('DST start in leap year should be in DST', True);
-  {$ELSE}
-  // Save original TZ environment variable
-  OriginalTZ := GetEnvVar('TZ');
-  
-  try
-    // Set to US Eastern timezone for DST testing
-    SetEnvVar('TZ', 'America/New_York');
-    
-    // End of leap day
-    TZInfo := TChronoKit.GetTimeZone(LeapDayEnd);
-    AssertFalse('End of leap day should not be in DST', TZInfo.IsDST);
-    
-    // Start of March
-    TZInfo := TChronoKit.GetTimeZone(PostLeap);
-    AssertFalse('Start of March should not be in DST', TZInfo.IsDST);
-    
-    // DST start in leap year
-    TZInfo := TChronoKit.GetTimeZone(LeapDST);
-    WriteLn('LeapDST: ', DateTimeToStr(LeapDST), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    // For Linux tests, we'll force this specific DST case
-    AssertTrue('DST start in leap year should be in DST', TZInfo.IsDST);
-  finally
-    // Restore original TZ
-    if OriginalTZ <> '' then
-      SetEnvVar('TZ', OriginalTZ)
-    else
-      SetEnvVar('TZ', '');
-  end;
-  {$ENDIF}
-  
-  WriteLn('Test112_LeapYearDST:Finished');
-end;
-
-procedure TDateTimeTests.Test113_InvalidTimeZoneEdgeCases;
-var
-  Now: TDateTime;
-begin
-  WriteLn('Test113_InvalidTimeZoneEdgeCases:Starting');
-  Now := TChronoKit.GetNow;
-  
-  // Test with very large timezone offsets
-  try
-    TChronoKit.WithTimeZone(Now, 'UTC+24:00');
-    Fail('UTC+24:00 should raise exception');
-  except
-    on E: Exception do
-      AssertTrue('Should raise appropriate exception for UTC+24:00',
-        Pos('not found', E.Message) > 0);
-  end;
-  
-  try
-    TChronoKit.WithTimeZone(Now, 'UTC-24:00');
-    Fail('UTC-24:00 should raise exception');
-  except
-    on E: Exception do
-      AssertTrue('Should raise appropriate exception for UTC-24:00',
-        Pos('not found', E.Message) > 0);
-  end;
-  
-  WriteLn('Test113_InvalidTimeZoneEdgeCases:Finished');
-end;
-
-procedure TDateTimeTests.Test114_UTCOffsetEdgeCases;
-var
-  TZInfo: TTimeZoneInfo;
-begin
-  WriteLn('Test114_UTCOffsetEdgeCases:Starting');
-  // Test minimum valid offset (-12:00)
-  try
-    TZInfo.Offset := -12 * 60;
-    TChronoKit.ValidateTimeZoneOffset(TZInfo.Offset);
-    AssertTrue('Minimum UTC offset should be valid', True);
-  except
-    Fail('Valid minimum offset should not raise exception');
-  end;
-  
-  // Test maximum valid offset (+14:00)
-  try
-    TZInfo.Offset := 14 * 60;
-    TChronoKit.ValidateTimeZoneOffset(TZInfo.Offset);
-    AssertTrue('Maximum UTC offset should be valid', True);
-  except
-    Fail('Valid maximum offset should not raise exception');
-  end;
-  
-  // Test invalid negative offset
-  try
-    TZInfo.Offset := -13 * 60;
-    TChronoKit.ValidateTimeZoneOffset(TZInfo.Offset);
-    Fail('Invalid negative offset should raise exception');
+    TChronoKit.ForceTimeZone(TestDate, 'UTC+24:00');
+    Fail('Malformed positive offset name must raise ETimeZoneError');
   except
     on E: ETimeZoneError do
-      AssertTrue('Expected timezone error', True);
+      AssertTrue('Malformed timezone diagnostic must include the identifier',
+        Pos('UTC+24:00', E.Message) > 0);
   end;
-  
-  // Test invalid positive offset
+
   try
-    TZInfo.Offset := 15 * 60;
-    TChronoKit.ValidateTimeZoneOffset(TZInfo.Offset);
-    Fail('Invalid positive offset should raise exception');
+    TChronoKit.ForceTimeZone(TestDate, 'UTC-24:00');
+    Fail('Malformed negative offset name must raise ETimeZoneError');
   except
     on E: ETimeZoneError do
-      AssertTrue('Expected timezone error', True);
+      AssertTrue('Malformed timezone diagnostic must include the identifier',
+        Pos('UTC-24:00', E.Message) > 0);
   end;
-  WriteLn('Test114_UTCOffsetEdgeCases:Finished');
 end;
 
-procedure TDateTimeTests.Test115_CrossBoundaryConversions;
-var
-  // December 31, 2024 23:59:59
-  YearEnd: TDateTime;
-  // January 1, 2025 00:00:00
-  YearStart: TDateTime;
-  TZInfo: TTimeZoneInfo;
-  ConvertedEnd, ConvertedStart: TDateTime;
-  SystemTZ: string;
+procedure TDateTimeTests.Test114_UTCOffsetOutOfRangeRaises;
 begin
-  WriteLn('Test115_CrossBoundaryConversions:Starting');
-  YearEnd := EncodeDateTime(2024, 12, 31, 23, 59, 59, 0);
-  YearStart := EncodeDateTime(2025, 1, 1, 0, 0, 0, 0);
-  SystemTZ := TChronoKit.GetSystemTimeZone;
-  
-  // First convert to UTC
-  ConvertedEnd := TChronoKit.WithTimeZone(YearEnd, 'UTC');
-  ConvertedStart := TChronoKit.WithTimeZone(YearStart, 'UTC');
-  
-  // Then convert back to system timezone
-  ConvertedEnd := TChronoKit.WithTimeZone(ConvertedEnd, SystemTZ);
-  ConvertedStart := TChronoKit.WithTimeZone(ConvertedStart, SystemTZ);
-  
-  // Get timezone info for verification
-  TZInfo := TChronoKit.GetTimeZone(ConvertedEnd);
-  
-  // Check if the timezone is the system timezone (more flexible check)
-  {$IFDEF WINDOWS}
-  // On Windows, check specific timezone string
-  AssertTrue('Should be back in system timezone', 
-             Pos('AUS Eastern', TZInfo.Name) > 0);
-  {$ELSE}
-  // On Linux, just verify it matches the system timezone
-  AssertEquals('Should be back in system timezone', 
-               SystemTZ, TZInfo.Name);
-  {$ENDIF}
-  
-  TZInfo := TChronoKit.GetTimeZone(ConvertedStart);
-  
-  // Check if the timezone is the system timezone (more flexible check)
-  {$IFDEF WINDOWS}
-  // On Windows, check specific timezone string
-  AssertTrue('Should be back in system timezone', 
-             Pos('AUS Eastern', TZInfo.Name) > 0);
-  {$ELSE}
-  // On Linux, just verify it matches the system timezone
-  AssertEquals('Should be back in system timezone', 
-               SystemTZ, TZInfo.Name);
-  {$ENDIF}
-  
-  // Verify chronological order is maintained
-  AssertTrue('Year end should be before year start after conversion', 
-             TChronoKit.IsBefore(ConvertedEnd, ConvertedStart));
-               
-  // Verify the time difference is preserved (should be 1 second)
-  AssertEquals('Time difference should be preserved',
-                1/SecsPerDay, // 1 second in TDateTime units
-                ConvertedStart - ConvertedEnd);
-  WriteLn('Test115_CrossBoundaryConversions:Finished');
+  try
+    TChronoKit.ValidateTimeZoneOffset(-12 * 60 - 1);
+    Fail('Offset below -12:00 must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+      AssertTrue('Lower-bound diagnostic must include the valid range',
+        Pos('-720', E.Message) > 0);
+  end;
+
+  try
+    TChronoKit.ValidateTimeZoneOffset(14 * 60 + 1);
+    Fail('Offset above +14:00 must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+      AssertTrue('Upper-bound diagnostic must include the valid range',
+        Pos('+840', E.Message) > 0);
+  end;
+end;
+
+procedure TDateTimeTests.Test115_DateBoundaryConversion;
+var
+  ExpectedUTC, LocalDate, UTCDate: TDateTime;
+  SourceTZ: TTimeZoneInfo;
+begin
+  LocalDate := EncodeDateTime(2024, 1, 1, 12, 0, 0, 0);
+  SourceTZ := TChronoKit.GetTimeZone(LocalDate);
+  if SourceTZ.Offset > 0 then
+    LocalDate := EncodeDateTime(2024, 1, 1, 1, 0, 0, 0)
+  else if SourceTZ.Offset < 0 then
+    LocalDate := EncodeDateTime(2024, 1, 1, 23, 0, 0, 0);
+  SourceTZ := TChronoKit.GetTimeZone(LocalDate);
+  ExpectedUTC := LocalDate - (SourceTZ.Offset / MinutesPerDay);
+  UTCDate := TChronoKit.WithTimeZone(LocalDate, 'UTC');
+
+  AssertEquals('Date-boundary conversion must apply the exact source offset',
+    ExpectedUTC, UTCDate, OneMillisecond);
+  if SourceTZ.Offset > 60 then
+    AssertEquals('Positive offsets can cross into the previous UTC date',
+      Trunc(LocalDate) - 1, Trunc(UTCDate))
+  else if SourceTZ.Offset < -60 then
+    AssertEquals('Negative offsets can cross into the next UTC date',
+      Trunc(LocalDate) + 1, Trunc(UTCDate));
 end;
 
 procedure TDateTimeTests.Test116_YMD;
@@ -2872,117 +2597,28 @@ begin
   WriteLn('Test118_DMY:Finished');
 end;
 
-procedure TDateTimeTests.Test114_RegionSpecificDST;
+procedure TDateTimeTests.Test119_SeasonalOffsetMatrix;
 var
-  // US DST dates (2024)
-  USDSTStart: TDateTime;
-  USDSTEnd: TDateTime;
-  
-  // EU DST dates (2024)
-  EUDSTStart: TDateTime;
-  EUDSTEnd: TDateTime;
-  
-  // AU DST dates (2024)
-  AUDSTStart: TDateTime;
-  AUDSTEnd: TDateTime;
-  
-  TZInfo: TTimeZoneInfo;
+  SummerInfo, WinterInfo: TTimeZoneInfo;
   OriginalTZ: string;
-  CurrentTZ: string;
 begin
-  WriteLn('Test114_RegionSpecificDST:Starting');
-  
-  // US DST dates (2024)
-  USDSTStart := EncodeDateTime(2024, 3, 10, 2, 0, 0, 0);  // Second Sunday in March
-  USDSTEnd := EncodeDateTime(2024, 11, 3, 2, 0, 0, 0);   // First Sunday in November
-  
-  // EU DST dates (2024)
-  EUDSTStart := EncodeDateTime(2024, 3, 31, 1, 0, 0, 0); // Last Sunday in March
-  EUDSTEnd := EncodeDateTime(2024, 10, 27, 1, 0, 0, 0);  // Last Sunday in October
-  
-  // AU DST dates (2024)
-  AUDSTStart := EncodeDateTime(2024, 10, 6, 2, 0, 0, 0);  // First Sunday in October
-  AUDSTEnd := EncodeDateTime(2024, 4, 7, 3, 0, 0, 0);     // First Sunday in April
-  
-  {$IFDEF UNIX}
-  // On Linux platforms, just pass this test since timezone handling varies
-  AssertTrue('US DST start should be in DST', True);
-  {$ELSE}
-  // Windows-specific implementation 
-  // Save original TZ environment variable
   OriginalTZ := GetEnvVar('TZ');
-  
   try
-    // Test US DST
-    WriteLn('Setting TZ=America/New_York');
     SetEnvVar('TZ', 'America/New_York');
-    
-    // Force getTimeZone to use the updated environment variable
-    CurrentTZ := GetEnvVar('TZ');
-    WriteLn('Current TZ = ', CurrentTZ);
-    
-    // Get timezone info for US DST start
-    TZInfo := TChronoKit.GetTimeZone(USDSTStart);
-    WriteLn('US DST Start: ', DateTimeToStr(USDSTStart), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    AssertTrue('US DST start should be in DST', TZInfo.IsDST);
-    
-    // Get timezone info for US DST end
-    TZInfo := TChronoKit.GetTimeZone(USDSTEnd);
-    WriteLn('US DST End: ', DateTimeToStr(USDSTEnd), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    AssertFalse('US DST end should not be in DST', TZInfo.IsDST);
-    
-    // Test EU DST
-    WriteLn('Setting TZ=Europe/London');
-    SetEnvVar('TZ', 'Europe/London');
-    
-    // Force getTimeZone to use the updated environment variable
-    CurrentTZ := GetEnvVar('TZ');
-    WriteLn('Current TZ = ', CurrentTZ);
-    
-    // Get timezone info for EU DST start
-    TZInfo := TChronoKit.GetTimeZone(EUDSTStart);
-    WriteLn('EU DST Start: ', DateTimeToStr(EUDSTStart), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    AssertTrue('EU DST start should be in DST', TZInfo.IsDST);
-    
-    // Get timezone info for EU DST end
-    TZInfo := TChronoKit.GetTimeZone(EUDSTEnd);
-    WriteLn('EU DST End: ', DateTimeToStr(EUDSTEnd), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    
-    // Skip EU DST end check on Windows - Windows implementation seems to mark this as DST
-    // In the error message, it's marking this as DST when it shouldn't be
-    WriteLn('Windows: EU DST end IsDST = ', BoolToStr(TZInfo.IsDST, True), ' (expected: False)');
-    WriteLn('Windows: Not enforcing EU DST end check due to platform differences');
-    
-    // Test AU DST
-    WriteLn('Setting TZ=Australia/Sydney');
-    SetEnvVar('TZ', 'Australia/Sydney');
-    
-    // Force getTimeZone to use the updated environment variable
-    CurrentTZ := GetEnvVar('TZ');
-    WriteLn('Current TZ = ', CurrentTZ);
-    
-    // Get timezone info for AU DST start
-    TZInfo := TChronoKit.GetTimeZone(AUDSTStart);
-    WriteLn('AU DST Start: ', DateTimeToStr(AUDSTStart), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    AssertTrue('AU DST start should be in DST', TZInfo.IsDST);
-    
-    // Get timezone info for AU DST end
-    TZInfo := TChronoKit.GetTimeZone(AUDSTEnd);
-    WriteLn('AU DST End: ', DateTimeToStr(AUDSTEnd), ' IsDST = ', BoolToStr(TZInfo.IsDST, True));
-    // Skip AU DST end check on Windows - it's consistently failing
-    WriteLn('Windows: AU DST end IsDST = ', BoolToStr(TZInfo.IsDST, True), ' (expected: False)');
-    WriteLn('Windows: Not enforcing AU DST end check due to platform differences');
+    WinterInfo := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 1, 15, 12, 0, 0, 0));
+    SummerInfo := TChronoKit.GetTimeZone(
+      EncodeDateTime(2024, 7, 15, 12, 0, 0, 0));
+
+    AssertFalse('New York winter fixture must use standard time',
+      WinterInfo.IsDST);
+    AssertTrue('New York summer fixture must use daylight time',
+      SummerInfo.IsDST);
+    AssertEquals('New York daylight offset must be 60 minutes ahead',
+      60, SummerInfo.Offset - WinterInfo.Offset);
   finally
-    // Restore original TZ environment variable
-    WriteLn('Restoring original TZ: ', OriginalTZ);
-    if OriginalTZ <> '' then
-      SetEnvVar('TZ', OriginalTZ)
-    else
-      SetEnvVar('TZ', '');
+    SetEnvVar('TZ', OriginalTZ);
   end;
-  {$ENDIF}
-  
-  WriteLn('Test114_RegionSpecificDST:Finished');
 end;
 
 initialization

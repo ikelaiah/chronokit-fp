@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-11
+
+### Added
+
+- A normative timezone contract covering portable and platform-native
+  identifiers, instant and wall-clock semantics, and DST-discontinuity errors.
+- One shared Windows/Linux regression matrix for offset bounds, New York DST
+  transitions, conversions, round trips, date boundaries, and invalid inputs.
+- Documented mappings between representative Windows and IANA timezone names.
+
+### Changed
+
+- `GetTimeZoneNames` now always advertises the portable `UTC` identifier on
+  Windows.
+- Local-to-UTC conversion now applies offsets according to
+  `local = UTC + offset`; UTC interpretation uses the inverse operation.
+- Unix timezone lookup now evaluates the supplied `TDateTime` rather than the
+  current clock.
+- Pull-request tests use equivalent New York timezone fixtures and identical
+  assertions on Windows and Linux.
+
+### Compatibility
+
+- All existing public types and function signatures are unchanged.
+- `UTC` is the only cross-platform identifier guarantee. Other names remain
+  platform-native, and full named-zone/DST-discontinuity conformance is the
+  v1.4.0 release gate.
+
 ## [1.2.0] - 2026-08-10
 
 ### Added

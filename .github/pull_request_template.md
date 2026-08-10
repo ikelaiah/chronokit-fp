@@ -39,7 +39,7 @@ Pascal version when it matters.
 
 ```powershell
 cd tests
-fpc "-Fu..\src" TestRunner.lpr
+fpc "-FU." "-Fu..\src" TestRunner.lpr
 .\TestRunner.exe -a --format=plain
 ```
 
@@ -47,7 +47,7 @@ fpc "-Fu..\src" TestRunner.lpr
 
 ```bash
 cd tests
-fpc "-Fu../src" TestRunner.lpr
+fpc "-FU." "-Fu../src" TestRunner.lpr
 ./TestRunner -a --format=plain
 ```
 

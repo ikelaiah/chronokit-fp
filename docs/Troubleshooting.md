@@ -44,9 +44,17 @@ midnight.
 timezone and the platform's timezone data. Keep the timezone name with values
 whose intended timezone must be preserved by your application.
 
-On Linux, install the system timezone database (commonly the `tzdata` package)
-and use supported IANA timezone names such as `Australia/Sydney`. On Windows,
-the system timezone settings and available timezone identifiers apply.
+`UTC` is the only identifier guaranteed on both platforms. On Linux, install
+the system timezone database (commonly the `tzdata` package) and use supported
+IANA names such as `Australia/Sydney`. Windows uses Windows identifiers such as
+`AUS Eastern Standard Time`; the IANA name is not a portable alias.
+
+An ambiguous local value occurs when clocks move backward, and a nonexistent
+value occurs when clocks move forward. The timezone contract requires
+`ETimeZoneError` instead of silently selecting an occurrence. Catch the
+exception rather than matching its message, and see the
+[timezone contract](Timezone-Contract.md) for the exact operation semantics
+and v1.4.0 conformance scope.
 
 ## The project does not compile
 
@@ -57,7 +65,7 @@ Run the repository's complete test suite to check a local build:
 
 ```powershell
 cd tests
-fpc "-Fu..\src" TestRunner.lpr
+fpc "-FU." "-Fu..\src" TestRunner.lpr
 .\TestRunner.exe -a --format=plain
 ```
 
