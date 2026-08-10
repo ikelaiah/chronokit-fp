@@ -4057,6 +4057,7 @@ var
   Offset: Integer;
   OffsetSign: Integer;
   OffsetHours, OffsetMinutes: Integer;
+  DateText, StandardDateText: string;
   TZEnvironment: string;
 begin
   // Initialize with defaults
@@ -4083,11 +4084,13 @@ begin
       end;
     end;
     
-    // Use the date command to get timezone information
-    // This leverages the system's timezone database which is more reliable
-    if RunCommand('date', ['+%z:%Z:%s'], TZOutput) then
+    DateText := FormatDateTime('yyyy-mm-dd hh:nn:ss', AValue);
+    StandardDateText := FormatDateTime('yyyy', AValue) + '-01-15 12:00:00';
+
+    // Query the supplied wall-clock value, rather than the current clock.
+    if RunCommand('date', ['-d', DateText, '+%z:%Z'], TZOutput) then
     begin
-      // Output format: +0200:CEST:1642694400 (offset:name:timestamp)
+      // Output format: +0200:CEST (offset:name)
       TZParts := TZOutput.Trim.Split(':');
       
       if Length(TZParts) >= 2 then
@@ -4122,7 +4125,7 @@ begin
         
         // Determine DST status by comparing with standard time
         // Get the standard time offset for January (should be non-DST)
-        if RunCommand('date', ['-d', '2024-01-15', '+%z'], TZOutput) then
+        if RunCommand('date', ['-d', StandardDateText, '+%z'], TZOutput) then
         begin
           if TZOutput.Trim <> OffsetStr then
             Result.IsDST := True;
@@ -4133,7 +4136,7 @@ begin
     end;
     
     // Fallback: try simpler date command
-    if RunCommand('date', ['+%z'], TZOutput) then
+    if RunCommand('date', ['-d', DateText, '+%z'], TZOutput) then
     begin
       OffsetStr := TZOutput.Trim;
       
@@ -4157,7 +4160,7 @@ begin
             Result.Name := 'Local';
           
           // Simple DST detection: compare with winter time
-          if RunCommand('date', ['-d', '2024-01-15', '+%z'], TZOutput) then
+          if RunCommand('date', ['-d', StandardDateText, '+%z'], TZOutput) then
           begin
             if TZOutput.Trim <> OffsetStr then
               Result.IsDST := True;
@@ -4214,12 +4217,12 @@ begin
     ValidateTimeZoneOffset(SourceTZ.Offset);
     ValidateTimeZoneOffset(TargetTZ.Offset);
     
-    // Convert to UTC first
-    Result := AValue + (SourceTZ.Offset / MinutesPerDay);
-    
+    // Convert to UTC first: local = UTC + offset.
+    Result := AValue - (SourceTZ.Offset / MinutesPerDay);
+
     // Then to target timezone
     if TargetTZ.Name <> 'UTC' then
-      Result := Result - (TargetTZ.Offset / MinutesPerDay);
+      Result := Result + (TargetTZ.Offset / MinutesPerDay);
   except
     on E: Exception do
       raise ETimeZoneError.CreateFmt('Error converting time between timezones: %s', [E.Message]);
@@ -4265,18 +4268,10 @@ begin
     // Validate offset
     ValidateTimeZoneOffset(TargetTZ.Offset);
     
-    // First convert to UTC
-    Result := AValue - (CurrentTZ.Offset / MinutesPerDay);
-    
-    // Then adjust to target timezone to ensure difference
-    Result := Result - (TargetTZ.Offset / MinutesPerDay);
-    
-    // Ensure the result is different from input
-    if SameDateTime(Result, AValue) then
-    begin
-      // Artificially adjust by an hour to ensure difference
-      Result := Result + (1 / HoursPerDay);
-    end;
+    // Interpret the clock in the target zone, then represent that instant in
+    // the system zone: UTC = target local - target offset.
+    Result := AValue - (TargetTZ.Offset / MinutesPerDay);
+    Result := Result + (CurrentTZ.Offset / MinutesPerDay);
   except
     on E: Exception do
       raise ETimeZoneError.CreateFmt('Error forcing timezone: %s', [E.Message]);
@@ -4295,8 +4290,10 @@ class function TChronoKit.GetTimeZoneNames: TStringArray;
 {$IFDEF WINDOWS}
 var
   TZInfo: TTimeZoneInformation;
+  StandardName, DaylightName: string;
   RetVal: DWORD;
 begin
+  Result := nil;
   try
     RetVal := GetTimeZoneInformation(TZInfo);
     if RetVal = TIME_ZONE_ID_INVALID then
@@ -4306,15 +4303,22 @@ begin
       Exit;
     end;
     
-    SetLength(Result, 2);
-    Result[0] := TZInfo.StandardName;
-    Result[1] := TZInfo.DaylightName;
-    
-    // Filter out empty names
-    if Result[0] = '' then
-      Result[0] := 'UTC';
-    if Result[1] = '' then
-      Result[1] := Result[0];
+    StandardName := TZInfo.StandardName;
+    DaylightName := TZInfo.DaylightName;
+
+    SetLength(Result, 1);
+    Result[0] := 'UTC';
+    if (StandardName <> '') and (StandardName <> 'UTC') then
+    begin
+      SetLength(Result, Length(Result) + 1);
+      Result[High(Result)] := StandardName;
+    end;
+    if (DaylightName <> '') and (DaylightName <> 'UTC') and
+       (DaylightName <> StandardName) then
+    begin
+      SetLength(Result, Length(Result) + 1);
+      Result[High(Result)] := DaylightName;
+    end;
   except
     on E: Exception do
     begin

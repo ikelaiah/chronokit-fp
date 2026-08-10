@@ -14,14 +14,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       FPC_WINDOWS_UNIT_PATH: 'C:\tools\freepascal\units\i386-win32\*'
+      TZ: ${{ matrix.timezone }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: Windows
             os: windows-latest
+            timezone: Eastern Standard Time
           - name: Linux
             os: ubuntu-latest
+            timezone: America/New_York
 
     steps:
       - name: Check out repository
@@ -42,7 +45,7 @@ jobs:
       - name: Set Windows test timezone
         if: runner.os == 'Windows'
         shell: pwsh
-        run: tzutil /s 'AUS Eastern Standard Time'
+        run: tzutil /s '${{ matrix.timezone }}'
 
       - name: Install Free Pascal on Linux
         if: runner.os == 'Linux'
