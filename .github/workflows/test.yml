@@ -12,6 +12,8 @@ jobs:
   test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    env:
+      FPC_WINDOWS_UNIT_PATH: 'C:\tools\freepascal\units\i386-win32\*'
     strategy:
       fail-fast: false
       matrix:
@@ -56,7 +58,7 @@ jobs:
         shell: pwsh
         working-directory: tests
         run: |
-          fpc "-FuC:\tools\freepascal\units\i386-win32\*" "-Fu$env:GITHUB_WORKSPACE\src" TestRunner.lpr
+          fpc "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" TestRunner.lpr
           .\TestRunner.exe -a --format=plain
 
       - name: Compile and run tests on Linux
@@ -71,7 +73,10 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem examples -Recurse -File -Include *.lpr,*.pas |
-            ForEach-Object { fpc "-Fu$env:GITHUB_WORKSPACE\src" $_.FullName }
+            ForEach-Object {
+              fpc "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" $_.FullName
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
 
       - name: Compile examples on Linux
         if: runner.os == 'Linux'
