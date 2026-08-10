@@ -57,6 +57,18 @@ IsWorkday := TChronoKit.IsBusinessDay(Now);
 NextWorkday := TChronoKit.NextBusinessDay(Now);
 PrevWorkday := TChronoKit.PreviousBusinessDay(Now);
 FiveDaysLater := TChronoKit.AddBusinessDays(Now, 5);
+
+// Exclude holidays while keeping the default Monday-Friday week
+Calendar := TChronoKit.CreateBusinessCalendar([
+  EncodeDate(2026, 1, 1), EncodeDate(2026, 12, 25)
+]);
+DueDate := TChronoKit.AddBusinessDays(StartDate, 5, Calendar);
+
+// Configure a Sunday-Thursday working week
+Calendar := TChronoKit.CreateBusinessCalendar(
+  [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday], []
+);
+IsWorkday := TChronoKit.IsBusinessDay(SomeDate, Calendar);
 ```
 
 ### Period Operations
@@ -186,10 +198,10 @@ WriteLn('EU DST active: ', BoolToStr(EUInfo.IsDST, True));
 ### Specialized Date Parsing
 ```pascal
 // Parse various date formats
-Date1 := TChronoKit.YMD(2024, 12, 25);              // Year-Month-Day
-Date2 := TChronoKit.MDY(12, 25, 2024);              // Month-Day-Year  
-Date3 := TChronoKit.DMY(25, 12, 2024);              // Day-Month-Year
-Date4 := TChronoKit.YQ(2024, 4);                    // Year-Quarter
+Date1 := TChronoKit.YMD('2024-12-25');              // Year-Month-Day
+Date2 := TChronoKit.MDY('12-25-2024');              // Month-Day-Year
+Date3 := TChronoKit.DMY('25-12-2024');              // Day-Month-Year
+Date4 := TChronoKit.YQ('2024-4');                   // Year-Quarter
 
 // Decimal date
 DecimalDate := TChronoKit.DateDecimal(2024.5);      // Mid-year 2024

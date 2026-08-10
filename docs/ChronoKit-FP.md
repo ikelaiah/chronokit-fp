@@ -1,10 +1,11 @@
-# ChronoKit-FP v1.1.0
+# ChronoKit-FP v1.2.0
 
 The `ChronoKit` module provides comprehensive date and time manipulation utilities for Free Pascal applications. It offers a wide range of functionality for working with dates, times, timezones, and daylight saving time (DST), with full cross-platform support for Windows and Linux.
 
 New users should begin with the [Getting Started guide](Getting-Started.md),
 then use [Troubleshooting](Troubleshooting.md) if a compiler search path,
-format, or platform setup needs attention.
+format, or platform setup needs attention. For working-week and holiday rules,
+continue with [Business calendars](Business-Calendars.md).
 
 ## Features
 
@@ -13,11 +14,59 @@ format, or platform setup needs attention.
 - **Date Manipulations**: Add or subtract time periods from dates
 - **Date Truncations**: Get the start or end of various time periods (day, month, year, etc.)
 - **Date Comparisons**: Compare dates using various criteria
-- **Business Day Functions**: Work with business days (excluding weekends)
+- **Business Calendars**: Work with configurable weekdays and holidays
 - **Date Unit Operations**: Floor, ceiling, and round dates to various units
 - **Cross-Platform Timezone Support**: Reliable timezone handling on both Windows and Linux
 - **Advanced DST Detection**: Accurate DST detection for multiple global regions
 - **Cross-Platform Environment Variables**: Helper functions for testing and configuration
+
+## Business-calendar operations
+
+Calls without a calendar keep the original Monday-to-Friday behavior:
+
+```pascal
+DueDate := TChronoKit.AddBusinessDays(StartDate, 5);
+```
+
+Use `CreateBusinessCalendar` to exclude holidays or select a different working
+week. Holiday time portions are ignored.
+
+```pascal
+type
+  TBusinessWeekday = (
+    bwdSunday, bwdMonday, bwdTuesday, bwdWednesday,
+    bwdThursday, bwdFriday, bwdSaturday
+  );
+  TBusinessWeek = set of TBusinessWeekday;
+
+Calendar := TChronoKit.CreateBusinessCalendar([
+  EncodeDate(2026, 1, 1), EncodeDate(2026, 12, 25)
+]);
+
+Calendar := TChronoKit.CreateBusinessCalendar(
+  [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday],
+  [EncodeDate(2026, 1, 1)]
+);
+```
+
+The calendar-aware overloads are:
+
+```pascal
+class function IsBusinessDay(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): Boolean; static;
+class function NextBusinessDay(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): TDateTime; static;
+class function PreviousBusinessDay(const AValue: TDateTime;
+  const ACalendar: TBusinessCalendar): TDateTime; static;
+class function AddBusinessDays(const AValue: TDateTime; const ADays: Integer;
+  const ACalendar: TBusinessCalendar): TDateTime; static;
+```
+
+`NextBusinessDay` and `PreviousBusinessDay` are strict. `AddBusinessDays` does
+not count the starting date, and zero returns it unchanged. Invalid calendars
+with no working days raise `EBusinessCalendarError`. See
+[Business calendars](Business-Calendars.md) for complete deadline,
+reporting-period, and date-range recipes.
 
 ## Timezone Operations
 
