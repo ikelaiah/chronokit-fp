@@ -8,6 +8,7 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
+[![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
 [![Status](https://img.shields.io/badge/Status-Stable-brightgreen.svg)]()
 
 ChronoKit-FP is a lightweight toolkit designed to make date and time handling in Free Pascal easier for everyone. Whether you're calculating business days, handling timezones, or formatting dates, ChronoKit-FP offers practical tools to simplify your work.
@@ -49,6 +50,7 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
     - [Dependencies](#dependencies)
     - [Build Requirements](#build-requirements)
   - [📚 Documentation](#-documentation)
+  - [🗺️ Roadmap](#️-roadmap)
   - [📊 Real-World Examples](#-real-world-examples)
   - [⚠️ Known Limitations](#️-known-limitations)
   - [✅ Testing](#-testing)
@@ -97,6 +99,30 @@ uses
 
 ## 🚀 Quick Start
 
+
+### 📅 Your first date calculation
+
+Start with plain dates. This example gets today's date, adds one week, and
+formats the result. It has no timezone setup or hidden configuration.
+
+```pascal
+program FirstChronoKitProgram;
+
+uses
+  ChronoKit, SysUtils;
+
+var
+  Today, NextWeek: TDateTime;
+begin
+  Today := TChronoKit.GetToday;
+  NextWeek := TChronoKit.AddDays(Today, 7);
+
+  WriteLn('Next week: ', TChronoKit.GetAsString(NextWeek, 'yyyy-mm-dd'));
+end.
+```
+
+Once that works, use the sections below for business days, intervals, and
+timezones.
 
 ### 📅 DateTime Operations
 
@@ -157,8 +183,13 @@ end.
 
 For detailed documentation, check out:
 
-- 📋 [API Cheat Sheet](docs/cheat-sheet.md) - Quick reference for all functions
+- 📋 [API Cheat Sheet](docs/Cheat-Sheet.md) - Quick reference for all functions
 - 📖 [Complete Documentation](docs/ChronoKit-FP.md) - Full guide and examples
+
+## 🗺️ Roadmap
+
+See the [roadmap through 2.0.0](ROADMAP.md) for planned usability and
+cross-platform improvements.
 
 ## 📊 Real-World Examples
 
@@ -181,14 +212,25 @@ You can use ChronoKit-FP to build all kinds of applications:
 
 ## ✅ Testing
 
-1. Open the `TestRunner.lpi` using Lazarus IDE
-2. Compile the project
-3. Run the Test Runner:
+Run the test suite from the command line with Free Pascal 3.2.2+. In PowerShell
+on Windows:
+
+```powershell
+cd tests
+$sourcePath = (Resolve-Path ../src).Path
+fpc "-Fu$sourcePath" TestRunner.lpr
+.\TestRunner.exe -a --format=plain
+```
+
+On Linux:
 
 ```bash
 cd tests
-./TestRunner.exe -a --format=plain
+fpc "-Fu$(pwd)/../src" TestRunner.lpr
+./TestRunner -a --format=plain
 ```
+
+Pull requests run this suite automatically on Windows and Linux.
 
 ## 🤝 Contributing
 
