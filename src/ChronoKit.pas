@@ -275,7 +275,7 @@ type
     repeatedly with the same timezone.
     
     @author ChronoKit Development Team
-    @version 1.2.0
+    @version 1.3.0
     @since Object Pascal / Free Pascal
     @see TDateTime for the underlying date/time type
     @see DateUtils for additional RTL date functions
@@ -2087,7 +2087,8 @@ type
         
       @returns TDateTime - The converted date/time value.
       
-      @warning The implementation details are not clear from the interface definition.
+      @warning AValue is interpreted as a wall-clock value in the system
+               timezone. See the v1.3.0 timezone contract for DST failures.
       
       @example
         var
@@ -2111,7 +2112,8 @@ type
         
       @returns Integer - The ISO year.
       
-      @warning The implementation details are not clear from the interface definition.
+      @warning The returned identifier is platform-native and is not a
+               cross-platform serialization format.
       
       @example
         var
@@ -2133,7 +2135,7 @@ type
         
       @returns Integer - The ISO week number (1-53).
       
-      @warning The implementation details are not clear from the interface definition.
+      @warning UTC is the only identifier guaranteed on every platform.
       
       @example
         var
@@ -2736,10 +2738,9 @@ type
         
       @returns TDateTime - The equivalent TDateTime value represented in the target timezone.
       
-      @warning Relies heavily on `GetTimeZone` to determine offsets for both the source time and the target timezone.
-               Accuracy is dependent on the underlying OS timezone data and `GetTimeZone`'s logic.
-               Raises ETimeZoneError if timezone names or offsets are invalid, or if conversion fails.
-               Converts AValue to UTC using its detected offset, then converts from UTC to the target timezone using its offset.
+      @warning The input is interpreted in the system timezone and the result
+               preserves the instant. Raises ETimeZoneError for unsupported
+               identifiers and timezone conversion failures.
       
       @example
         var
@@ -2785,11 +2786,9 @@ type
         
       @returns TDateTime - The TDateTime value representing the equivalent time in the system's local timezone.
       
-      @warning Relies on `GetTimeZone` to determine offsets. Accuracy depends on OS data.
-               Raises ETimeZoneError on failure. The logic effectively treats AValue as being in the target zone,
-               converts it to UTC, and then converts that UTC time to the system's local zone.
-               Implementation includes a check to ensure the result differs from the input,
-               potentially adding an hour if they are the same (this might be unexpected).
+      @warning The input clock is interpreted in ATimeZone and the result is
+               represented in the system timezone. Raises ETimeZoneError for
+               unsupported identifiers and timezone conversion failures.
       
       @example
         var

@@ -32,48 +32,48 @@ regression assertions on Windows and Linux.
 
 ### Phase 1: Contract and baseline
 
-- [ ] Task 1: Publish the normative v1.3.0 timezone contract, including
+- [x] Task 1: Publish the normative v1.3.0 timezone contract, including
   identifier mappings and operation semantics.
-- [ ] Task 2: Capture the existing 145-test baseline and identify every
+- [x] Task 2: Capture the existing 145-test baseline and identify every
   unconditional pass, tolerance, and platform-specific skipped assertion.
 
 ### Checkpoint: Contract
 
-- [ ] Supported identifiers, result semantics, and errors are explicit.
-- [ ] Ambiguous and nonexistent local-time policies are explicit.
-- [ ] No public API addition or signature change is proposed.
+- [x] Supported identifiers, result semantics, and errors are explicit.
+- [x] Ambiguous and nonexistent local-time policies are explicit.
+- [x] No public API addition or signature change is proposed.
 
 ### Phase 2: Shared regression matrix
 
-- [ ] Task 3: Replace skipped timezone checks with shared assertions for UTC
+- [x] Task 3: Replace skipped timezone checks with shared assertions for UTC
   offsets, DST boundaries, conversions, and invalid inputs.
-- [ ] Task 4: Configure Windows and Linux CI with equivalent logical timezone
+- [x] Task 4: Configure Windows and Linux CI with equivalent logical timezone
   fixtures and run the same test runner on both.
-- [ ] Task 5: Make only the minimal internal corrections required for the
+- [x] Task 5: Make only the minimal internal corrections required for the
   shared v1.3.0 assertions, using failing tests first.
 
 ### Checkpoint: Cross-platform behavior
 
-- [ ] No timezone assertion is bypassed with `IFDEF`, unconditional success,
+- [x] No timezone assertion is bypassed with `IFDEF`, unconditional success,
   diagnostic-only output, or platform-specific tolerance.
-- [ ] Focused timezone tests pass locally on Windows.
-- [ ] The complete test runner remains compilable with Free Pascal 3.2.2.
+- [x] Focused timezone tests pass locally on Windows.
+- [x] The complete test runner remains compilable with Free Pascal 3.2.2.
 
 ### Phase 3: Documentation and release material
 
-- [ ] Task 6: Align the README, getting-started guide, troubleshooting guide,
+- [x] Task 6: Align the README, getting-started guide, troubleshooting guide,
   API guide, and cheat sheet with the contract.
-- [ ] Task 7: Update version metadata, roadmap status, changelog, release
+- [x] Task 7: Update version metadata, roadmap status, changelog, release
   notes, and PR notes for v1.3.0.
-- [ ] Task 8: Compile the full suite, shipped examples, and Lazarus package,
+- [x] Task 8: Compile the full suite, shipped examples, and Lazarus package,
   then complete the five-axis review.
 
 ### Checkpoint: Complete
 
-- [ ] All v1.3.0 roadmap goals and done criteria are met.
-- [ ] Full FPCUnit suite and every shipped example compile.
-- [ ] Public API diff confirms no signature or type changes.
-- [ ] Diff passes correctness, readability, architecture, security, and
+- [x] All v1.3.0 roadmap goals and done criteria are met.
+- [x] Full FPCUnit suite and every shipped example compile.
+- [x] Public API diff confirms no signature or type changes.
+- [x] Diff passes correctness, readability, architecture, security, and
   performance review.
 
 ## Risks and mitigations

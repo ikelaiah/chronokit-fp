@@ -2,16 +2,16 @@
 
 - [x] New feature branch created: `feat/v1.3.0-timezone-contract`
 - [x] Baseline FPCUnit suite passes (145 tests)
-- [ ] Normative timezone contract published
-- [ ] Portable identifiers and Windows/Linux mappings documented
-- [ ] Instant-preserving and clock-preserving operation semantics specified
-- [ ] Ambiguous and nonexistent local-time behavior specified
-- [ ] Shared timezone regression matrix implemented
-- [ ] Platform-specific skipped and unconditional assertions removed
-- [ ] Equivalent Windows/Linux timezone fixtures configured in CI
-- [ ] Public API remains unchanged
-- [ ] README, guides, API docs, cheat sheet, changelog, roadmap, and release docs updated
-- [ ] Full FPCUnit suite passes
-- [ ] Every shipped example compiles
-- [ ] Lazarus package builds
-- [ ] Final five-axis review passes
+- [x] Normative timezone contract published
+- [x] Portable identifiers and Windows/Linux mappings documented
+- [x] Instant-preserving and clock-preserving operation semantics specified
+- [x] Ambiguous and nonexistent local-time behavior specified
+- [x] Shared timezone regression matrix implemented
+- [x] Platform-specific skipped and unconditional assertions removed
+- [x] Equivalent Windows/Linux timezone fixtures configured in CI
+- [x] Public API remains unchanged
+- [x] README, guides, API docs, cheat sheet, changelog, roadmap, and release docs updated
+- [x] Full FPCUnit suite passes
+- [x] Every shipped example compiles
+- [x] Lazarus package builds
+- [x] Final five-axis review passes
