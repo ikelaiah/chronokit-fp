@@ -1,6 +1,10 @@
-# ChronoKit-FP v1.0.0
+# ChronoKit-FP v1.1.0
 
 The `ChronoKit` module provides comprehensive date and time manipulation utilities for Free Pascal applications. It offers a wide range of functionality for working with dates, times, timezones, and daylight saving time (DST), with full cross-platform support for Windows and Linux.
+
+New users should begin with the [Getting Started guide](Getting-Started.md),
+then use [Troubleshooting](Troubleshooting.md) if a compiler search path,
+format, or platform setup needs attention.
 
 ## Features
 

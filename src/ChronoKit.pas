@@ -255,7 +255,7 @@ type
     repeatedly with the same timezone.
     
     @author ChronoKit Development Team
-    @version 1.0.0
+    @version 1.1.0
     @since Object Pascal / Free Pascal
     @see TDateTime for the underlying date/time type
     @see DateUtils for additional RTL date functions
@@ -3947,7 +3947,10 @@ begin
         // Parse timezone offset (format: +0200 or -0500)
         if (Length(OffsetStr) >= 5) and (OffsetStr[1] in ['+', '-']) then
         begin
-          OffsetSign := IfThen(OffsetStr[1] = '+', 1, -1);
+          if OffsetStr[1] = '+' then
+            OffsetSign := 1
+          else
+            OffsetSign := -1;
           
           // Extract hours and minutes
           if TryStrToInt(Copy(OffsetStr, 2, 2), OffsetHours) and
@@ -3985,7 +3988,10 @@ begin
       
       if (Length(OffsetStr) >= 5) and (OffsetStr[1] in ['+', '-']) then
       begin
-        OffsetSign := IfThen(OffsetStr[1] = '+', 1, -1);
+        if OffsetStr[1] = '+' then
+          OffsetSign := 1
+        else
+          OffsetSign := -1;
         
         if TryStrToInt(Copy(OffsetStr, 2, 2), OffsetHours) and
            TryStrToInt(Copy(OffsetStr, 4, 2), OffsetMinutes) then

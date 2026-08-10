@@ -1,6 +1,7 @@
-# Contributing to TidyKit
+# Contributing to ChronoKit-FP
 
-Thank you for your interest in contributing to TidyKit! We want to make contributing to this project as easy and transparent as possible.
+Thank you for your interest in contributing to ChronoKit-FP! We want to make
+contributing to this project as easy and transparent as possible.
 
 ## 📝 Code of Conduct
 
@@ -15,7 +16,7 @@ Thank you for your interest in contributing to TidyKit! We want to make contribu
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/your-username/tidykit-fp.git
+   git clone https://github.com/your-username/chronokit-fp.git
    ```
 3. Create a new branch:
    ```bash
@@ -27,10 +28,10 @@ Thank you for your interest in contributing to TidyKit! We want to make contribu
 ### Code Style
 
 #### Naming Conventions
-- `T` prefix for types (e.g., `TStringKit`, `TDictionary<K,V>`)
-- `I` prefix for interfaces (e.g., `IDictionary<K,V>`)
-- `F` prefix for private fields (e.g., `FCount`, `FBuckets`)
-- `A` prefix for parameters in documentation (e.g., `APath`, `AText`)
+- `T` prefix for types (e.g., `TChronoKit`, `TDateSpan`)
+- `I` prefix for interfaces
+- `F` prefix for private fields (e.g., `FTimeZone`)
+- `A` prefix for parameters in documentation (e.g., `AValue`, `ATimeZone`)
 - PascalCase for types, methods, and variables
 - UPPERCASE for constants
 
@@ -74,9 +75,9 @@ Thank you for your interest in contributing to TidyKit! We want to make contribu
 
 Example:
 ```
-Add string reverse function to TStringKit
+Improve timezone validation errors
 
-- Implement string reversal functionality
+- Return a clear error for unsupported timezone names
 - Add unit tests
 - Update documentation
 Fixes #123
@@ -86,8 +87,7 @@ Fixes #123
 
 - Add unit tests for new functionality
 - Ensure all tests pass before submitting PR
-- Test on Windows (minimum requirement)
-- If possible, test on Linux/macOS
+- Ensure the Windows and Linux pull-request checks pass
 
 ### Documentation
 
@@ -107,16 +107,18 @@ Fixes #123
 
 ### Pull Request Title Format
 
+```text
+type(scope): short description
 ```
-[Type] Short description
 
-Types:
-- [Feature] - New functionality
-- [Fix] - Bug fixes
-- [Docs] - Documentation only
-- [Test] - Test-related changes
-- [Refactor] - Code refactoring
-```
+Common types:
+
+- `feat` - New functionality
+- `fix` - Bug fixes
+- `docs` - Documentation only
+- `test` - Test-related changes
+- `refactor` - Code refactoring
+- `release` - Release preparation
 
 ## 🐛 Reporting Issues
 
@@ -144,4 +146,4 @@ Contributors will be recognized in:
 
 ## 📄 License
 
-By contributing, you agree that your contributions will be licensed under the MIT License. 
+By contributing, you agree that your contributions will be licensed under the MIT License.

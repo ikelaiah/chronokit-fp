@@ -1,23 +1,18 @@
 program AddBusinessDays;
 
-{$mode objfpc}{$H+}
+{$mode objfpc}{$H+}{$J-}
 
 uses
-  {$IFDEF UNIX}
-  cthreads,
-  {$ENDIF}
-  Classes, ChronoKit;
+  SysUtils,
+  ChronoKit;
 
-
-  // Get today's date and add 5 business days
 var
-  Today, NextWeek: TDateTime;
+  StartDate, DueDate: TDateTime;
 begin
-  Today := TChronoKit.GetToday;
-  NextWeek := TChronoKit.AddBusinessDays(Today, 5);
-  WriteLn('Next workday: ', TChronoKit.GetAsString(NextWeek, 'yyyy-mm-dd'));
+  StartDate := EncodeDate(2026, 8, 7);
+  DueDate := TChronoKit.AddBusinessDays(StartDate, 5);
 
-  // Pause
-  WriteLn('Press enter key to quit ...');
-  ReadLn;
+  WriteLn('Start date: ', TChronoKit.GetAsString(StartDate, 'yyyy-mm-dd'));
+  WriteLn('Five business days later: ',
+    TChronoKit.GetAsString(DueDate, 'yyyy-mm-dd'));
 end.

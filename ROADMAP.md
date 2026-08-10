@@ -32,6 +32,8 @@ concepts do matter, the API and documentation must make the choice explicit.
 
 ## 1.1.0 — First five minutes
 
+**Status:** Released 2026-08-10
+
 Make it straightforward for a new Free Pascal or Lazarus user to get started.
 
 - Publish one verified installation path for Lazarus and one for source-based
