@@ -2874,7 +2874,9 @@ begin
     end;
     
     // If both failed, raise an exception
-    raise EConvertError.CreateFmt('Could not convert "%s" to date/time', [AValue]);
+    raise EConvertError.CreateFmt(
+      'Invalid date/time input "%s". Expected a valid value in the system date/time format using "-" or "/" as the date separator',
+      [AValue]);
   end
   else
   begin
@@ -2883,7 +2885,9 @@ begin
       Result := ScanDateTime(AFormat, AValue);
     except
       on E: Exception do
-        raise EConvertError.CreateFmt('Could not convert "%s" to date/time using format "%s"', [AValue, AFormat]);
+        raise EConvertError.CreateFmt(
+          'Invalid date/time input "%s". Expected format "%s" with valid calendar values',
+          [AValue, AFormat]);
     end;
   end;
 end;
@@ -3697,7 +3701,9 @@ begin
     if TryStrToDate(AValue, Value, FormatSettings) then
       Result := Value
     else
-      raise EConvertError.Create('Invalid YMD format. Expected YYYY-MM-DD or YYYY/MM/DD');
+      raise EConvertError.CreateFmt(
+        'Invalid YMD date "%s". Expected YYYY-MM-DD or YYYY/MM/DD with a valid calendar date',
+        [AValue]);
   end;
 end;
 
@@ -3718,7 +3724,9 @@ begin
     if TryStrToDate(AValue, Value, FormatSettings) then
       Result := Value
     else
-      raise EConvertError.Create('Invalid MDY format. Expected MM-DD-YYYY or MM/DD/YYYY');
+      raise EConvertError.CreateFmt(
+        'Invalid MDY date "%s". Expected MM-DD-YYYY or MM/DD/YYYY with a valid calendar date',
+        [AValue]);
   end;
 end;
 
@@ -3739,7 +3747,9 @@ begin
     if TryStrToDate(AValue, Value, FormatSettings) then
       Result := Value
     else
-      raise EConvertError.Create('Invalid DMY format. Expected DD-MM-YYYY or DD/MM/YYYY');
+      raise EConvertError.CreateFmt(
+        'Invalid DMY date "%s". Expected DD-MM-YYYY or DD/MM/YYYY with a valid calendar date',
+        [AValue]);
   end;
 end;
 
@@ -3755,15 +3765,18 @@ begin
     // If hyphen didn't work, try slash
     Parts := SplitString(AValue, '/');
     if Length(Parts) <> 2 then
-      raise EConvertError.Create('Invalid YQ format. Expected YYYY-Q or YYYY/Q');
+      raise EConvertError.CreateFmt(
+        'Invalid YQ value "%s". Expected YYYY-Q or YYYY/Q', [AValue]);
   end;
     
   if not TryStrToInt(Parts[0], Year) or
      not TryStrToInt(Parts[1], Quarter) then
-    raise EConvertError.Create('Invalid YQ format. All parts must be numbers');
+    raise EConvertError.CreateFmt(
+      'Invalid YQ value "%s". Year and quarter must be numbers', [AValue]);
     
   if (Quarter < 1) or (Quarter > 4) then
-    raise EConvertError.Create('Invalid quarter value. Must be between 1 and 4');
+    raise EConvertError.CreateFmt(
+      'Invalid YQ value "%s". Quarter must be between 1 and 4', [AValue]);
     
   // Convert quarter to month (Q1=1, Q2=4, Q3=7, Q4=10)
   Result := EncodeDate(Year, 1 + (Quarter - 1) * 3, 1);

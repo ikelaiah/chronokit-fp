@@ -42,14 +42,14 @@ recipes and release documentation.
 
 - [x] Task 4: Add leap-year, month-end, week-start, zero-day, and
   time-preservation contract tests.
-- [ ] Task 5: Add failing assertions for actionable invalid-date messages,
+- [x] Task 5: Add failing assertions for actionable invalid-date messages,
   then update the parsing errors.
 
 ### Checkpoint: Behavior contract
 
-- [ ] Boundary behavior is covered by deterministic tests.
-- [ ] Invalid inputs identify the rejected value and accepted format.
-- [ ] Full FPCUnit suite passes.
+- [x] Boundary behavior is covered by deterministic tests.
+- [x] Invalid inputs identify the rejected value and accepted format.
+- [x] Full FPCUnit suite passes.
 
 ### Phase 3: Recipes and release material
 
