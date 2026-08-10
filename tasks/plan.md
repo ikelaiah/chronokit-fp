@@ -1,92 +1,241 @@
-# Implementation Plan: v1.3.0 timezone contract and regression suite
+# Implementation Plan: v1.4.0 trustworthy timezones
 
 ## Overview
 
-Deliver the v1.3.0 roadmap milestone as a contract-first correctness release.
-The public timezone signatures remain unchanged. The release will define the
-portable and platform-native identifier sets, state the wall-clock/instant
-semantics of every timezone operation, define DST-boundary failure behavior,
-and replace platform-specific skips with one shared set of meaningful
-regression assertions on Windows and Linux.
+Deliver the v1.4.0 roadmap milestone by making the v1.3.0 timezone contract
+executable on Windows and Linux. Named-zone conversion will use the requested
+zone and the supplied date, platform-native rules will replace hard-coded US
+transitions, and every local wall clock will be classified as valid,
+ambiguous, or nonexistent before it is converted.
+
+The public timezone signatures remain source-compatible. The implementation
+will move platform-specific rule lookup into a small internal unit so the
+public `ChronoKit` unit only owns contract-level orchestration and errors.
 
 ## Architecture decisions
 
-- Treat `UTC` as the canonical portable identifier. Document platform-native
-  mappings separately: IANA identifiers on Linux and Windows identifiers on
-  Windows. Aliases are compatibility inputs, not portable storage values.
-- Treat `TDateTime` as an unzoned wall-clock representation. Each operation's
-  source-zone assumption and whether it preserves an instant or clock fields
-  must therefore be explicit.
-- Keep every existing public type and signature unchanged. v1.3.0 may tighten
-  tests, diagnostics, and internal correctness only where required to make the
-  established contract executable; broader named-zone implementation remains
-  v1.4.0 work.
-- Use a single data-driven regression matrix and identical assertions on both
-  operating systems. CI supplies platform-specific names for the same logical
-  zones rather than branching assertions in Pascal.
-- Reject ambiguous and nonexistent local times with `ETimeZoneError` under the
-  contract. The documentation will distinguish this required behavior from
-  legacy behavior that v1.4.0 must finish implementing across named zones.
+- Resolve local clocks by testing the platform engine's possible UTC offsets.
+  Zero matching instants means nonexistent, one means valid, and two means
+  ambiguous. This makes gaps and overlaps visible without adding a caller
+  policy that the 1.x API cannot represent.
+- On Windows, read the registered timezone catalog and its per-year dynamic
+  rules, then use the OS conversion API for the requested identifier/date.
+- On Linux, read the installed IANA TZif file directly. This avoids changing
+  the process-wide `TZ` variable during conversion and uses the host's own
+  timezone database, including historical transitions.
+- Keep `UTC` as the sole portable identifier and retain the documented Linux
+  `Etc/UTC` aliases. Return canonical platform identifiers from discovery and
+  system-zone queries.
+- Add no dependency and no new public type or function. Continue reporting all
+  lookup, conversion, ambiguity, and gap failures through `ETimeZoneError`.
 
 ## Task list
 
-### Phase 1: Contract and baseline
+### Phase 1: Executable contract
 
-- [x] Task 1: Publish the normative v1.3.0 timezone contract, including
-  identifier mappings and operation semantics.
-- [x] Task 2: Capture the existing 145-test baseline and identify every
-  unconditional pass, tolerance, and platform-specific skipped assertion.
+#### Task 1: Add failing named-zone and DST classification regressions
 
-### Checkpoint: Contract
+**Description:** Extend the shared matrix with logical Windows/Linux fixture
+names supplied by CI. Prove that target names affect conversion, northern and
+southern hemisphere rules differ, and gaps/overlaps raise descriptive errors.
 
-- [x] Supported identifiers, result semantics, and errors are explicit.
-- [x] Ambiguous and nonexistent local-time policies are explicit.
-- [x] No public API addition or signature change is proposed.
+**Acceptance criteria:**
 
-### Phase 2: Shared regression matrix
+- [x] A non-system target conversion produces the target-zone wall clock.
+- [x] Sydney and New York seasonal offsets follow their own platform rules.
+- [x] System-local and named-source gaps/overlaps raise `ETimeZoneError` with
+      the value, zone, and classification in the message.
 
-- [x] Task 3: Replace skipped timezone checks with shared assertions for UTC
-  offsets, DST boundaries, conversions, and invalid inputs.
-- [x] Task 4: Configure Windows and Linux CI with equivalent logical timezone
-  fixtures and run the same test runner on both.
-- [x] Task 5: Make only the minimal internal corrections required for the
-  shared v1.3.0 assertions, using failing tests first.
+**Verification:**
 
-### Checkpoint: Cross-platform behavior
+- [x] The new tests fail against the v1.3.0 implementation for the expected
+      contract gaps.
+- [x] `fpc "-FU." "-Fu..\src" TestRunner.lpr` compiles the expanded suite.
 
-- [x] No timezone assertion is bypassed with `IFDEF`, unconditional success,
-  diagnostic-only output, or platform-specific tolerance.
-- [x] Focused timezone tests pass locally on Windows.
-- [x] The complete test runner remains compilable with Free Pascal 3.2.2.
+**Dependencies:** None
+
+**Files likely touched:**
+
+- `tests/ChronoKit.Test.pas`
+- `.github/workflows/test.yml`
+
+**Estimated scope:** Medium
+
+#### Task 2: Implement the platform-native timezone engine
+
+**Description:** Add one internal unit that discovers platform identifiers,
+maps UTC instants with native rules, and classifies local wall clocks without
+guessing.
+
+**Acceptance criteria:**
+
+- [x] Windows uses dynamic timezone data for the requested identifier/date.
+- [x] Linux parses installed TZif transition/type data for the requested IANA
+      identifier/date without mutating process-global timezone state.
+- [x] UTC and documented aliases remain deterministic and dependency-free.
+
+**Verification:**
+
+- [x] The engine compiles with Free Pascal 3.2.2 on the local Windows target.
+- [x] Focused engine-facing regressions pass after implementation.
+
+**Dependencies:** Task 1
+
+**Files likely touched:**
+
+- `src/ChronoKitTimeZones.pas`
+- `packages/lazarus/chronokit_fp.lpk`
+
+**Estimated scope:** Medium
+
+### Checkpoint: Platform engine
+
+- [x] Named target conversion fails before implementation and passes after it.
+- [x] No hard-coded regional DST transition calculation remains in use.
+- [x] The source tree builds without a new dependency.
+
+### Phase 2: Public contract conformance
+
+#### Task 3: Route public timezone operations through classified conversions
+
+**Description:** Make `GetTimeZone`, `WithTimeZone`, `ForceTimeZone`, discovery,
+and system-zone lookup delegate to the engine while preserving public
+signatures and translating backend failures to `ETimeZoneError`.
+
+**Acceptance criteria:**
+
+- [x] Every conversion uses the supplied wall clock and requested zone.
+- [x] Ambiguous/nonexistent local inputs never return a guessed instant.
+- [x] Lookup failures never silently fall back to UTC.
+
+**Verification:**
+
+- [x] The full FPCUnit suite passes locally.
+- [x] Public declarations have no breaking signature or type change.
+
+**Dependencies:** Task 2
+
+**Files likely touched:**
+
+- `src/ChronoKit.pas`
+- `tests/ChronoKit.Test.pas`
+
+**Estimated scope:** Medium
+
+#### Task 4: Complete the cross-platform release matrix
+
+**Description:** Configure equivalent named-zone fixtures in both CI jobs and
+ensure all contract assertions run unchanged on Windows and Linux.
+
+**Acceptance criteria:**
+
+- [x] CI supplies native identifiers for New York, London, Sydney, Tokyo, and
+      Auckland on both operating systems.
+- [x] Assertion bodies contain no platform-specific skip, tolerance, or pass.
+- [x] Tests cover UTC, named conversion, seasonal rules, gaps, overlaps, date
+      boundaries, round trips, and invalid names.
+
+**Verification:**
+
+- [x] Workflow syntax and commands match the repository's established jobs.
+- [x] Local Windows run passes with the same logical fixture variables.
+
+**Dependencies:** Task 3
+
+**Files likely touched:**
+
+- `.github/workflows/test.yml`
+- `tests/ChronoKit.Test.pas`
+
+**Estimated scope:** Small
+
+### Checkpoint: Contract conformance
+
+- [x] The complete v1.3.0 matrix is executable without skipped behavior.
+- [x] The local Free Pascal 3.2.2 suite passes.
+- [x] CI is ready to enforce identical Windows/Linux semantics.
 
 ### Phase 3: Documentation and release material
 
-- [x] Task 6: Align the README, getting-started guide, troubleshooting guide,
-  API guide, and cheat sheet with the contract.
-- [x] Task 7: Update version metadata, roadmap status, changelog, release
-  notes, and PR notes for v1.3.0.
-- [x] Task 8: Compile the full suite, shipped examples, and Lazarus package,
-  then complete the five-axis review.
+#### Task 5: Update user and API documentation
+
+**Description:** Replace v1.3.0 implementation caveats with copyable guidance
+for choosing conversion operations, native identifiers, and handling DST
+boundary exceptions.
+
+**Acceptance criteria:**
+
+- [x] README, getting started, API guide, cheat sheet, troubleshooting, and
+      timezone contract describe shipped v1.4.0 behavior consistently.
+- [x] Each public timezone operation has a copyable example and clear wall
+      clock/instant semantics.
+- [x] DST gap and overlap examples show `ETimeZoneError` handling.
+
+**Verification:**
+
+- [x] Documentation links resolve within the repository.
+- [x] Examples use only public API available in v1.4.0.
+
+**Dependencies:** Task 4
+
+**Files likely touched:**
+
+- `README.md`
+- `docs/Getting-Started.md`
+- `docs/ChronoKit-FP.md`
+- `docs/Cheat-Sheet.md`
+- `docs/Timezone-Contract.md`
+
+**Estimated scope:** Medium
+
+#### Task 6: Prepare v1.4.0 release records
+
+**Description:** Record completion in version metadata, roadmap, changelog,
+release notes, and PR notes.
+
+**Acceptance criteria:**
+
+- [x] Source and Lazarus package metadata report v1.4.0.
+- [x] Roadmap marks the milestone released only after verification succeeds.
+- [x] Changelog, release notes, and PR notes accurately state behavior and
+      compatibility.
+
+**Verification:**
+
+- [x] Version search finds no current-release metadata left at v1.3.0.
+- [x] Release records include the exact verification commands and outcomes.
+
+**Dependencies:** Task 5
+
+**Files likely touched:**
+
+- `CHANGELOG.md`
+- `ROADMAP.md`
+- `docs/RELEASE-NOTES-v1.4.0.md`
+- `docs/PR-v1.4.0.md`
+- `packages/lazarus/chronokit_fp.lpk`
+
+**Estimated scope:** Medium
 
 ### Checkpoint: Complete
 
-- [x] All v1.3.0 roadmap goals and done criteria are met.
-- [x] Full FPCUnit suite and every shipped example compile.
-- [x] Public API diff confirms no signature or type changes.
-- [x] Diff passes correctness, readability, architecture, security, and
-  performance review.
+- [x] All v1.4.0 roadmap goals and done criteria are met.
+- [x] Full FPCUnit suite passes with Free Pascal 3.2.2 (154 tests per OS).
+- [x] Every shipped example compiles and the Lazarus package builds.
+- [x] `git diff --check` and the five-axis review find no required issue.
+- [x] Windows/Linux CI configuration runs the same meaningful assertions.
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Contract work accidentally implements v1.4.0 | High | Limit behavior changes to what is needed by the shared v1.3.0 matrix and record named-zone engine work as excluded scope. |
-| Platform identifier names are treated as interchangeable | High | Publish a logical-zone mapping table and designate only `UTC` as portable. |
-| Tests pass without proving behavior | High | Remove unconditional passes, skipped assertions, broad tolerances, and OS-specific expectations from timezone tests. |
-| Host timezone makes tests nondeterministic | High | Set an explicit equivalent timezone in both CI jobs and restore process environment in tests. |
-| Documentation overstates current guarantees | High | Make the normative contract and remaining v1.4.0 conformance gap explicit. |
+| Windows registry/API declarations differ across FPC targets | High | Use the standard FCL registry unit plus one stable Win32 conversion entry point, and compile on FPC 3.2.2. |
+| TZif variants or corrupt files produce unsafe reads | High | Validate magic, counts, indices, sizes, and every stream boundary before parsing. |
+| DST classification accidentally chooses an occurrence | High | Accept a local clock only when exactly one candidate instant round-trips through native rules. |
+| Target offset changes between source and destination dates | High | Resolve the source to an instant first, then query the target rule at that instant. |
+| Documentation overstates unverified Linux behavior | Medium | Keep the shared CI matrix as the release gate and distinguish local verification from CI readiness. |
 
 ## Open questions
 
-None. The roadmap explicitly separates the v1.3.0 contract and regression
-suite from the broader v1.4.0 named-zone implementation.
+None. The v1.3.0 contract specifies the observable behavior and preserves the
+public API, so implementation choices do not require a new product decision.

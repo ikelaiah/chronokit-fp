@@ -39,11 +39,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. "/>
-    <Version Major="1" Minor="3"/>
+    <Version Major="1" Minor="4"/>
     <Files>
       <Item>
         <Filename Value="..\..\src\ChronoKit.pas"/>
         <UnitName Value="ChronoKit"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitTimeZones.pas"/>
+        <UnitName Value="ChronoKitTimeZones"/>
       </Item>
     </Files>
     <RequiredPkgs>

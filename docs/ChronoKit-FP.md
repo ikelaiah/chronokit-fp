@@ -1,4 +1,4 @@
-# ChronoKit-FP v1.3.0
+# ChronoKit-FP v1.4.0
 
 The `ChronoKit` module provides comprehensive date and time manipulation utilities for Free Pascal applications. It offers a wide range of functionality for working with dates, times, timezones, and daylight saving time (DST), with full cross-platform support for Windows and Linux.
 
@@ -16,8 +16,9 @@ continue with [Business calendars](Business-Calendars.md).
 - **Date Comparisons**: Compare dates using various criteria
 - **Business Calendars**: Work with configurable weekdays and holidays
 - **Date Unit Operations**: Floor, ceiling, and round dates to various units
-- **Timezone Contract**: Explicit wall-clock, instant, identifier, and error semantics
-- **Cross-Platform Regression Matrix**: Shared UTC, offset, conversion, and DST assertions
+- **Trustworthy Timezone Conversion**: Date-specific Windows and IANA rules for the requested zone
+- **Visible DST Discontinuities**: Ambiguous and nonexistent local clocks raise `ETimeZoneError`
+- **Cross-Platform Regression Matrix**: Shared UTC, named-zone, conversion, and DST assertions
 
 ## Business-calendar operations
 
@@ -84,7 +85,7 @@ A plain `TDateTime` cannot select between repeated clock values. The contract
 requires `ETimeZoneError` for ambiguous and nonexistent local inputs instead of
 silently guessing. The [timezone contract](Timezone-Contract.md) defines the
 identifier mappings, operation table, failure rules, regression matrix, and
-the named-zone conformance work gated for v1.4.0.
+boundary examples implemented by v1.4.0.
 
 ```pascal
 var
@@ -97,6 +98,30 @@ begin
 
   WriteLn(TZInfo.Name, ' offset: ', TZInfo.Offset, ' minutes');
   WriteLn('UTC: ', TChronoKit.GetAsString(UTCValue, 'yyyy-mm-dd hh:nn:ss'));
+end;
+```
+
+For a named source wall clock, select the platform-native identifier and use
+`ForceTimeZone`:
+
+```pascal
+var
+  NamedValue, SystemValue: TDateTime;
+  SourceTimeZone: string;
+begin
+  {$IFDEF WINDOWS}
+  SourceTimeZone := 'Eastern Standard Time';
+  {$ELSE}
+  SourceTimeZone := 'America/New_York';
+  {$ENDIF}
+
+  NamedValue := EncodeDateTime(2024, 3, 10, 2, 30, 0, 0);
+  try
+    SystemValue := TChronoKit.ForceTimeZone(NamedValue, SourceTimeZone);
+  except
+    on E: ETimeZoneError do
+      WriteLn('Nonexistent or ambiguous local time: ', E.Message);
+  end;
 end;
 ```
 
@@ -125,7 +150,9 @@ end;
 ```pascal
 var
   CurrentTime: TDateTime;
+  I: Integer;
   TZInfo: TTimeZoneInfo;
+  TZNames: TStringArray;
 begin
   // Get current time
   CurrentTime := TChronoKit.GetNow;
@@ -172,6 +199,10 @@ TDSTRule = record
 end;
 ```
 
+`TDSTRule` remains for 1.x source compatibility. The public timezone
+conversion functions do not use it; v1.4.0 obtains the requested zone's rules
+from Windows dynamic timezone data or the installed IANA TZif database.
+
 ### Timezone functions
 
 ```pascal
@@ -205,5 +236,6 @@ values at a DST transition.
 - Linux uses IANA identifiers, such as `America/New_York`, and requires an
   installed timezone database (commonly `tzdata`).
 - Windows and IANA names are mappings, not cross-platform aliases.
-- The pull-request workflow sets equivalent New York fixtures and runs the
-  same assertions on Windows and Linux.
+- The pull-request workflow supplies equivalent New York, London, Sydney,
+  Tokyo, and Auckland identifiers and runs the same assertions on Windows and
+  Linux.

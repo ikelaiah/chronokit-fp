@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-08-11
+
+### Added
+
+- A platform-native timezone engine that reads Windows per-year dynamic rules
+  and installed Linux IANA TZif data for the requested identifier and date.
+- Shared named-zone regression fixtures for New York, London, Sydney, Tokyo,
+  and Auckland on Windows and Linux.
+- Regression coverage for named target conversion, northern and southern
+  seasonal rules, recurring future rules, and ambiguous/nonexistent system
+  and named local clocks.
+
+### Changed
+
+- `GetTimeZoneNames` now returns the platform's discoverable timezone catalog
+  rather than a short system/current-zone list.
+- Timezone documentation now gives task-based guidance for `WithTimeZone` and
+  `ForceTimeZone`, including copyable DST-error handling.
+- The Windows and Linux CI jobs supply equivalent logical-zone identifiers to
+  the same 154-test FPCUnit suite.
+
+### Fixed
+
+- `WithTimeZone` now uses the requested target timezone and the offset in
+  effect at the resolved instant.
+- `ForceTimeZone` now interprets its input in the requested source timezone
+  rather than reusing the system-zone offset.
+- Windows no longer applies hard-coded United States transition dates to
+  other regions; Linux no longer depends on a process command that ignores the
+  requested zone.
+- Ambiguous and nonexistent local clocks now raise `ETimeZoneError` with the
+  rejected value, timezone, and classification instead of silently guessing.
+- Timezone lookup and conversion failures no longer fall back silently to UTC.
+
+### Compatibility
+
+- All existing public types and function signatures are unchanged.
+- `UTC` remains the only portable identifier; Windows and IANA names remain
+  platform-native.
+
 ## [1.3.0] - 2026-08-11
 
 ### Added

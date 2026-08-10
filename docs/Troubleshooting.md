@@ -54,7 +54,14 @@ value occurs when clocks move forward. The timezone contract requires
 `ETimeZoneError` instead of silently selecting an occurrence. Catch the
 exception rather than matching its message, and see the
 [timezone contract](Timezone-Contract.md) for the exact operation semantics
-and v1.4.0 conformance scope.
+and boundary examples.
+
+If the exception reports missing timezone data, install or repair the
+platform database. Linux normally provides it through the `tzdata` package.
+On Windows, ChronoKit reads the registered timezone catalog and its per-year
+dynamic rules. `GetTimeZoneNames` shows the exact identifiers available to the
+running program; do not substitute an IANA name on Windows or a Windows name
+on Linux.
 
 ## The project does not compile
 

@@ -162,6 +162,14 @@ UTCValue := TChronoKit.WithTimeZone(AValue, 'UTC');
 // Interpret a UTC wall clock and return the equivalent system-local value.
 LocalValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
 
+// Interpret a named-zone wall clock. The identifier is platform-native.
+try
+  LocalValue := TChronoKit.ForceTimeZone(InputValue, SourceTimeZone);
+except
+  on E: ETimeZoneError do
+    WriteLn('The local clock is invalid or cannot identify one instant');
+end;
+
 // UTC is the only portable identifier. Other exact names come from the OS.
 TZNames := TChronoKit.GetTimeZoneNames;
 ```
