@@ -1,4 +1,6 @@
-# Description
+# release(repo): add v1.1.0 first-five-minutes onboarding release
+
+## Description
 
 Implements the v1.1.0 “First five minutes” roadmap milestone. This release
 improves installation, onboarding, troubleshooting, example consistency, and
