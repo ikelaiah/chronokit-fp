@@ -59,6 +59,11 @@ type
     procedure Test31_NextBusinessDay;
     procedure Test32_PreviousBusinessDay;
     procedure Test33_AddBusinessDays;
+    procedure Test131_DefaultBusinessCalendarCompatibility;
+    procedure Test132_BusinessCalendarHolidays;
+    procedure Test133_AlternativeWorkingWeek;
+    procedure Test134_ConfiguredBusinessDayNavigation;
+    procedure Test135_InvalidBusinessCalendar;
     // Time Span Tests
     procedure Test34_CreatePeriod;
     procedure Test35_CreateDuration;
@@ -678,6 +683,104 @@ begin
   AssertEquals('AddBusinessDays should skip weekends',
     Expected, TChronoKit.AddBusinessDays(StartDate, 4));
   WriteLn('Test33_AddBusinessDays:Finished');
+end;
+
+procedure TDateTimeTests.Test131_DefaultBusinessCalendarCompatibility;
+var
+  Friday: TDateTime;
+begin
+  WriteLn('Test131_DefaultBusinessCalendarCompatibility:Starting');
+  Friday := EncodeDate(2026, 12, 25);
+
+  AssertTrue('Legacy IsBusinessDay should still treat Friday as a business day',
+    TChronoKit.IsBusinessDay(Friday));
+  AssertEquals('Legacy AddBusinessDays should still use Monday through Friday',
+    Friday, TChronoKit.AddBusinessDays(EncodeDate(2026, 12, 24), 1));
+  WriteLn('Test131_DefaultBusinessCalendarCompatibility:Finished');
+end;
+
+procedure TDateTimeTests.Test132_BusinessCalendarHolidays;
+var
+  Calendar: TBusinessCalendar;
+  Holiday, Tuesday: TDateTime;
+begin
+  WriteLn('Test132_BusinessCalendarHolidays:Starting');
+  Holiday := EncodeDateTime(2024, 1, 1, 12, 30, 0, 0);
+  Tuesday := EncodeDate(2024, 1, 2);
+  Calendar := TChronoKit.CreateBusinessCalendar([Holiday]);
+
+  AssertFalse('Configured holiday should not be a business day',
+    TChronoKit.IsBusinessDay(EncodeDate(2024, 1, 1), Calendar));
+  AssertTrue('Non-holiday weekday should remain a business day',
+    TChronoKit.IsBusinessDay(Tuesday, Calendar));
+  WriteLn('Test132_BusinessCalendarHolidays:Finished');
+end;
+
+procedure TDateTimeTests.Test133_AlternativeWorkingWeek;
+var
+  Calendar: TBusinessCalendar;
+  Sunday, Friday: TDateTime;
+begin
+  WriteLn('Test133_AlternativeWorkingWeek:Starting');
+  Calendar := TChronoKit.CreateBusinessCalendar(
+    [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday], []);
+  Sunday := EncodeDate(2024, 1, 7);
+  Friday := EncodeDate(2024, 1, 5);
+
+  AssertTrue('Sunday should be configurable as a working day',
+    TChronoKit.IsBusinessDay(Sunday, Calendar));
+  AssertFalse('Friday should be configurable as a non-working day',
+    TChronoKit.IsBusinessDay(Friday, Calendar));
+  WriteLn('Test133_AlternativeWorkingWeek:Finished');
+end;
+
+procedure TDateTimeTests.Test134_ConfiguredBusinessDayNavigation;
+var
+  Calendar: TBusinessCalendar;
+  Friday, MondayHoliday, Tuesday: TDateTime;
+begin
+  WriteLn('Test134_ConfiguredBusinessDayNavigation:Starting');
+  Friday := EncodeDate(2023, 12, 29);
+  MondayHoliday := EncodeDate(2024, 1, 1);
+  Tuesday := EncodeDate(2024, 1, 2);
+  Calendar := TChronoKit.CreateBusinessCalendar([MondayHoliday]);
+
+  AssertEquals('NextBusinessDay should skip weekends and holidays',
+    Tuesday, TChronoKit.NextBusinessDay(Friday, Calendar));
+  AssertEquals('PreviousBusinessDay should skip weekends and holidays',
+    Friday, TChronoKit.PreviousBusinessDay(Tuesday, Calendar));
+  AssertEquals('AddBusinessDays should skip holidays when moving forward',
+    Tuesday, TChronoKit.AddBusinessDays(Friday, 1, Calendar));
+  AssertEquals('AddBusinessDays should skip holidays when moving backward',
+    Friday, TChronoKit.AddBusinessDays(Tuesday, -1, Calendar));
+  WriteLn('Test134_ConfiguredBusinessDayNavigation:Finished');
+end;
+
+procedure TDateTimeTests.Test135_InvalidBusinessCalendar;
+var
+  Calendar: TBusinessCalendar;
+begin
+  WriteLn('Test135_InvalidBusinessCalendar:Starting');
+  try
+    TChronoKit.CreateBusinessCalendar([], []);
+    Fail('CreateBusinessCalendar should reject an empty working week');
+  except
+    on E: EBusinessCalendarError do
+      AssertTrue('Calendar validation should explain the working-day requirement',
+        Pos('working day', LowerCase(E.Message)) > 0);
+  end;
+
+  Calendar.WorkingDays := [];
+  SetLength(Calendar.Holidays, 0);
+  try
+    TChronoKit.NextBusinessDay(EncodeDate(2024, 1, 1), Calendar);
+    Fail('Business-day operations should reject directly assigned invalid calendars');
+  except
+    on E: EBusinessCalendarError do
+      AssertTrue('Operation validation should explain the working-day requirement',
+        Pos('working day', LowerCase(E.Message)) > 0);
+  end;
+  WriteLn('Test135_InvalidBusinessCalendar:Finished');
 end;
 
 procedure TDateTimeTests.Test34_CreatePeriod;

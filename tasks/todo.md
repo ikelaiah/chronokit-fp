@@ -3,8 +3,8 @@
 - [x] New feature branch created
 - [x] Baseline FPCUnit suite passes (130 tests)
 - [x] Business-calendar API contract published and reviewed
-- [ ] Backwards-compatible configurable business-day API implemented
-- [ ] Holidays and alternative working weeks tested
+- [x] Backwards-compatible configurable business-day API implemented
+- [x] Holidays and alternative working weeks tested
 - [ ] Leap-year, month-end, week-start, and zero-day behavior tested
 - [ ] Invalid-date validation messages improved and tested
 - [ ] Reporting-period, deadline, and date-range recipes added

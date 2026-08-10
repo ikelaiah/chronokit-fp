@@ -28,15 +28,15 @@ recipes and release documentation.
 ### Phase 1: Contract and compatibility
 
 - [x] Task 1: Publish and review the v1.2.0 business-calendar API design.
-- [ ] Task 2: Add failing compatibility, holiday, alternative-week, and
+- [x] Task 2: Add failing compatibility, holiday, alternative-week, and
   invalid-calendar tests.
-- [ ] Task 3: Implement calendar types, factories, and business-day overloads.
+- [x] Task 3: Implement calendar types, factories, and business-day overloads.
 
 ### Checkpoint: Configurable calculations
 
-- [ ] Focused business-calendar tests pass.
-- [ ] Existing business-day tests still pass without call-site changes.
-- [ ] Test runner compiles cleanly with Free Pascal 3.2.2.
+- [x] Focused business-calendar tests pass.
+- [x] Existing business-day tests still pass without call-site changes.
+- [x] Test runner compiles cleanly with Free Pascal 3.2.2.
 
 ### Phase 2: Boundaries and validation
 
