@@ -38,7 +38,7 @@ Closes # (not applicable; release milestone)
 
 ```powershell
 cd tests
-fpc "-Fu..\src" TestRunner.lpr
+fpc "-FU." "-Fu..\src" TestRunner.lpr
 .\TestRunner.exe -a --format=plain
 ```
 

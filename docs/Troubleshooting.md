@@ -65,7 +65,7 @@ Run the repository's complete test suite to check a local build:
 
 ```powershell
 cd tests
-fpc "-Fu..\src" TestRunner.lpr
+fpc "-FU." "-Fu..\src" TestRunner.lpr
 .\TestRunner.exe -a --format=plain
 ```
 

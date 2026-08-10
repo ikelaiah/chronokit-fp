@@ -255,7 +255,7 @@ on Windows:
 ```powershell
 cd tests
 $sourcePath = (Resolve-Path ../src).Path
-fpc "-Fu$sourcePath" TestRunner.lpr
+fpc "-FU." "-Fu$sourcePath" TestRunner.lpr
 .\TestRunner.exe -a --format=plain
 ```
 
@@ -263,7 +263,7 @@ On Linux:
 
 ```bash
 cd tests
-fpc "-Fu$(pwd)/../src" TestRunner.lpr
+fpc "-FU." "-Fu$(pwd)/../src" TestRunner.lpr
 ./TestRunner -a --format=plain
 ```
 
