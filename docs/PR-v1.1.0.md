@@ -10,6 +10,7 @@ Closes # (not applicable; release milestone)
 
 ## Type of change
 
+- [x] Bug fix
 - [x] Documentation update
 - [x] Tests or CI update
 - [x] Release or maintenance
@@ -34,6 +35,8 @@ Closes # (not applicable; release milestone)
   Lazarus 4.0 and Free Pascal 3.2.2.
 - [x] Ran the quick-start and business-day examples; their output is
   deterministic.
+- [x] Fixed the Linux Free Pascal 3.2.2 compilation error in timezone-offset
+  parsing and Windows Chocolatey compiler discovery.
 
 ### Windows (PowerShell)
 

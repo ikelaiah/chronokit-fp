@@ -3947,7 +3947,10 @@ begin
         // Parse timezone offset (format: +0200 or -0500)
         if (Length(OffsetStr) >= 5) and (OffsetStr[1] in ['+', '-']) then
         begin
-          OffsetSign := IfThen(OffsetStr[1] = '+', 1, -1);
+          if OffsetStr[1] = '+' then
+            OffsetSign := 1
+          else
+            OffsetSign := -1;
           
           // Extract hours and minutes
           if TryStrToInt(Copy(OffsetStr, 2, 2), OffsetHours) and
@@ -3985,7 +3988,10 @@ begin
       
       if (Length(OffsetStr) >= 5) and (OffsetStr[1] in ['+', '-']) then
       begin
-        OffsetSign := IfThen(OffsetStr[1] = '+', 1, -1);
+        if OffsetStr[1] = '+' then
+          OffsetSign := 1
+        else
+          OffsetSign := -1;
         
         if TryStrToInt(Copy(OffsetStr, 2, 2), OffsetHours) and
            TryStrToInt(Copy(OffsetStr, 4, 2), OffsetMinutes) then

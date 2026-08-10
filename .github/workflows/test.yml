@@ -30,7 +30,8 @@ jobs:
         shell: pwsh
         run: |
           choco install freepascal --version=3.2.2 --yes --no-progress
-          $compiler = Get-ChildItem 'C:\FPC' -Recurse -Filter fpc.exe | Select-Object -First 1
+          $compiler = Get-ChildItem 'C:\tools\freepascal' -Recurse -Filter fpc.exe -ErrorAction Stop |
+            Select-Object -First 1
           if ($null -eq $compiler) {
             throw 'Free Pascal compiler was not installed.'
           }

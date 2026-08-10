@@ -20,6 +20,8 @@ and Lazarus users. It does not change the public API.
   programs that do not wait for interactive input.
 - Every shipped example is compiled by the Windows and Linux pull-request
   workflow, alongside the existing FPCUnit suite.
+- The release gate supports Free Pascal 3.2.2 on Linux and discovers the
+  Chocolatey-installed compiler on Windows.
 
 ## Compatibility
 
