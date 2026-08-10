@@ -55,7 +55,7 @@ recipes and release documentation.
 
 - [x] Task 6: Add reporting-period, deadline, and date-range recipes and update
   the README, cheat sheet, and API guide.
-- [ ] Task 7: Update version metadata, roadmap status, changelog, release notes,
+- [x] Task 7: Update version metadata, roadmap status, changelog, release notes,
   and PR notes for v1.2.0.
 - [ ] Task 8: Compile every shipped example and complete the final review.
 

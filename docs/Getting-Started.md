@@ -87,6 +87,8 @@ For example, parse `2026-08-10 09:30` with
 
 ## Next steps
 
+- [Business calendars](Business-Calendars.md) for holidays, alternative working
+  weeks, deadlines, reporting periods, and date ranges.
 - [Troubleshooting](Troubleshooting.md) for search-path, format, and platform
   issues.
 - [API Cheat Sheet](Cheat-Sheet.md) for a compact function reference.

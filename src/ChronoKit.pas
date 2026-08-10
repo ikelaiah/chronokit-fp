@@ -275,7 +275,7 @@ type
     repeatedly with the same timezone.
     
     @author ChronoKit Development Team
-    @version 1.1.0
+    @version 1.2.0
     @since Object Pascal / Free Pascal
     @see TDateTime for the underlying date/time type
     @see DateUtils for additional RTL date functions

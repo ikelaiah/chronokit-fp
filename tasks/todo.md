@@ -8,7 +8,7 @@
 - [x] Leap-year, month-end, week-start, and zero-day behavior tested
 - [x] Invalid-date validation messages improved and tested
 - [x] Reporting-period, deadline, and date-range recipes added
-- [ ] README, API guide, cheat sheet, changelog, roadmap, and release docs updated
+- [x] README, API guide, cheat sheet, changelog, roadmap, and release docs updated
 - [x] Full FPCUnit suite passes (144 tests)
-- [ ] Every shipped example compiles
+- [x] Every shipped example compiles
 - [ ] Final five-axis review passes
