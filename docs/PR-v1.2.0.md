@@ -29,7 +29,7 @@ Closes # (not applicable; release milestone)
 
 ## Testing
 
-- [x] FPCUnit suite passed — 144 tests, 0 errors, 0 failures on Windows with
+- [x] FPCUnit suite passed — 145 tests, 0 errors, 0 failures on Windows with
   Free Pascal 3.2.2.
 - [x] `ChronoKitQuickStart`, `AddBusinessDays`, and `ChronoKitExample` compile
   successfully on Windows.

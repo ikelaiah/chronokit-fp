@@ -73,6 +73,7 @@ type
     procedure Test142_DMYValidationMessage;
     procedure Test143_YQValidationMessage;
     procedure Test144_FromStringValidationMessage;
+    procedure Test145_YQYearValidationMessage;
     // Time Span Tests
     procedure Test34_CreatePeriod;
     procedure Test35_CreateDuration;
@@ -945,6 +946,24 @@ begin
     end;
   end;
   WriteLn('Test144_FromStringValidationMessage:Finished');
+end;
+
+procedure TDateTimeTests.Test145_YQYearValidationMessage;
+begin
+  WriteLn('Test145_YQYearValidationMessage:Starting');
+  try
+    TChronoKit.YQ('0-1');
+    Fail('YQ should reject a year outside the TDateTime range');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('YQ year error should include the rejected input',
+        Pos('0-1', E.Message) > 0);
+      AssertTrue('YQ year error should explain the valid year range',
+        Pos('between 1 and 9999', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test145_YQYearValidationMessage:Finished');
 end;
 
 procedure TDateTimeTests.Test34_CreatePeriod;

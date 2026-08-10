@@ -9,6 +9,6 @@
 - [x] Invalid-date validation messages improved and tested
 - [x] Reporting-period, deadline, and date-range recipes added
 - [x] README, API guide, cheat sheet, changelog, roadmap, and release docs updated
-- [x] Full FPCUnit suite passes (144 tests)
+- [x] Full FPCUnit suite passes (145 tests)
 - [x] Every shipped example compiles
-- [ ] Final five-axis review passes
+- [x] Final five-axis review passes

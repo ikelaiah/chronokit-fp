@@ -57,13 +57,13 @@ recipes and release documentation.
   the README, cheat sheet, and API guide.
 - [x] Task 7: Update version metadata, roadmap status, changelog, release notes,
   and PR notes for v1.2.0.
-- [ ] Task 8: Compile every shipped example and complete the final review.
+- [x] Task 8: Compile every shipped example and complete the final review.
 
 ### Checkpoint: Complete
 
-- [ ] All v1.2.0 roadmap goals and done criteria are met.
-- [ ] Full test suite and all examples compile.
-- [ ] Diff passes correctness, readability, architecture, security, and
+- [x] All v1.2.0 roadmap goals and done criteria are met.
+- [x] Full test suite and all examples compile.
+- [x] Diff passes correctness, readability, architecture, security, and
   performance review.
 
 ## Risks and mitigations

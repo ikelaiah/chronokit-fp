@@ -2875,7 +2875,8 @@ begin
     
     // If both failed, raise an exception
     raise EConvertError.CreateFmt(
-      'Invalid date/time input "%s". Expected a valid value in the system date/time format using "-" or "/" as the date separator',
+      'Invalid date/time input "%s". Expected a valid value in the system ' +
+      'date/time format using "-" or "/" as the date separator',
       [AValue]);
   end
   else
@@ -3725,7 +3726,8 @@ begin
       Result := Value
     else
       raise EConvertError.CreateFmt(
-        'Invalid MDY date "%s". Expected MM-DD-YYYY or MM/DD/YYYY with a valid calendar date',
+        'Invalid MDY date "%s". Expected MM-DD-YYYY or MM/DD/YYYY with a ' +
+        'valid calendar date; two-digit years are also accepted',
         [AValue]);
   end;
 end;
@@ -3748,7 +3750,8 @@ begin
       Result := Value
     else
       raise EConvertError.CreateFmt(
-        'Invalid DMY date "%s". Expected DD-MM-YYYY or DD/MM/YYYY with a valid calendar date',
+        'Invalid DMY date "%s". Expected DD-MM-YYYY or DD/MM/YYYY with a ' +
+        'valid calendar date; two-digit years are also accepted',
         [AValue]);
   end;
 end;
@@ -3773,6 +3776,10 @@ begin
      not TryStrToInt(Parts[1], Quarter) then
     raise EConvertError.CreateFmt(
       'Invalid YQ value "%s". Year and quarter must be numbers', [AValue]);
+
+  if (Year < 1) or (Year > 9999) then
+    raise EConvertError.CreateFmt(
+      'Invalid YQ value "%s". Year must be between 1 and 9999', [AValue]);
     
   if (Quarter < 1) or (Quarter > 4) then
     raise EConvertError.CreateFmt(
