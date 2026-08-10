@@ -41,80 +41,94 @@ Make it straightforward for a new Free Pascal or Lazarus user to get started.
 - Add a concise troubleshooting guide for compiler search paths, formats, and
   platform requirements.
 - Audit examples so they compile and use one consistent style.
+- Use the Windows and Linux pull-request test suite as the release gate.
 
 **Done when:** a developer new to Free Pascal can follow a single short guide,
 run an example, and understand the difference between a date, a local
 date/time, and a timezone conversion without inferring missing setup steps.
 
-## 1.2.0 — Everyday calendar work
+## 1.2.0 — Business calendars
 
-Cover common real-world tasks without requiring callers to assemble several
-low-level helpers.
+Extend the existing Monday-to-Friday business-day helpers without surprising
+current users.
 
-- Make business-day calculations configurable for holidays and alternative
-  working weeks.
+- Publish and review a small API design for holidays and alternative working
+  weeks before implementing it.
+- Make business-day calculations configurable for those rules while preserving
+  the current Monday-to-Friday behaviour by default.
 - Add focused recipes for reporting periods, deadlines, and date ranges.
 - Define and test boundary behaviour for leap years, month ends, and week
   starts.
 - Improve validation messages for invalid date input.
 
-**Done when:** common calendar rules are expressed directly and their edge
-cases are documented.
+**Done when:** common calendar rules are expressed directly, existing code
+keeps its current behaviour by default, and edge cases are documented.
 
-## 1.3.0 — Time zones users can trust
+## 1.3.0 — Timezone contract and regression suite
 
-Make timezone behaviour explicit and consistent across supported platforms.
+Define what the existing timezone API must mean before changing its
+implementation. This is a correctness release, not a feature-expansion
+release.
 
 - Standardise supported timezone identifiers and document platform mappings.
-- Make ambiguous and nonexistent DST local times visible to callers instead of
+- Specify whether each operation preserves an instant or local clock time.
+- Specify the result or error for ambiguous and nonexistent DST local times.
+- Build a shared Windows/Linux regression matrix for UTC offsets, DST
+  transitions, and conversions; remove platform-specific skipped assertions.
+- Keep the current public API unchanged while this contract is established.
+
+**Done when:** the supported input, result, and failure behaviour is written
+down and covered by the same meaningful assertions on both platforms.
+
+## 1.4.0 — Time zones users can trust
+
+Implement the 1.3.0 timezone contract across Windows and Linux.
+
+- Ensure conversions use both the supplied date/time and the requested target
+  timezone.
+- Make timezone data and DST rules platform-appropriate rather than relying on
+  one region's transition rules.
+- Make ambiguous and nonexistent local times visible to callers instead of
   silently guessing.
-- Expand test coverage for UTC offsets, DST transitions, and conversions on
-  Windows and Linux.
-- Document when an operation preserves an instant versus preserves local clock
-  time.
+- Release only when the 1.3.0 regression matrix passes on both platforms.
 
-**Done when:** a developer can choose the right timezone operation from the
-documentation and predict its result at a DST boundary.
+**Done when:** a developer can choose the right operation from the
+documentation and predict its result at a DST boundary on either platform.
 
-## 1.4.0 — Discoverable, dependable API
+## 1.5.0 — Discoverable API and 2.0 decision
 
-Reduce friction in the public surface while keeping 1.x code working.
+Reduce friction in the public surface while deciding, from evidence, whether a
+major-version change is worthwhile.
 
 - Group the API documentation by task and add a searchable cheat sheet.
-- Introduce clearer names or convenience helpers where existing names are hard
-  to discover; retain deprecated compatibility wrappers through 1.x.
+- Run a beginner-focused API and documentation audit using common date/time
+  tasks.
+- Introduce clearer additive helpers only where the audit identifies a real
+  discovery problem; retain compatibility wrappers through 1.x.
 - Add examples and tests for every public API addition.
-- Keep pull requests gated by the Windows and Linux test suite.
+- Publish a proposed 2.0 change list only if 1.x usage shows that deprecation
+  is justified.
 
 **Done when:** users can find a documented, tested answer to common date/time
-questions without reading the implementation.
+questions without reading the implementation, and the project has an
+evidence-based decision about 2.0.0.
 
-## 1.5.0 — Prepare the 2.0 upgrade
+## 2.0.0 — Conditional: a focused, predictable ChronoKit
 
-Turn the lessons from 1.x into a low-risk migration path.
-
-- Publish the proposed 2.0 API changes and migration guide.
-- Mark superseded APIs as deprecated with replacements and examples.
-- Provide an upgrade checklist and compatibility notes for Lazarus and Free
-  Pascal versions.
-- Resolve outstanding cross-platform consistency issues before the major
-  release.
-
-**Done when:** an existing 1.x project can assess and plan its upgrade without
-guesswork.
-
-## 2.0.0 — A focused, predictable ChronoKit
-
-Deliver the simplified public API announced in 1.5.0.
+2.0.0 is not a release-date commitment. It will be cut only when 1.x contains
+documented deprecations with proven replacements and a migration is genuinely
+valuable to users.
 
 - Remove deprecated APIs only where a documented replacement has existed in
-  1.x.
+  at least one 1.x release.
 - Apply consistent naming, validation, and error behaviour across the library.
 - Ship a complete migration guide and updated first-five-minutes tutorial.
 - Verify the supported Windows and Linux environments in CI before release.
 
 **Done when:** ChronoKit-FP presents one clear path for common date/time work,
-with predictable cross-platform behaviour and an actionable upgrade path.
+with predictable cross-platform behaviour and an actionable upgrade path. If
+these conditions are not met, the project will continue releasing compatible
+1.x versions instead.
 
 ## Feedback
 
