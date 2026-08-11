@@ -1,3 +1,5 @@
+![ChronoKit-FP banner with a clock, calendar, and global timezone paths](docs/assets/chronokit-fp-banner-alternate.svg)
+
 # 📅 ChronoKit-FP: Toolkit for Dates & Times in Free Pascal
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E3A8A.svg)](https://opensource.org/licenses/MIT)
