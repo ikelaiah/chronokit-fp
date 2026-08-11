@@ -7,13 +7,13 @@
 - [x] `FormatDateTime` and `ParseDateTime` aliases implemented
 - [x] Existing `GetAsString` and `FromString` calls remain compatible
 - [x] Quick-start example uses and demonstrates both public additions
-- [ ] Searchable task-based cheat sheet covers every public method
-- [ ] README, getting started, complete guide, and troubleshooting updated
-- [ ] Copy/paste errors in existing examples corrected
-- [ ] Evidence-based 2.0 decision published and linked
-- [ ] Version metadata, roadmap, changelog, release notes, and PR notes updated
-- [ ] Full FPCUnit suite passes with local timezone fixtures
-- [ ] Every shipped example compiles
-- [ ] Lazarus package builds
-- [ ] Documentation links and public-method coverage verified
+- [x] Searchable task-based cheat sheet covers every public method
+- [x] README, getting started, complete guide, and troubleshooting updated
+- [x] Copy/paste errors in existing examples corrected
+- [x] Evidence-based 2.0 decision published and linked
+- [x] Version metadata, roadmap, changelog, release notes, and PR notes updated
+- [x] Full FPCUnit suite passes with local timezone fixtures (157 tests)
+- [x] Every shipped example compiles
+- [x] Lazarus package builds
+- [x] Documentation links and public-method coverage verified
 - [ ] Final five-axis review passes

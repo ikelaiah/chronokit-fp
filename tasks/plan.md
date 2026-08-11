@@ -125,14 +125,14 @@ task index, copyable recipes, and a complete compact public-method index.
 
 **Acceptance criteria:**
 
-- [ ] Common search terms lead directly to the appropriate API and example.
-- [ ] Every public `TChronoKit` method appears in the compact index.
-- [ ] Incorrect `drs*` examples are replaced with the public `du*` enum.
+- [x] Common search terms lead directly to the appropriate API and example.
+- [x] Every public `TChronoKit` method appears in the compact index.
+- [x] Incorrect `drs*` examples are replaced with the public `du*` enum.
 
 **Verification:**
 
-- [ ] Method names in the index match the public declarations.
-- [ ] Every code sample uses the v1.5.0 public API.
+- [x] Method names in the index match the public declarations.
+- [x] Every code sample uses the v1.5.0 public API.
 
 **Dependencies:** Task 3
 
@@ -150,16 +150,16 @@ calendar and timezone contracts.
 
 **Acceptance criteria:**
 
-- [ ] The main documentation paths use the same task vocabulary and preferred
+- [x] The main documentation paths use the same task vocabulary and preferred
       v1.5.0 names.
-- [ ] Parsing, formatting, arithmetic, business-day, interval, and timezone
+- [x] Parsing, formatting, arithmetic, business-day, interval, and timezone
       tasks each have a documented answer.
-- [ ] Compatibility aliases are explained without prematurely deprecating them.
+- [x] Compatibility aliases are explained without prematurely deprecating them.
 
 **Verification:**
 
-- [ ] Repository-local documentation links resolve.
-- [ ] Examples compile or correspond to compiled public calls.
+- [x] Repository-local documentation links resolve.
+- [x] Examples compile or correspond to compiled public calls.
 
 **Dependencies:** Task 4
 
@@ -174,9 +174,9 @@ calendar and timezone contracts.
 
 ### Checkpoint: Discovery paths
 
-- [ ] Common questions can be answered without reading implementation code.
-- [ ] Searchable index and detailed guide agree on preferred operations.
-- [ ] Public additions have tests and copyable examples.
+- [x] Common questions can be answered without reading implementation code.
+- [x] Searchable index and detailed guide agree on preferred operations.
+- [x] Public additions have tests and copyable examples.
 
 ### Phase 3: Version decision and release records
 
@@ -188,14 +188,14 @@ decision and its reconsideration criteria.
 
 **Acceptance criteria:**
 
-- [ ] The record separates repository evidence from assumptions about users.
-- [ ] A proposed 2.0 change list is published only if justified by evidence.
-- [ ] The decision defines what future evidence would trigger reconsideration.
+- [x] The record separates repository evidence from assumptions about users.
+- [x] A proposed 2.0 change list is published only if justified by evidence.
+- [x] The decision defines what future evidence would trigger reconsideration.
 
 **Verification:**
 
-- [ ] The decision is consistent with the roadmap's conditional 2.0 policy.
-- [ ] README and roadmap link to the decision where appropriate.
+- [x] The decision is consistent with the roadmap's conditional 2.0 policy.
+- [x] README and roadmap link to the decision where appropriate.
 
 **Dependencies:** Task 5
 
@@ -214,14 +214,14 @@ and milestone status after verification.
 
 **Acceptance criteria:**
 
-- [ ] Source and Lazarus package metadata report v1.5.0.
-- [ ] Changelog and release notes describe additions and compatibility.
-- [ ] Roadmap status reflects the verified milestone outcome.
+- [x] Source and Lazarus package metadata report v1.5.0.
+- [x] Changelog and release notes describe additions and compatibility.
+- [x] Roadmap status reflects the verified milestone outcome.
 
 **Verification:**
 
-- [ ] Version search finds no current-release metadata left at v1.4.0.
-- [ ] Release records state the exact verification commands and outcomes.
+- [x] Version search finds no current-release metadata left at v1.4.0.
+- [x] Release records state the exact verification commands and outcomes.
 
 **Dependencies:** Task 6
 

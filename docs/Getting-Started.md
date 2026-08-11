@@ -36,11 +36,12 @@ var
   CreatedDate, ParsedDate, NextWeek: TDateTime;
 begin
   CreatedDate := EncodeDate(2026, 8, 10);
-  WriteLn('Created: ', TChronoKit.GetAsString(CreatedDate, 'yyyy-mm-dd'));
+  WriteLn('Created: ', TChronoKit.FormatDateTime(CreatedDate, 'yyyy-mm-dd'));
 
-  ParsedDate := TChronoKit.FromString('2026-08-10', 'yyyy-mm-dd');
+  ParsedDate := TChronoKit.ParseDateTime('2026-08-10', 'yyyy-mm-dd');
   NextWeek := TChronoKit.AddDays(ParsedDate, 7);
-  WriteLn('One week later: ', TChronoKit.GetAsString(NextWeek, 'yyyy-mm-dd'));
+  WriteLn('One week later: ',
+    TChronoKit.FormatDateTime(NextWeek, 'yyyy-mm-dd'));
 end.
 ```
 
@@ -58,7 +59,8 @@ One week later: 2026-08-17
 |---|---|
 | A calendar date with no time | `EncodeDate` or `TChronoKit.GetToday` |
 | The computer's current local date and time | `TChronoKit.GetNow` |
-| A date/time entered as text | `TChronoKit.FromString` with an explicit format |
+| A date/time entered as text | `TChronoKit.ParseDateTime` with an explicit format |
+| Text formatted for display or output | `TChronoKit.FormatDateTime` with an explicit format |
 | A date a fixed number of days away | `TChronoKit.AddDays` |
 | The same instant represented in a named timezone | `TChronoKit.WithTimeZone` |
 | A wall clock that should be interpreted in a named timezone | `TChronoKit.ForceTimeZone` |
@@ -85,7 +87,7 @@ var
 begin
   LocalValue := TChronoKit.GetNow;
   UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
-  WriteLn(TChronoKit.GetAsString(UTCValue, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn(TChronoKit.FormatDateTime(UTCValue, 'yyyy-mm-dd hh:nn:ss'));
 end;
 ```
 
@@ -123,6 +125,10 @@ Always pass the format when parsing user or file input. The common tokens are:
 For example, parse `2026-08-10 09:30` with
 `'yyyy-mm-dd hh:nn'`. Notice that minutes use `nn`, not `mm`.
 
+`GetAsString` and `FromString` are the original 1.x names for formatting and
+parsing. They remain supported; new code should prefer `FormatDateTime` and
+`ParseDateTime`, which use the same behavior and errors.
+
 ## Next steps
 
 - [Business calendars](Business-Calendars.md) for holidays, alternative working
@@ -131,5 +137,6 @@ For example, parse `2026-08-10 09:30` with
   issues.
 - [Timezone contract](Timezone-Contract.md) for identifier, conversion, and
   DST rules.
-- [API Cheat Sheet](Cheat-Sheet.md) for a compact function reference.
-- [Complete documentation](ChronoKit-FP.md) for the wider API.
+- [Searchable API cheat sheet](Cheat-Sheet.md) to find an operation by question
+  or keyword.
+- [Task guide](ChronoKit-FP.md) for the wider API.

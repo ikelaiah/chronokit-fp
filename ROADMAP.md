@@ -105,6 +105,8 @@ documentation and predict its result at a DST boundary on either platform.
 
 ## 1.5.0 — Discoverable API and 2.0 decision
 
+**Status:** Completed 2026-08-11
+
 Reduce friction in the public surface while deciding, from evidence, whether a
 major-version change is worthwhile.
 
@@ -120,6 +122,11 @@ major-version change is worthwhile.
 **Done when:** users can find a documented, tested answer to common date/time
 questions without reading the implementation, and the project has an
 evidence-based decision about 2.0.0.
+
+The completed [beginner API audit](docs/API-Audit-v1.5.0.md) justified two
+additive discovery names and a task-oriented documentation rewrite. The
+[2.0 decision](docs/V2-DECISION.md) is to continue compatible 1.x releases;
+current evidence does not justify a breaking change list or deprecation.
 
 ## 2.0.0 — Conditional: a focused, predictable ChronoKit
 
