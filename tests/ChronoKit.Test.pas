@@ -15,6 +15,10 @@ type
   TDateTimeTests = class(TTestCase)
   private
     FDateTime: TChronoKit;
+    function FixtureName(const AVariable: string): string;
+    function FixtureDateTime(const AVariable: string): TDateTime;
+    function NamedWallClockToUTC(const AValue: TDateTime;
+      const ATimeZone: string): TDateTime;
   protected
     procedure SetUp; override;
     procedure TearDown; override;
@@ -197,6 +201,15 @@ type
     
     // Shared logical-zone matrix
     procedure Test119_SeasonalOffsetMatrix;
+    procedure Test120_NamedTargetConversion;
+    procedure Test121_SouthernHemisphereSeasonalRules;
+    procedure Test122_NamedNonexistentTimeRaises;
+    procedure Test123_NamedAmbiguousTimeRaises;
+    procedure Test124_SystemNonexistentTimeRaises;
+    procedure Test125_SystemAmbiguousTimeRaises;
+    procedure Test126_LogicalZoneFixturesAreDiscoverable;
+    procedure Test127_TargetZoneUsesDateSpecificOffset;
+    procedure Test128_FutureRecurringRules;
   end;
 
 implementation
@@ -248,6 +261,32 @@ end;
 procedure TDateTimeTests.TearDown;
 begin
   // No teardown needed for static functions
+end;
+
+function TDateTimeTests.FixtureName(const AVariable: string): string;
+begin
+  Result := GetEnvVar(AVariable);
+  AssertTrue(AVariable + ' must name a platform-native timezone fixture',
+    Result <> '');
+end;
+
+function TDateTimeTests.FixtureDateTime(const AVariable: string): TDateTime;
+var
+  FixtureText: string;
+begin
+  FixtureText := GetEnvVar(AVariable);
+  AssertTrue(AVariable + ' must contain a system-local fixture',
+    FixtureText <> '');
+  Result := ScanDateTime('yyyy-mm-dd hh:nn:ss', FixtureText);
+end;
+
+function TDateTimeTests.NamedWallClockToUTC(const AValue: TDateTime;
+  const ATimeZone: string): TDateTime;
+var
+  SystemLocal: TDateTime;
+begin
+  SystemLocal := TChronoKit.ForceTimeZone(AValue, ATimeZone);
+  Result := TChronoKit.WithTimeZone(SystemLocal, 'UTC');
 end;
 
 procedure TDateTimeTests.Test01_Now;
@@ -2425,72 +2464,59 @@ end;
 
 procedure TDateTimeTests.Test110_DSTStartMatrix;
 var
-  AfterTransition, BeforeTransition: TTimeZoneInfo;
-  OriginalTZ: string;
+  AfterTransitionUTC, BeforeTransitionUTC: TDateTime;
+  NewYork: string;
 begin
-  OriginalTZ := GetEnvVar('TZ');
-  try
-    SetEnvVar('TZ', 'America/New_York');
-    BeforeTransition := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 3, 10, 1, 59, 59, 0));
-    AfterTransition := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 3, 10, 3, 0, 0, 0));
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  BeforeTransitionUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 3, 10, 1, 59, 59, 0), NewYork);
+  AfterTransitionUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 3, 10, 3, 0, 0, 0), NewYork);
 
-    AssertFalse('Last valid clock second before DST start is standard time',
-      BeforeTransition.IsDST);
-    AssertTrue('First valid clock second after DST start is daylight time',
-      AfterTransition.IsDST);
-    AssertEquals('DST start advances the UTC offset by 60 minutes',
-      60, AfterTransition.Offset - BeforeTransition.Offset);
-  finally
-    SetEnvVar('TZ', OriginalTZ);
-  end;
+  AssertEquals('Last valid clock second before DST start uses UTC-05:00',
+    EncodeDateTime(2024, 3, 10, 6, 59, 59, 0),
+    BeforeTransitionUTC, OneMillisecond);
+  AssertEquals('First valid clock second after DST start uses UTC-04:00',
+    EncodeDateTime(2024, 3, 10, 7, 0, 0, 0),
+    AfterTransitionUTC, OneMillisecond);
 end;
 
 procedure TDateTimeTests.Test111_DSTEndMatrix;
 var
-  AfterTransition, BeforeTransition: TTimeZoneInfo;
-  OriginalTZ: string;
+  AfterTransitionUTC, BeforeTransitionUTC: TDateTime;
+  NewYork: string;
 begin
-  OriginalTZ := GetEnvVar('TZ');
-  try
-    SetEnvVar('TZ', 'America/New_York');
-    BeforeTransition := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 11, 3, 0, 59, 59, 0));
-    AfterTransition := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 11, 3, 2, 0, 0, 0));
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  BeforeTransitionUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 11, 3, 0, 59, 59, 0), NewYork);
+  AfterTransitionUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 11, 3, 2, 0, 0, 0), NewYork);
 
-    AssertTrue('Last unambiguous clock hour before DST end is daylight time',
-      BeforeTransition.IsDST);
-    AssertFalse('First valid clock second after DST end is standard time',
-      AfterTransition.IsDST);
-    AssertEquals('DST end reduces the UTC offset by 60 minutes',
-      -60, AfterTransition.Offset - BeforeTransition.Offset);
-  finally
-    SetEnvVar('TZ', OriginalTZ);
-  end;
+  AssertEquals('Last unambiguous clock hour before DST end uses UTC-04:00',
+    EncodeDateTime(2024, 11, 3, 4, 59, 59, 0),
+    BeforeTransitionUTC, OneMillisecond);
+  AssertEquals('First valid clock second after DST end uses UTC-05:00',
+    EncodeDateTime(2024, 11, 3, 7, 0, 0, 0),
+    AfterTransitionUTC, OneMillisecond);
 end;
 
 procedure TDateTimeTests.Test112_LeapYearDSTMatrix;
 var
-  LeapDay, PostTransition: TTimeZoneInfo;
-  OriginalTZ: string;
+  LeapDayUTC, PostTransitionUTC: TDateTime;
+  NewYork: string;
 begin
-  OriginalTZ := GetEnvVar('TZ');
-  try
-    SetEnvVar('TZ', 'America/New_York');
-    LeapDay := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 2, 29, 23, 59, 59, 0));
-    PostTransition := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 3, 10, 3, 0, 0, 0));
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  LeapDayUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 2, 29, 23, 59, 59, 0), NewYork);
+  PostTransitionUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 3, 10, 3, 0, 0, 0), NewYork);
 
-    AssertFalse('Leap day is standard time in the New York fixture',
-      LeapDay.IsDST);
-    AssertTrue('DST transition remains correct in a leap year',
-      PostTransition.IsDST);
-  finally
-    SetEnvVar('TZ', OriginalTZ);
-  end;
+  AssertEquals('Leap day uses New York standard time',
+    EncodeDateTime(2024, 3, 1, 4, 59, 59, 0),
+    LeapDayUTC, OneMillisecond);
+  AssertEquals('DST transition remains correct in a leap year',
+    EncodeDateTime(2024, 3, 10, 7, 0, 0, 0),
+    PostTransitionUTC, OneMillisecond);
 end;
 
 procedure TDateTimeTests.Test113_MalformedTimeZonesRaise;
@@ -2599,25 +2625,243 @@ end;
 
 procedure TDateTimeTests.Test119_SeasonalOffsetMatrix;
 var
-  SummerInfo, WinterInfo: TTimeZoneInfo;
-  OriginalTZ: string;
+  SummerUTC, WinterUTC: TDateTime;
+  NewYork: string;
 begin
-  OriginalTZ := GetEnvVar('TZ');
-  try
-    SetEnvVar('TZ', 'America/New_York');
-    WinterInfo := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 1, 15, 12, 0, 0, 0));
-    SummerInfo := TChronoKit.GetTimeZone(
-      EncodeDateTime(2024, 7, 15, 12, 0, 0, 0));
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  WinterUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 1, 15, 12, 0, 0, 0), NewYork);
+  SummerUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 7, 15, 12, 0, 0, 0), NewYork);
 
-    AssertFalse('New York winter fixture must use standard time',
-      WinterInfo.IsDST);
-    AssertTrue('New York summer fixture must use daylight time',
-      SummerInfo.IsDST);
-    AssertEquals('New York daylight offset must be 60 minutes ahead',
-      60, SummerInfo.Offset - WinterInfo.Offset);
-  finally
-    SetEnvVar('TZ', OriginalTZ);
+  AssertEquals('New York winter wall clock must use UTC-05:00',
+    EncodeDateTime(2024, 1, 15, 17, 0, 0, 0),
+    WinterUTC, OneMillisecond);
+  AssertEquals('New York summer wall clock must use UTC-04:00',
+    EncodeDateTime(2024, 7, 15, 16, 0, 0, 0),
+    SummerUTC, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test120_NamedTargetConversion;
+var
+  LocalValue, TokyoValue, UTCValue: TDateTime;
+  Tokyo: string;
+begin
+  Tokyo := FixtureName('CHRONOKIT_TEST_TOKYO');
+  LocalValue := EncodeDateTime(2024, 1, 15, 12, 0, 0, 0);
+  UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
+  TokyoValue := TChronoKit.WithTimeZone(LocalValue, Tokyo);
+
+  AssertEquals('Named target conversion must apply Tokyo UTC+09:00',
+    UTCValue + EncodeTime(9, 0, 0, 0), TokyoValue, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test121_SouthernHemisphereSeasonalRules;
+var
+  SummerUTC, WinterUTC: TDateTime;
+  Sydney: string;
+begin
+  Sydney := FixtureName('CHRONOKIT_TEST_SYDNEY');
+  SummerUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 1, 15, 12, 0, 0, 0), Sydney);
+  WinterUTC := NamedWallClockToUTC(
+    EncodeDateTime(2024, 7, 15, 12, 0, 0, 0), Sydney);
+
+  AssertEquals('Sydney summer wall clock must use UTC+11:00',
+    EncodeDateTime(2024, 1, 15, 1, 0, 0, 0),
+    SummerUTC, OneMillisecond);
+  AssertEquals('Sydney winter wall clock must use UTC+10:00',
+    EncodeDateTime(2024, 7, 15, 2, 0, 0, 0),
+    WinterUTC, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test122_NamedNonexistentTimeRaises;
+var
+  NewYork: string;
+  RejectedValue: TDateTime;
+begin
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  RejectedValue := EncodeDateTime(2024, 3, 10, 2, 30, 0, 0);
+
+  try
+    TChronoKit.ForceTimeZone(RejectedValue, NewYork);
+    Fail('A named-zone DST gap must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+    begin
+      AssertTrue('Gap diagnostic must classify the local value as nonexistent',
+        Pos('nonexistent', LowerCase(E.Message)) > 0);
+      AssertTrue('Gap diagnostic must identify the requested timezone',
+        Pos(NewYork, E.Message) > 0);
+      AssertTrue('Gap diagnostic must identify the rejected wall clock',
+        Pos('2024-03-10 02:30:00', E.Message) > 0);
+    end;
+  end;
+end;
+
+procedure TDateTimeTests.Test123_NamedAmbiguousTimeRaises;
+var
+  NewYork: string;
+  RejectedValue: TDateTime;
+begin
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  RejectedValue := EncodeDateTime(2024, 11, 3, 1, 30, 0, 0);
+
+  try
+    TChronoKit.ForceTimeZone(RejectedValue, NewYork);
+    Fail('A named-zone DST overlap must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+    begin
+      AssertTrue('Overlap diagnostic must classify the local value as ambiguous',
+        Pos('ambiguous', LowerCase(E.Message)) > 0);
+      AssertTrue('Overlap diagnostic must identify the requested timezone',
+        Pos(NewYork, E.Message) > 0);
+      AssertTrue('Overlap diagnostic must identify the rejected wall clock',
+        Pos('2024-11-03 01:30:00', E.Message) > 0);
+    end;
+  end;
+end;
+
+procedure TDateTimeTests.Test124_SystemNonexistentTimeRaises;
+var
+  RejectedValue: TDateTime;
+  SystemTimeZone: string;
+begin
+  RejectedValue := FixtureDateTime('CHRONOKIT_TEST_SYSTEM_GAP');
+  SystemTimeZone := TChronoKit.GetSystemTimeZone;
+
+  try
+    TChronoKit.GetTimeZone(RejectedValue);
+    Fail('A system-zone DST gap must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+    begin
+      AssertTrue('System gap diagnostic must classify the value as nonexistent',
+        Pos('nonexistent', LowerCase(E.Message)) > 0);
+      AssertTrue('System gap diagnostic must identify the system timezone',
+        Pos(SystemTimeZone, E.Message) > 0);
+    end;
+  end;
+end;
+
+procedure TDateTimeTests.Test125_SystemAmbiguousTimeRaises;
+var
+  RejectedValue: TDateTime;
+  SystemTimeZone: string;
+begin
+  RejectedValue := FixtureDateTime('CHRONOKIT_TEST_SYSTEM_OVERLAP');
+  SystemTimeZone := TChronoKit.GetSystemTimeZone;
+
+  try
+    TChronoKit.WithTimeZone(RejectedValue, 'UTC');
+    Fail('A system-zone DST overlap must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+    begin
+      AssertTrue('System overlap diagnostic must classify the value as ambiguous',
+        Pos('ambiguous', LowerCase(E.Message)) > 0);
+      AssertTrue('System overlap diagnostic must identify the system timezone',
+        Pos(SystemTimeZone, E.Message) > 0);
+    end;
+  end;
+end;
+
+procedure TDateTimeTests.Test126_LogicalZoneFixturesAreDiscoverable;
+var
+  FixtureIndex, NameIndex: Integer;
+  FixtureFound: Boolean;
+  FixtureNames: array[0..4] of string;
+  TimeZoneNames: TStringArray;
+begin
+  FixtureNames[0] := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  FixtureNames[1] := FixtureName('CHRONOKIT_TEST_LONDON');
+  FixtureNames[2] := FixtureName('CHRONOKIT_TEST_SYDNEY');
+  FixtureNames[3] := FixtureName('CHRONOKIT_TEST_TOKYO');
+  FixtureNames[4] := FixtureName('CHRONOKIT_TEST_AUCKLAND');
+  TimeZoneNames := TChronoKit.GetTimeZoneNames;
+
+  for FixtureIndex := Low(FixtureNames) to High(FixtureNames) do
+  begin
+    FixtureFound := False;
+    for NameIndex := Low(TimeZoneNames) to High(TimeZoneNames) do
+      if TimeZoneNames[NameIndex] = FixtureNames[FixtureIndex] then
+        FixtureFound := True;
+    AssertTrue('Logical fixture must be returned by GetTimeZoneNames: ' +
+      FixtureNames[FixtureIndex], FixtureFound);
+  end;
+end;
+
+procedure TDateTimeTests.Test127_TargetZoneUsesDateSpecificOffset;
+var
+  LocalSummer, LocalWinter, SydneySummer, SydneyWinter: TDateTime;
+  Sydney: string;
+  UTCSummer, UTCWinter: TDateTime;
+begin
+  Sydney := FixtureName('CHRONOKIT_TEST_SYDNEY');
+  LocalSummer := EncodeDateTime(2024, 1, 15, 12, 0, 0, 0);
+  LocalWinter := EncodeDateTime(2024, 7, 15, 12, 0, 0, 0);
+  UTCSummer := TChronoKit.WithTimeZone(LocalSummer, 'UTC');
+  UTCWinter := TChronoKit.WithTimeZone(LocalWinter, 'UTC');
+
+  SydneySummer := TChronoKit.WithTimeZone(LocalSummer, Sydney);
+  SydneyWinter := TChronoKit.WithTimeZone(LocalWinter, Sydney);
+
+  AssertEquals('Sydney target conversion must use summer UTC+11:00',
+    UTCSummer + EncodeTime(11, 0, 0, 0), SydneySummer, OneMillisecond);
+  AssertEquals('Sydney target conversion must use winter UTC+10:00',
+    UTCWinter + EncodeTime(10, 0, 0, 0), SydneyWinter, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test128_FutureRecurringRules;
+var
+  NewYork, Sydney: string;
+  NewYorkSummerUTC, NewYorkWinterUTC: TDateTime;
+  RejectedValue: TDateTime;
+  SydneySummerUTC, SydneyWinterUTC: TDateTime;
+begin
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  Sydney := FixtureName('CHRONOKIT_TEST_SYDNEY');
+  NewYorkWinterUTC := NamedWallClockToUTC(
+    EncodeDateTime(2050, 1, 15, 12, 0, 0, 0), NewYork);
+  NewYorkSummerUTC := NamedWallClockToUTC(
+    EncodeDateTime(2050, 7, 15, 12, 0, 0, 0), NewYork);
+  SydneySummerUTC := NamedWallClockToUTC(
+    EncodeDateTime(2050, 1, 15, 12, 0, 0, 0), Sydney);
+  SydneyWinterUTC := NamedWallClockToUTC(
+    EncodeDateTime(2050, 7, 15, 12, 0, 0, 0), Sydney);
+
+  AssertEquals('Future New York winter must use recurring UTC-05:00 rules',
+    EncodeDateTime(2050, 1, 15, 17, 0, 0, 0),
+    NewYorkWinterUTC, OneMillisecond);
+  AssertEquals('Future New York summer must use recurring UTC-04:00 rules',
+    EncodeDateTime(2050, 7, 15, 16, 0, 0, 0),
+    NewYorkSummerUTC, OneMillisecond);
+  AssertEquals('Future Sydney summer must use recurring UTC+11:00 rules',
+    EncodeDateTime(2050, 1, 15, 1, 0, 0, 0),
+    SydneySummerUTC, OneMillisecond);
+  AssertEquals('Future Sydney winter must use recurring UTC+10:00 rules',
+    EncodeDateTime(2050, 7, 15, 2, 0, 0, 0),
+    SydneyWinterUTC, OneMillisecond);
+
+  RejectedValue := EncodeDateTime(2050, 3, 13, 2, 30, 0, 0);
+  try
+    TChronoKit.ForceTimeZone(RejectedValue, NewYork);
+    Fail('A future recurring-rule DST gap must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+      AssertTrue('Future recurring-rule gap must be classified as nonexistent',
+        Pos('nonexistent', LowerCase(E.Message)) > 0);
+  end;
+
+  RejectedValue := EncodeDateTime(2050, 11, 6, 1, 30, 0, 0);
+  try
+    TChronoKit.ForceTimeZone(RejectedValue, NewYork);
+    Fail('A future recurring-rule DST overlap must raise ETimeZoneError');
+  except
+    on E: ETimeZoneError do
+      AssertTrue('Future recurring-rule overlap must be classified as ambiguous',
+        Pos('ambiguous', LowerCase(E.Message)) > 0);
   end;
 end;
 

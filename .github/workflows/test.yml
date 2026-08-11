@@ -15,6 +15,13 @@ jobs:
     env:
       FPC_WINDOWS_UNIT_PATH: 'C:\tools\freepascal\units\i386-win32\*'
       TZ: ${{ matrix.timezone }}
+      CHRONOKIT_TEST_NEW_YORK: ${{ matrix.new_york }}
+      CHRONOKIT_TEST_LONDON: ${{ matrix.london }}
+      CHRONOKIT_TEST_SYDNEY: ${{ matrix.sydney }}
+      CHRONOKIT_TEST_TOKYO: ${{ matrix.tokyo }}
+      CHRONOKIT_TEST_AUCKLAND: ${{ matrix.auckland }}
+      CHRONOKIT_TEST_SYSTEM_GAP: ${{ matrix.system_gap }}
+      CHRONOKIT_TEST_SYSTEM_OVERLAP: ${{ matrix.system_overlap }}
     strategy:
       fail-fast: false
       matrix:
@@ -22,9 +29,23 @@ jobs:
           - name: Windows
             os: windows-latest
             timezone: Eastern Standard Time
+            new_york: Eastern Standard Time
+            london: GMT Standard Time
+            sydney: AUS Eastern Standard Time
+            tokyo: Tokyo Standard Time
+            auckland: New Zealand Standard Time
+            system_gap: '2024-03-10 02:30:00'
+            system_overlap: '2024-11-03 01:30:00'
           - name: Linux
             os: ubuntu-latest
             timezone: America/New_York
+            new_york: America/New_York
+            london: Europe/London
+            sydney: Australia/Sydney
+            tokyo: Asia/Tokyo
+            auckland: Pacific/Auckland
+            system_gap: '2024-03-10 02:30:00'
+            system_overlap: '2024-11-03 01:30:00'
 
     steps:
       - name: Check out repository

@@ -1,3 +1,5 @@
+![ChronoKit-FP banner with a clock, calendar, and global timezone paths](docs/assets/chronokit-fp-banner-alternate.svg)
+
 # 📅 ChronoKit-FP: Toolkit for Dates & Times in Free Pascal
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-1E3A8A.svg)](https://opensource.org/licenses/MIT)
@@ -5,7 +7,7 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-4.0+-60A5FA.svg)](https://www.lazarus-ide.org/)
 ![Supports Windows](https://img.shields.io/badge/support-Windows-F59E0B?logo=Windows)
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
-[![Version](https://img.shields.io/badge/version-1.3.0-8B5CF6.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
@@ -34,7 +36,7 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
 - ⏰ **50+ DateTime Functions** - Everything you need for date/time work
 - 💼 **Business Calendars** - Configure holidays and alternative working weeks
 - 🎯 **Simple API** - Clean, easy-to-use function names
-- 🧪 **Well Tested** - 140+ tests ensure everything works
+- 🧪 **Well Tested** - 150+ tests ensure everything works
 - 📚 **Good Documentation** - Complete API reference with examples
 
 ## 📑 Table of Contents 
@@ -132,11 +134,12 @@ Use `TChronoKit.GetToday` when you need the current date at midnight and
 `TChronoKit.GetNow` when you need the current local date and time. A
 `TDateTime` value does not retain a timezone name: a date is conventionally a
 `TDateTime` at midnight, a local date/time is a wall-clock value from the
-computer, and `WithTimeZone` is the separate operation for a conversion to an
-explicit timezone. `UTC` is the only identifier guaranteed on Windows and
-Linux; other identifiers use each platform's native naming system. Read the
-[timezone contract](docs/Timezone-Contract.md) before relying on named zones or
-DST-boundary behavior.
+computer, and `WithTimeZone` converts that system-local value to an explicit
+target timezone while preserving the instant. `UTC` is the only identifier
+guaranteed on Windows and Linux; other identifiers use each platform's native
+naming system. ChronoKit uses the supplied date and the operating system's
+rules, and raises `ETimeZoneError` instead of guessing at a DST gap or overlap.
+See the [timezone contract](docs/Timezone-Contract.md) for the full rules.
 
 Configure holidays when a Monday-to-Friday calculation needs local calendar
 rules:
@@ -157,6 +160,37 @@ end;
 
 See [Business calendars](docs/Business-Calendars.md) for alternative working
 weeks and recipes for deadlines, reporting periods, and date ranges.
+
+Convert a system-local value to UTC with `WithTimeZone`. Use `ForceTimeZone`
+when the input clock belongs to the named zone and the result should be in the
+computer's system timezone:
+
+```pascal
+var
+  LocalValue, SystemValue, UTCValue: TDateTime;
+  SourceTimeZone: string;
+begin
+  LocalValue := TChronoKit.GetNow;
+  UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
+  SystemValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
+
+  {$IFDEF WINDOWS}
+  SourceTimeZone := 'Eastern Standard Time';
+  {$ELSE}
+  SourceTimeZone := 'America/New_York';
+  {$ENDIF}
+
+  try
+    SystemValue := TChronoKit.ForceTimeZone(
+      EncodeDateTime(2024, 3, 10, 2, 30, 0, 0),
+      SourceTimeZone
+    );
+  except
+    on E: ETimeZoneError do
+      WriteLn('The named local time cannot identify one instant: ', E.Message);
+  end;
+end;
+```
 
 ### 📅 DateTime Operations
 
@@ -245,7 +279,8 @@ You can use ChronoKit-FP to build all kinds of applications:
 - **Timezone Database**: Linux systems need timezone data installed (usually comes with most distributions).
 - **Timezone handling**: `UTC` is portable; IANA and Windows identifiers are
   platform-native. Keep the timezone name beside every `TDateTime` whose zone
-  must be known later, and handle `ETimeZoneError` at DST discontinuities.
+  must be known later, and handle `ETimeZoneError` at DST discontinuities or
+  when platform timezone data is unavailable.
 
 ## ✅ Testing
 

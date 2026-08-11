@@ -88,6 +88,8 @@ down and covered by the same meaningful assertions on both platforms.
 
 ## 1.4.0 — Time zones users can trust
 
+**Status:** Released 2026-08-11
+
 Implement the 1.3.0 timezone contract across Windows and Linux.
 
 - Ensure conversions use both the supplied date/time and the requested target

@@ -9,10 +9,6 @@ uses
   {$IFDEF WINDOWS}
   Windows,
   {$ENDIF}
-  {$IFDEF UNIX}
-  Process, // For RunCommand
-  Unix,    // For Unix-specific functions
-  {$ENDIF}
   Types;
 
 const
@@ -275,7 +271,7 @@ type
     repeatedly with the same timezone.
     
     @author ChronoKit Development Team
-    @version 1.3.0
+    @version 1.4.0
     @since Object Pascal / Free Pascal
     @see TDateTime for the underlying date/time type
     @see DateUtils for additional RTL date functions
@@ -289,10 +285,6 @@ type
       const ACalendar: TBusinessCalendar): Boolean; static;
     class function IsBusinessDayUnchecked(const AValue: TDateTime;
       const ACalendar: TBusinessCalendar): Boolean; static;
-    {$IFDEF UNIX}
-    // Helper functions for Unix platforms
-    class function CalculateDSTDate(const Year, Month, Week, DayOfWeek, Hour: Integer): TDateTime; static;
-    {$ENDIF}
   public
     { Basic operations for getting and formatting date/time values }
     
@@ -2815,6 +2807,32 @@ type
 
 implementation
 
+uses
+  ChronoKitTimeZones;
+
+procedure AssignTimeZoneInfo(const AEngineInfo: TChronoKitZoneInfo;
+  out APublicInfo: TTimeZoneInfo);
+begin
+  APublicInfo.Name := AEngineInfo.Name;
+  APublicInfo.Offset := AEngineInfo.Offset;
+  APublicInfo.IsDST := AEngineInfo.IsDST;
+end;
+
+procedure RaiseInvalidLocalTime(const AStatus: TChronoKitLocalTimeStatus;
+  const AValue: TDateTime; const ATimeZone: string);
+var
+  Classification: string;
+begin
+  if AStatus = ckLocalTimeAmbiguous then
+    Classification := 'ambiguous'
+  else
+    Classification := 'nonexistent';
+  raise ETimeZoneError.CreateFmt(
+    'Local time %s is %s in timezone "%s"',
+    [FormatDateTime('yyyy-mm-dd hh:nn:ss', AValue), Classification,
+    ATimeZone]);
+end;
+
 { TChronoKit }
 
 class function TChronoKit.GetNow: TDateTime;
@@ -3957,402 +3975,103 @@ begin
 end;
 
 class function TChronoKit.GetTimeZone(const AValue: TDateTime): TTimeZoneInfo;
-{$IFDEF WINDOWS}
 var
-  SystemTime: TSystemTime;
-  TZInfo: TTimeZoneInformation;
-  RetVal: DWORD;
+  EngineInfo: TChronoKitZoneInfo;
+  Status: TChronoKitLocalTimeStatus;
+  SystemTimeZone: string;
+  UTCValue: TDateTime;
 begin
   try
-    // Convert TDateTime to SystemTime
-    DateTimeToSystemTime(AValue, SystemTime);
-    
-    // Get timezone information
-    RetVal := GetTimeZoneInformation(TZInfo);
-    if RetVal = TIME_ZONE_ID_INVALID then
-    begin
-      Result.Name := 'UTC';
-      Result.Offset := 0;
-      Result.IsDST := False;
-      Exit;
-    end;
-    
-    // Check if DST is enabled for this timezone
-    if TZInfo.DaylightBias <> 0 then
-    begin
-      // For US time zones:
-      // DST starts on second Sunday in March at 2 AM
-      // DST ends on first Sunday in November at 2 AM
-      if (SystemTime.wMonth < 3) or (SystemTime.wMonth > 11) then
-        Result.IsDST := False  // Definitely not DST
-      else if (SystemTime.wMonth > 3) and (SystemTime.wMonth < 11) then
-        Result.IsDST := True   // Definitely DST
-      else if SystemTime.wMonth = 3 then
-      begin
-        // Check if we're past second Sunday
-        if SystemTime.wDay > 14 then  // After second Sunday
-          Result.IsDST := True
-        else if SystemTime.wDay < 8 then  // Before second Sunday
-          Result.IsDST := False
-        else  // During second week
-        begin
-          // Check if we're past 2 AM on second Sunday
-          if (SystemTime.wDayOfWeek = 0) and  // It's Sunday
-             (SystemTime.wDay >= 8) and (SystemTime.wDay <= 14) and  // Second week
-             (SystemTime.wHour >= 2) then  // Past 2 AM
-            Result.IsDST := True
-          else
-            Result.IsDST := False;
-        end;
-      end
-      else if SystemTime.wMonth = 11 then
-      begin
-        // Check if we're past first Sunday
-        if SystemTime.wDay > 7 then  // After first Sunday
-          Result.IsDST := False
-        else if SystemTime.wDay < 1 then  // Before first Sunday
-          Result.IsDST := True
-        else  // During first week
-        begin
-          // Check if we're past 2 AM on first Sunday
-          if (SystemTime.wDayOfWeek = 0) and  // It's Sunday
-             (SystemTime.wDay <= 7) and  // First week
-             (SystemTime.wHour >= 2) then  // Past 2 AM
-            Result.IsDST := False
-          else
-            Result.IsDST := True;
-        end;
-      end;
-    end
-    else
-      Result.IsDST := False;  // No DST for this timezone
-    
-    // Set name and offset based on DST status
-    if Result.IsDST then
-    begin
-      Result.Name := TZInfo.DaylightName;
-      Result.Offset := -TZInfo.Bias - TZInfo.DaylightBias;
-    end
-    else
-    begin
-      Result.Name := TZInfo.StandardName;
-      Result.Offset := -TZInfo.Bias - TZInfo.StandardBias;
-    end;
+    SystemTimeZone := CKGetSystemTimeZone;
+    Status := CKResolveLocalTime(AValue, SystemTimeZone,
+      UTCValue, EngineInfo);
+    if Status <> ckLocalTimeValid then
+      RaiseInvalidLocalTime(Status, AValue, SystemTimeZone);
+    AssignTimeZoneInfo(EngineInfo, Result);
   except
-    on E: Exception do
-    begin
-      Result.Name := 'UTC';
-      Result.Offset := 0;
-      Result.IsDST := False;
-    end;
+    on E: ETimeZoneError do
+      raise;
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
   end;
 end;
-{$ELSE}
-var
-  TZOutput: AnsiString;
-  TZParts: TStringArray;
-  OffsetStr: string;
-  TZName: string;
-  Offset: Integer;
-  OffsetSign: Integer;
-  OffsetHours, OffsetMinutes: Integer;
-  DateText, StandardDateText: string;
-  TZEnvironment: string;
-begin
-  // Initialize with defaults
-  Result.Name := 'UTC';
-  Result.Offset := 0;
-  Result.IsDST := False;
-  
-  try
-    // Check if TZ environment variable is set for testing/override
-    TZEnvironment := SysUtils.GetEnvironmentVariable('TZ');
-    if TZEnvironment <> '' then
-    begin
-      Result.Name := TZEnvironment;
-      
-      // Handle UTC variants
-      if (TZEnvironment = 'UTC') or 
-         (TZEnvironment = 'Etc/UTC') or 
-         (TZEnvironment = '/Etc/UTC') then
-      begin
-        Result.Name := 'UTC';
-        Result.Offset := 0;
-        Result.IsDST := False;
-        Exit;
-      end;
-    end;
-    
-    DateText := FormatDateTime('yyyy-mm-dd hh:nn:ss', AValue);
-    StandardDateText := FormatDateTime('yyyy', AValue) + '-01-15 12:00:00';
-
-    // Query the supplied wall-clock value, rather than the current clock.
-    if RunCommand('date', ['-d', DateText, '+%z:%Z'], TZOutput) then
-    begin
-      // Output format: +0200:CEST (offset:name)
-      TZParts := TZOutput.Trim.Split(':');
-      
-      if Length(TZParts) >= 2 then
-      begin
-        OffsetStr := TZParts[0];
-        TZName := TZParts[1];
-        
-        // Parse timezone offset (format: +0200 or -0500)
-        if (Length(OffsetStr) >= 5) and (OffsetStr[1] in ['+', '-']) then
-        begin
-          if OffsetStr[1] = '+' then
-            OffsetSign := 1
-          else
-            OffsetSign := -1;
-          
-          // Extract hours and minutes
-          if TryStrToInt(Copy(OffsetStr, 2, 2), OffsetHours) and
-             TryStrToInt(Copy(OffsetStr, 4, 2), OffsetMinutes) then
-          begin
-            Offset := OffsetSign * (OffsetHours * 60 + OffsetMinutes);
-            Result.Offset := Offset;
-          end;
-        end;
-        
-        // Set timezone name (use environment override if available)
-        if TZEnvironment <> '' then
-          Result.Name := TZEnvironment
-        else if TZName <> '' then
-          Result.Name := TZName
-        else
-          Result.Name := 'Local';
-        
-        // Determine DST status by comparing with standard time
-        // Get the standard time offset for January (should be non-DST)
-        if RunCommand('date', ['-d', StandardDateText, '+%z'], TZOutput) then
-        begin
-          if TZOutput.Trim <> OffsetStr then
-            Result.IsDST := True;
-        end;
-        
-        Exit;
-      end;
-    end;
-    
-    // Fallback: try simpler date command
-    if RunCommand('date', ['-d', DateText, '+%z'], TZOutput) then
-    begin
-      OffsetStr := TZOutput.Trim;
-      
-      if (Length(OffsetStr) >= 5) and (OffsetStr[1] in ['+', '-']) then
-      begin
-        if OffsetStr[1] = '+' then
-          OffsetSign := 1
-        else
-          OffsetSign := -1;
-        
-        if TryStrToInt(Copy(OffsetStr, 2, 2), OffsetHours) and
-           TryStrToInt(Copy(OffsetStr, 4, 2), OffsetMinutes) then
-        begin
-          Offset := OffsetSign * (OffsetHours * 60 + OffsetMinutes);
-          Result.Offset := Offset;
-          
-          // Use environment timezone name if available, otherwise 'Local'
-          if TZEnvironment <> '' then
-            Result.Name := TZEnvironment
-          else
-            Result.Name := 'Local';
-          
-          // Simple DST detection: compare with winter time
-          if RunCommand('date', ['-d', StandardDateText, '+%z'], TZOutput) then
-          begin
-            if TZOutput.Trim <> OffsetStr then
-              Result.IsDST := True;
-          end;
-        end;
-      end;
-    end;
-  except
-    on E: Exception do
-    begin
-      Result.Name := 'UTC';
-      Result.Offset := 0;
-      Result.IsDST := False;
-    end;
-  end;
-end;
-{$ENDIF}
 
 class function TChronoKit.WithTimeZone(const AValue: TDateTime; const ATimeZone: string): TDateTime;
 var
-  SourceTZ, TargetTZ: TTimeZoneInfo;
-  TargetTimeZone: string;
+  EngineInfo: TChronoKitZoneInfo;
+  SourceTimeZone, TargetTimeZone: string;
+  Status: TChronoKitLocalTimeStatus;
+  UTCValue: TDateTime;
 begin
-  // Validate and normalize timezone name
-  TargetTimeZone := ATimeZone;
-  
-  // Handle UTC and its variants
-  if (TargetTimeZone = 'UTC') or 
-     {$IFDEF UNIX}
-     (TargetTimeZone = '/Etc/UTC') or (TargetTimeZone = 'Etc/UTC') 
-     {$ELSE} 
-     False
-     {$ENDIF} then
-    TargetTimeZone := 'UTC';
-  
-  // Validate timezone name
-  ValidateTimeZone(TargetTimeZone);
-  
+  TargetTimeZone := ValidateTimeZone(ATimeZone);
   try
-    // Get source and target timezone info
-    SourceTZ := GetTimeZone(AValue);
-    
-    // For UTC, create a zero-offset timezone directly
-    if TargetTimeZone = 'UTC' then
-    begin
-      TargetTZ.Name := 'UTC';
-      TargetTZ.Offset := 0;
-      TargetTZ.IsDST := False;
-    end
-    else
-      TargetTZ := GetTimeZone(AValue);
-    
-    // Validate offsets
-    ValidateTimeZoneOffset(SourceTZ.Offset);
-    ValidateTimeZoneOffset(TargetTZ.Offset);
-    
-    // Convert to UTC first: local = UTC + offset.
-    Result := AValue - (SourceTZ.Offset / MinutesPerDay);
-
-    // Then to target timezone
-    if TargetTZ.Name <> 'UTC' then
-      Result := Result + (TargetTZ.Offset / MinutesPerDay);
+    SourceTimeZone := CKGetSystemTimeZone;
+    Status := CKResolveLocalTime(AValue, SourceTimeZone,
+      UTCValue, EngineInfo);
+    if Status <> ckLocalTimeValid then
+      RaiseInvalidLocalTime(Status, AValue, SourceTimeZone);
+    ValidateTimeZoneOffset(EngineInfo.Offset);
+    CKConvertUTCToLocal(UTCValue, TargetTimeZone, Result, EngineInfo);
+    ValidateTimeZoneOffset(EngineInfo.Offset);
   except
-    on E: Exception do
-      raise ETimeZoneError.CreateFmt('Error converting time between timezones: %s', [E.Message]);
+    on E: ETimeZoneError do
+      raise;
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
   end;
 end;
 
 class function TChronoKit.ForceTimeZone(const AValue: TDateTime; const ATimeZone: string): TDateTime;
 var
-  TargetTZ: TTimeZoneInfo;
-  TargetTimeZone: string;
-  CurrentTZ: TTimeZoneInfo;
+  EngineInfo: TChronoKitZoneInfo;
+  SourceTimeZone, SystemTimeZone: string;
+  Status: TChronoKitLocalTimeStatus;
+  UTCValue: TDateTime;
 begin
-  // Validate and normalize timezone name
-  TargetTimeZone := ATimeZone;
-  
-  // Handle UTC and its variants
-  if (TargetTimeZone = 'UTC') or 
-     {$IFDEF UNIX}
-     (TargetTimeZone = '/Etc/UTC') or (TargetTimeZone = 'Etc/UTC') 
-     {$ELSE} 
-     False
-     {$ENDIF} then
-    TargetTimeZone := 'UTC';
-  
-  // Validate timezone name
-  ValidateTimeZone(TargetTimeZone);
-  
+  SourceTimeZone := ValidateTimeZone(ATimeZone);
   try
-    // Get the current timezone for the supplied date
-    CurrentTZ := GetTimeZone(AValue);
-    
-    // For UTC, create a zero-offset timezone directly
-    if TargetTimeZone = 'UTC' then
-    begin
-      TargetTZ.Name := 'UTC';
-      TargetTZ.Offset := 0;
-      TargetTZ.IsDST := False;
-    end
-    else
-      // Get target timezone info
-      TargetTZ := GetTimeZone(AValue);
-    
-    // Validate offset
-    ValidateTimeZoneOffset(TargetTZ.Offset);
-    
-    // Interpret the clock in the target zone, then represent that instant in
-    // the system zone: UTC = target local - target offset.
-    Result := AValue - (TargetTZ.Offset / MinutesPerDay);
-    Result := Result + (CurrentTZ.Offset / MinutesPerDay);
+    Status := CKResolveLocalTime(AValue, SourceTimeZone,
+      UTCValue, EngineInfo);
+    if Status <> ckLocalTimeValid then
+      RaiseInvalidLocalTime(Status, AValue, SourceTimeZone);
+    ValidateTimeZoneOffset(EngineInfo.Offset);
+    SystemTimeZone := CKGetSystemTimeZone;
+    CKConvertUTCToLocal(UTCValue, SystemTimeZone, Result, EngineInfo);
+    ValidateTimeZoneOffset(EngineInfo.Offset);
   except
-    on E: Exception do
-      raise ETimeZoneError.CreateFmt('Error forcing timezone: %s', [E.Message]);
+    on E: ETimeZoneError do
+      raise;
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
   end;
 end;
 
 class function TChronoKit.GetSystemTimeZone: string;
-var
-  TZInfo: TTimeZoneInfo;
 begin
-  TZInfo := GetTimeZone(Now);
-  Result := TZInfo.Name;
+  try
+    Result := CKGetSystemTimeZone;
+  except
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
+  end;
 end;
 
 class function TChronoKit.GetTimeZoneNames: TStringArray;
-{$IFDEF WINDOWS}
 var
-  TZInfo: TTimeZoneInformation;
-  StandardName, DaylightName: string;
-  RetVal: DWORD;
+  EngineNames: TChronoKitTimeZoneNames;
+  I: Integer;
 begin
   Result := nil;
   try
-    RetVal := GetTimeZoneInformation(TZInfo);
-    if RetVal = TIME_ZONE_ID_INVALID then
-    begin
-      SetLength(Result, 1);
-      Result[0] := 'UTC';
-      Exit;
-    end;
-    
-    StandardName := TZInfo.StandardName;
-    DaylightName := TZInfo.DaylightName;
-
-    SetLength(Result, 1);
-    Result[0] := 'UTC';
-    if (StandardName <> '') and (StandardName <> 'UTC') then
-    begin
-      SetLength(Result, Length(Result) + 1);
-      Result[High(Result)] := StandardName;
-    end;
-    if (DaylightName <> '') and (DaylightName <> 'UTC') and
-       (DaylightName <> StandardName) then
-    begin
-      SetLength(Result, Length(Result) + 1);
-      Result[High(Result)] := DaylightName;
-    end;
+    EngineNames := CKGetTimeZoneNames;
+    SetLength(Result, Length(EngineNames));
+    for I := Low(EngineNames) to High(EngineNames) do
+      Result[I] := EngineNames[I];
   except
-    on E: Exception do
-    begin
-      SetLength(Result, 1);
-      Result[0] := 'UTC';
-    end;
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
   end;
 end;
-{$ELSE}
-var
-  CommonTimezones: array[0..13] of string = (
-    'UTC', 'Etc/UTC', '/Etc/UTC',
-    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-    'Europe/London', 'Europe/Paris', 'Europe/Berlin',
-    'Asia/Tokyo', 'Asia/Shanghai', 'Australia/Sydney', 'Pacific/Auckland'
-  );
-  I: Integer;
-begin
-  try
-    // Return common timezone names that are likely to be supported
-    SetLength(Result, Length(CommonTimezones));
-    for I := 0 to High(CommonTimezones) do
-      Result[I] := CommonTimezones[I];
-  except
-    on E: Exception do
-    begin
-      // If there's an error, return basic UTC variants
-      SetLength(Result, 3);
-      Result[0] := 'UTC';
-      Result[1] := 'Etc/UTC';
-      Result[2] := '/Etc/UTC';
-    end;
-  end;
-end;
-{$ENDIF}
 
 class function TChronoKit.RollbackMonth(const AValue: TDateTime): TDateTime;
 var
@@ -4613,39 +4332,15 @@ end;
 
 { Private helper functions for timezone validation }
 class function TChronoKit.IsValidTimeZoneName(const ATimeZone: string): Boolean;
-var
-  ValidNames: TStringArray;
-  I: Integer;
 begin
-  // Empty timezone is invalid
   if ATimeZone = '' then
     Exit(False);
-    
-  // UTC is always valid
-  if (ATimeZone = 'UTC') then
-    Exit(True);
-    
-  // On Linux, people might try to use /Etc/UTC format
-  {$IFDEF UNIX}
-  if (ATimeZone = '/Etc/UTC') or (ATimeZone = 'Etc/UTC') then
-    Exit(True);
-  {$ENDIF}
-  
   try
-    // Check against list of valid timezone names
-    ValidNames := GetTimeZoneNames;
-    for I := Low(ValidNames) to High(ValidNames) do
-      if ValidNames[I] = ATimeZone then
-        Exit(True);
+    Result := CKIsTimeZoneAvailable(ATimeZone);
   except
-    // If there's an error getting timezone names, only UTC is valid
-    Result := (ATimeZone = 'UTC');
-    {$IFDEF UNIX}
-    Result := Result or (ATimeZone = '/Etc/UTC') or (ATimeZone = 'Etc/UTC');
-    {$ENDIF}
+    on E: EChronoKitTimeZoneEngine do
+      Result := False;
   end;
-  
-  Result := False;
 end;
 
 class function TChronoKit.IsValidUTCOffset(const AOffset: Integer): Boolean;
@@ -4664,7 +4359,7 @@ begin
   if not IsValidTimeZoneName(ATimeZone) then
     raise ETimeZoneError.CreateFmt('Timezone "%s" not found', [ATimeZone]);
     
-  Result := ATimeZone;
+  Result := CKNormalizeTimeZoneName(ATimeZone);
 end;
 
 class function TChronoKit.ValidateTimeZoneOffset(const AOffset: Integer): Integer;
@@ -4674,98 +4369,5 @@ begin
     
   Result := AOffset;
 end;
-
-// Helper function to calculate DST transition dates
-{$IFDEF UNIX}
-class function TChronoKit.CalculateDSTDate(const Year, Month, Week, DayOfWeek, Hour: Integer): TDateTime;
-var
-  FirstDayOfMonth: TDateTime;
-  TargetDayOfWeek: Integer;
-  DaysToAdd: Integer;
-begin
-  // Get the first day of the month
-  FirstDayOfMonth := EncodeDate(Year, Month, 1);
-  
-  // Calculate the target day of week (1-7, where 1=Sunday)
-  TargetDayOfWeek := DayOfWeek;
-  
-  // Calculate days to add to reach the target day of week
-  DaysToAdd := (TargetDayOfWeek - SysUtils.DayOfWeek(FirstDayOfMonth) + 7) mod 7;
-  
-  // If we're looking for the last week, we need to go to the next month and subtract
-  if Week = 5 then
-  begin
-    // Go to the first day of the next month
-    FirstDayOfMonth := IncMonth(FirstDayOfMonth, 1);
-    
-    // Go back to the target day of week
-    DaysToAdd := (TargetDayOfWeek - SysUtils.DayOfWeek(FirstDayOfMonth) + 7) mod 7;
-    
-    // Subtract 7 days to get to the last week
-    Result := FirstDayOfMonth + DaysToAdd - 7;
-  end
-  else
-  begin
-    // For weeks 1-4, add the appropriate number of weeks
-    Result := FirstDayOfMonth + DaysToAdd + (Week - 1) * 7;
-  end;
-  
-  // Add the hour
-  Result := Result + EncodeTime(Hour, 0, 0, 0);
-end;
-{$ENDIF}
-
-{$IFDEF UNIX}
-// Helper function to execute a command and capture its output
-function RunCommand(const Command: string; const Args: array of string; 
-  const Output: TStrings): Boolean;
-var
-  Process: TProcess;
-  OutputStream: TStringStream;
-  BytesRead: LongInt;
-  Buffer: array[1..4096] of Byte;
-begin
-  Result := False;
-  
-  Process := TProcess.Create(nil);
-  try
-    Process.Executable := Command;
-    Process.Parameters.Clear;
-    
-    // Add command line arguments
-    for BytesRead := Low(Args) to High(Args) do
-      Process.Parameters.Add(Args[BytesRead]);
-      
-    Process.Options := [poUsePipes, poWaitOnExit];
-    Process.ShowWindow := swoHide;
-    
-    OutputStream := TStringStream.Create('');
-    try
-      Process.Execute;
-      
-      // Read output from the process
-      repeat
-        BytesRead := Process.Output.Read(Buffer, SizeOf(Buffer));
-        if BytesRead > 0 then
-          OutputStream.Write(Buffer, BytesRead);
-      until BytesRead = 0;
-      
-      // Split output by lines and add to the output string list
-      Output.Text := OutputStream.DataString;
-      Result := True;
-    finally
-      OutputStream.Free;
-    end;
-  finally
-    Process.Free;
-  end;
-end;
-
-function CalculateDSTDate(const Year, Month, Week, DayOfWeek, Hour: Integer): TDateTime;
-begin
-  // Call the class method implementation
-  Result := TChronoKit.CalculateDSTDate(Year, Month, Week, DayOfWeek, Hour);
-end;
-{$ENDIF}
 
 end. 

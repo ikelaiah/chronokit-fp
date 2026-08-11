@@ -1,18 +1,20 @@
-# Timezone contract for v1.3.0
+# Timezone contract implemented by v1.4.0
 
 ## Status and scope
 
-This document is the normative contract for ChronoKit-FP's existing timezone
-API. It defines the meaning of the v1.2.0 public signatures without adding a
-new type, overload, or function. The contract separates three ideas that a
+This document is the normative contract for ChronoKit-FP's timezone API. The
+contract was established in v1.3.0 and is implemented across Windows and Linux
+in v1.4.0 without adding a new public type, overload, or function. It separates
+three ideas that a
 plain Free Pascal `TDateTime` cannot carry by itself:
 
 - a **wall-clock value**, such as `2026-08-11 09:30`;
 - a **timezone**, whose rules give that value a UTC offset; and
 - an **instant**, which is one unique point on the UTC timeline.
 
-The v1.3.0 regression suite is the executable specification for this contract.
-The wider named-zone implementation work remains the v1.4.0 milestone.
+The shared regression suite is the executable specification for this contract.
+It runs the same named-zone, conversion, and DST-boundary assertions on Windows
+and Linux.
 
 ## Supported identifiers
 
@@ -140,8 +142,10 @@ The matrix covers:
 | Conversion | Same-zone identity, local-to-UTC instant preservation, UTC-to-local interpretation, date-boundary crossing, round trip |
 | Validation | Empty, malformed, unsupported, and platform-mismatched identifiers raise `ETimeZoneError` |
 
-The v1.4.0 release gate is full conformance of named-zone conversions and DST
-failure detection to this matrix on both supported operating systems.
+v1.4.0 passes this matrix on both supported operating systems. Windows uses
+the registered per-year dynamic timezone rules; Linux reads the installed IANA
+TZif transition table and recurring future rules. Both engines resolve a local
+clock only when exactly one UTC instant maps back to it.
 
 ## Compatibility
 

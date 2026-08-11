@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="1800"
+   height="600"
+   viewBox="0 0 1800 600"
+   role="img"
+   aria-labelledby="title desc"
+   version="1.1"
+   id="svg82"
+   sodipodi:docname="chronokit-fp-banner-alternate.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview82"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="2.8535687"
+     inkscape:cx="1457.298"
+     inkscape:cy="306.8088"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg82" />
+  <title
+     id="title">ChronoKit-FP alternate banner</title>
+  <desc
+     id="desc">A vector banner with ChronoKit-FP branding, a correctly aligned Sunday-first June 2026 calendar, and a timezone clock.</desc>
+  <defs
+     id="defs13">
+    <linearGradient
+       id="background"
+       x1="0"
+       y1="0"
+       x2="1"
+       y2="1">
+      <stop
+         offset="0"
+         stop-color="#071225"
+         id="stop1" />
+      <stop
+         offset="0.52"
+         stop-color="#0c1b3d"
+         id="stop2" />
+      <stop
+         offset="1"
+         stop-color="#15113d"
+         id="stop3" />
+    </linearGradient>
+    <linearGradient
+       id="brand"
+       x1="0"
+       y1="0"
+       x2="1"
+       y2="0">
+      <stop
+         offset="0"
+         stop-color="#3b82f6"
+         id="stop4" />
+      <stop
+         offset="0.55"
+         stop-color="#60a5fa"
+         id="stop5" />
+      <stop
+         offset="1"
+         stop-color="#8b5cf6"
+         id="stop6" />
+    </linearGradient>
+    <linearGradient
+       id="clockFace"
+       x1="0"
+       y1="0"
+       x2="1"
+       y2="1">
+      <stop
+         offset="0"
+         stop-color="#152d62"
+         id="stop7" />
+      <stop
+         offset="1"
+         stop-color="#0a1535"
+         id="stop8" />
+    </linearGradient>
+    <radialGradient
+       id="halo">
+      <stop
+         offset="0"
+         stop-color="#3b82f6"
+         stop-opacity="0.34"
+         id="stop9" />
+      <stop
+         offset="0.55"
+         stop-color="#8b5cf6"
+         stop-opacity="0.12"
+         id="stop10" />
+      <stop
+         offset="1"
+         stop-color="#8b5cf6"
+         stop-opacity="0"
+         id="stop11" />
+    </radialGradient>
+    <pattern
+       id="dots"
+       width="28"
+       height="28"
+       patternUnits="userSpaceOnUse">
+      <circle
+         cx="2"
+         cy="2"
+         r="1.5"
+         fill="#60a5fa"
+         opacity="0.18"
+         id="circle11" />
+    </pattern>
+    <filter
+       id="glow"
+       x="-0.072891566"
+       y="-0.072891566"
+       width="1.1457831"
+       height="1.1457831">
+      <feGaussianBlur
+         stdDeviation="8"
+         result="blur"
+         id="feGaussianBlur11" />
+      <feMerge
+         id="feMerge12">
+        <feMergeNode
+           in="blur"
+           id="feMergeNode11" />
+        <feMergeNode
+           in="SourceGraphic"
+           id="feMergeNode12" />
+      </feMerge>
+    </filter>
+    <mask
+       id="orbitMask">
+      <rect
+         width="1800"
+         height="600"
+         fill="white"
+         id="rect12" />
+      <rect
+         x="888"
+         y="123"
+         width="374"
+         height="354"
+         rx="32"
+         fill="black"
+         id="rect13" />
+    </mask>
+  </defs>
+  <rect
+     width="1800"
+     height="600"
+     rx="36"
+     fill="url(#background)"
+     id="rect14" />
+  <rect
+     width="1800"
+     height="600"
+     rx="36"
+     fill="url(#dots)"
+     id="rect15" />
+  <path
+     d="M0 470 C330 390 480 570 780 490 S1310 390 1800 485"
+     fill="none"
+     stroke="#3b82f6"
+     stroke-opacity="0.13"
+     stroke-width="2"
+     id="path15" />
+  <path
+     d="M0 500 C330 420 510 590 810 510 S1340 420 1800 510"
+     fill="none"
+     stroke="#8b5cf6"
+     stroke-opacity="0.12"
+     stroke-width="2"
+     id="path16" />
+  <!-- Decorative circuit traces -->
+  <g
+     fill="none"
+     stroke="#3b82f6"
+     stroke-width="3"
+     opacity="0.55"
+     id="g17">
+    <path
+       d="M120 510 H285 L325 470 H455"
+       id="path17" />
+  </g>
+  <g
+     fill="#60a5fa"
+     id="g18">
+    <circle
+       cx="120"
+       cy="510"
+       r="5"
+       id="circle17" />
+    <circle
+       cx="455"
+       cy="470"
+       r="5"
+       id="circle18" />
+  </g>
+  <!-- Compact clock mark -->
+  <g
+     transform="translate(105 196)"
+     id="g24">
+    <circle
+       cx="72"
+       cy="72"
+       r="65"
+       fill="#0b1837"
+       stroke="url(#brand)"
+       stroke-width="12"
+       id="circle19" />
+    <g
+       stroke="#93c5fd"
+       stroke-width="4"
+       stroke-linecap="round"
+       id="g22">
+      <path
+         d="M72 19 V29"
+         id="path19" />
+      <path
+         d="M72 115 V125"
+         id="path20" />
+      <path
+         d="M19 72 H29"
+         id="path21" />
+      <path
+         d="M115 72 H125"
+         id="path22" />
+    </g>
+    <path
+       d="M72 72 V28"
+       fill="none"
+       stroke="#fbbf24"
+       stroke-width="7"
+       stroke-linecap="round"
+       id="path23" />
+    <path
+       d="M72 72 L96 88"
+       fill="none"
+       stroke="#f59e0b"
+       stroke-width="10"
+       stroke-linecap="round"
+       id="path24" />
+    <circle
+       cx="72"
+       cy="72"
+       r="7"
+       fill="#fbbf24"
+       id="circle24" />
+  </g>
+  <!-- Brand copy -->
+  <text
+     x="285"
+     y="280"
+     fill="#f8fafc"
+     font-family="Inter, Segoe UI, Arial, sans-serif"
+     font-size="104"
+     font-weight="750"
+     letter-spacing="-4"
+     id="text24">
+    ChronoKit<tspan
+   fill="url(#brand)"
+   id="tspan24">-FP</tspan></text>
+  <text
+     x="292"
+     y="340"
+     fill="#93c5fd"
+     font-family="Inter, Segoe UI, Arial, sans-serif"
+     font-size="25"
+     font-weight="650"
+     letter-spacing="8"
+     id="text25">DATES • TIMES • TIMEZONES</text>
+  <text
+     x="292"
+     y="388"
+     fill="#94a3b8"
+     font-family="Inter, Segoe UI, Arial, sans-serif"
+     font-size="20"
+     letter-spacing="1"
+     id="text26">Practical date and time tools for Free Pascal</text>
+  <!-- Calendar: June 2026, Sunday-first -->
+  <g
+     font-family="Inter, Segoe UI, Arial, sans-serif"
+     id="g66">
+    <rect
+       x="900"
+       y="135"
+       width="350"
+       height="330"
+       rx="24"
+       fill="#081735"
+       fill-opacity="0.9"
+       stroke="#3b82f6"
+       stroke-width="2"
+       id="rect26" />
+    <rect
+       x="914"
+       y="149"
+       width="322"
+       height="302"
+       rx="14"
+       fill="#0d2149"
+       fill-opacity="0.65"
+       stroke="#60a5fa"
+       stroke-opacity="0.22"
+       id="rect27" />
+    <text
+       x="1075"
+       y="182"
+       text-anchor="middle"
+       fill="#bfdbfe"
+       font-size="16"
+       font-weight="700"
+       letter-spacing="4"
+       id="text27">JUNE 2026</text>
+    <!-- Seven equal columns, centers 937, 983, 1029, 1075, 1121, 1167, 1213 -->
+    <g
+       fill="#60a5fa"
+       font-size="15"
+       font-weight="750"
+       text-anchor="middle"
+       id="g34">
+      <text
+         x="937"
+         y="218"
+         id="text28">S</text>
+      <text
+         x="983"
+         y="218"
+         id="text29">M</text>
+      <text
+         x="1029"
+         y="218"
+         id="text30">T</text>
+      <text
+         x="1075"
+         y="218"
+         id="text31">W</text>
+      <text
+         x="1121"
+         y="218"
+         id="text32">T</text>
+      <text
+         x="1167"
+         y="218"
+         id="text33">F</text>
+      <text
+         x="1213"
+         y="218"
+         id="text34">S</text>
+    </g>
+    <!-- Exact grid -->
+    <g
+       stroke="#60a5fa"
+       stroke-opacity="0.18"
+       stroke-width="1"
+       id="g35">
+      <path
+         d="M914 230 H1236 M914 271 H1236 M914 312 H1236 M914 353 H1236 M914 394 H1236 M914 435 H1236"
+         id="path34" />
+      <path
+         d="M960 230 V435 M1006 230 V435 M1052 230 V435 M1098 230 V435 M1144 230 V435 M1190 230 V435"
+         id="path35" />
+    </g>
+    <!-- Highlights -->
+    <rect
+       x="965"
+       y="322"
+       width="36"
+       height="30"
+       rx="8"
+       fill="#10b981"
+       fill-opacity="0.14"
+       stroke="#10b981"
+       stroke-width="2"
+       id="rect35" />
+    <rect
+       x="1011"
+       y="363"
+       width="36"
+       height="30"
+       rx="8"
+       fill="#f59e0b"
+       fill-opacity="0.13"
+       stroke="#f59e0b"
+       stroke-width="2"
+       id="rect36" />
+    <!-- Dates: June 2026 begins on Monday -->
+    <g
+       fill="#dbeafe"
+       font-size="16"
+       font-weight="600"
+       text-anchor="middle"
+       id="g65">
+      <text
+         y="258"
+         id="text41"><tspan
+           x="983"
+           id="tspan36">1</tspan><tspan
+           x="1029"
+           id="tspan37">2</tspan><tspan
+           x="1075"
+           id="tspan38">3</tspan><tspan
+           x="1121"
+           id="tspan39">4</tspan><tspan
+           x="1167"
+           id="tspan40">5</tspan><tspan
+           x="1213"
+           id="tspan41">6</tspan></text>
+      <text
+         y="299"
+         id="text48"><tspan
+           x="937"
+           id="tspan42">7</tspan><tspan
+           x="983"
+           id="tspan43">8</tspan><tspan
+           x="1029"
+           id="tspan44">9</tspan><tspan
+           x="1075"
+           id="tspan45">10</tspan><tspan
+           x="1121"
+           id="tspan46">11</tspan><tspan
+           x="1167"
+           id="tspan47">12</tspan><tspan
+           x="1213"
+           id="tspan48">13</tspan></text>
+      <text
+         y="340"
+         id="text55"><tspan
+           x="937"
+           id="tspan49">14</tspan><tspan
+           x="983"
+           id="tspan50">15</tspan><tspan
+           x="1029"
+           id="tspan51">16</tspan><tspan
+           x="1075"
+           id="tspan52">17</tspan><tspan
+           x="1121"
+           id="tspan53">18</tspan><tspan
+           x="1167"
+           id="tspan54">19</tspan><tspan
+           x="1213"
+           id="tspan55">20</tspan></text>
+      <text
+         y="381"
+         id="text62"><tspan
+           x="937"
+           id="tspan56">21</tspan><tspan
+           x="983"
+           id="tspan57">22</tspan><tspan
+           x="1029"
+           id="tspan58">23</tspan><tspan
+           x="1075"
+           id="tspan59">24</tspan><tspan
+           x="1121"
+           id="tspan60">25</tspan><tspan
+           x="1167"
+           id="tspan61">26</tspan><tspan
+           x="1213"
+           id="tspan62">27</tspan></text>
+      <text
+         y="422"
+         id="text65"><tspan
+           x="937"
+           id="tspan63">28</tspan><tspan
+           x="983"
+           id="tspan64">29</tspan><tspan
+           x="1029"
+           id="tspan65">30</tspan></text>
+    </g>
+  </g>
+  <!-- Timezone clock -->
+  <circle
+     cx="1480"
+     cy="300"
+     r="255"
+     fill="url(#halo)"
+     id="circle66" />
+  <g
+     fill="none"
+     stroke-linecap="round"
+     mask="url(#orbitMask)"
+     id="g67">
+    <ellipse
+       cx="1475"
+       cy="300"
+       rx="280"
+       ry="192"
+       stroke="#3b82f6"
+       stroke-opacity="0.44"
+       stroke-width="2"
+       id="ellipse66" />
+    <ellipse
+       cx="1475"
+       cy="300"
+       rx="315"
+       ry="224"
+       stroke="#8b5cf6"
+       stroke-opacity="0.55"
+       stroke-width="2"
+       stroke-dasharray="9 12"
+       id="ellipse67" />
+    <path
+       d="M1265 184 C1400 42 1665 58 1770 200"
+       stroke="#22d3ee"
+       stroke-opacity="0.45"
+       stroke-width="2"
+       id="path67" />
+  </g>
+  <g
+     filter="url(#glow)"
+     id="g68">
+    <circle
+       cx="1480"
+       cy="300"
+       r="166"
+       fill="url(#clockFace)"
+       stroke="url(#brand)"
+       stroke-width="10"
+       id="circle67" />
+  </g>
+  <circle
+     cx="1480"
+     cy="300"
+     r="141"
+     fill="none"
+     stroke="#93c5fd"
+     stroke-opacity="0.26"
+     stroke-width="2"
+     id="circle68" />
+  <!-- Clock ticks -->
+  <g
+     transform="translate(1480 300)"
+     stroke="#93c5fd"
+     stroke-width="5"
+     stroke-linecap="round"
+     id="g75">
+    <path
+       d="M0 -132 V-116"
+       id="path68" />
+    <path
+       d="M0 116 V132"
+       id="path69" />
+    <path
+       d="M-132 0 H-116"
+       id="path70" />
+    <path
+       d="M116 0 H132"
+       id="path71" />
+    <path
+       d="M-93 -93 L-82 -82"
+       id="path72" />
+    <path
+       d="M93 -93 L82 -82"
+       id="path73" />
+    <path
+       d="M-93 93 L-82 82"
+       id="path74" />
+    <path
+       d="M93 93 L82 82"
+       id="path75" />
+  </g>
+  <!-- 2:30:45: minute at 6, hour midway between 2 and 3, second at 9 -->
+  <path
+     d="M1480 300 L1480 410"
+     fill="none"
+     stroke="#e0f2fe"
+     stroke-width="10"
+     stroke-linecap="round"
+     id="path76" />
+  <path
+     d="m 1480,300 59.8461,-21.20526"
+     fill="none"
+     stroke="#e0f2fe"
+     stroke-width="14"
+     stroke-linecap="round"
+     id="path77"
+     sodipodi:nodetypes="cc" />
+  <path
+     d="M1480 300 L1384 300"
+     fill="none"
+     stroke="#f59e0b"
+     stroke-width="5"
+     stroke-linecap="round"
+     id="path78" />
+  <circle
+     cx="1480"
+     cy="300"
+     r="15"
+     fill="#0c1b3d"
+     stroke="#fbbf24"
+     stroke-width="8"
+     id="circle78" />
+  <!-- Offset badges -->
+  <g
+     font-family="Inter, Segoe UI, Arial, sans-serif"
+     font-weight="750"
+     text-anchor="middle"
+     id="g82">
+    <g
+       transform="translate(1290 94)"
+       id="g79">
+      <circle
+         r="36"
+         fill="#09283a"
+         stroke="#10b981"
+         stroke-width="3"
+         id="circle79" />
+      <text
+         y="8"
+         fill="#6ee7b7"
+         font-size="23"
+         id="text79">−5</text>
+    </g>
+    <g
+       transform="translate(1715 202)"
+       id="g80">
+      <circle
+         r="36"
+         fill="#2b210b"
+         stroke="#f59e0b"
+         stroke-width="3"
+         id="circle80" />
+      <text
+         y="8"
+         fill="#fbbf24"
+         font-size="23"
+         id="text80">+2</text>
+    </g>
+    <g
+       transform="translate(1688 465)"
+       id="g81">
+      <circle
+         r="36"
+         fill="#0a1e43"
+         stroke="#3b82f6"
+         stroke-width="3"
+         id="circle81" />
+      <text
+         y="8"
+         fill="#60a5fa"
+         font-size="23"
+         id="text81">+9</text>
+    </g>
+  </g>
+  <rect
+     x="1"
+     y="1"
+     width="1798"
+     height="598"
+     rx="35"
+     fill="none"
+     stroke="#60a5fa"
+     stroke-opacity="0.16"
+     stroke-width="2"
+     id="rect82" />
+</svg>

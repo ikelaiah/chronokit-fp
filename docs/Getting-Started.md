@@ -61,6 +61,7 @@ One week later: 2026-08-17
 | A date/time entered as text | `TChronoKit.FromString` with an explicit format |
 | A date a fixed number of days away | `TChronoKit.AddDays` |
 | The same instant represented in a named timezone | `TChronoKit.WithTimeZone` |
+| A wall clock that should be interpreted in a named timezone | `TChronoKit.ForceTimeZone` |
 
 ChronoKit uses Free Pascal's `TDateTime` type. A **date** is conventionally a
 `TDateTime` at midnight. A **local date/time** is a wall-clock value such as
@@ -71,6 +72,40 @@ application when it must be known later. `UTC` is the only portable timezone
 identifier. Before converting named zones, read the
 [timezone contract](Timezone-Contract.md) for Windows/Linux identifier
 mappings and DST-boundary errors.
+
+## Convert a timezone value
+
+`WithTimeZone` starts with a system-local wall clock and returns the same
+instant displayed in the target zone. This portable example converts the
+current local time to UTC:
+
+```pascal
+var
+  LocalValue, UTCValue: TDateTime;
+begin
+  LocalValue := TChronoKit.GetNow;
+  UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
+  WriteLn(TChronoKit.GetAsString(UTCValue, 'yyyy-mm-dd hh:nn:ss'));
+end;
+```
+
+`ForceTimeZone` starts with clock fields that belong to the named source zone.
+It returns the equivalent clock in the computer's system zone. Names are
+platform-native: use `America/New_York` on Linux or `Eastern Standard Time` on
+Windows for New York.
+
+Both operations raise `ETimeZoneError` when a source wall clock falls in a DST
+gap or overlap. Catch the exception rather than letting the library select an
+occurrence silently:
+
+```pascal
+try
+  SystemValue := TChronoKit.ForceTimeZone(InputValue, SourceTimeZone);
+except
+  on E: ETimeZoneError do
+    WriteLn('Choose another local time: ', E.Message);
+end;
+```
 
 ## Formats
 
