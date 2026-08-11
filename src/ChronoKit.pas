@@ -391,6 +391,25 @@ type
         end;
     }
     class function GetAsString(const AValue: TDateTime; const AFormat: string = ''): string; static;
+
+    {
+      @description Formats a TDateTime value as text. This is the preferred,
+                   task-oriented name for the established GetAsString behavior.
+
+      @param AValue The date/time value to format.
+      @param AFormat Optional Free Pascal date/time format. If empty, the system
+                     default date/time format is used.
+
+      @returns string - The formatted date/time value.
+
+      @example
+        Formatted := TChronoKit.FormatDateTime(
+          EncodeDate(2026, 8, 11), 'yyyy-mm-dd');
+
+      @see GetAsString remains available for 1.x source compatibility.
+    }
+    class function FormatDateTime(const AValue: TDateTime;
+      const AFormat: string = ''): string; static;
     
     {
       @description Converts a string representation of a date/time into a TDateTime value.
@@ -429,6 +448,28 @@ type
         end;
     }
     class function FromString(const AValue: string; const AFormat: string = ''): TDateTime; static;
+
+    {
+      @description Parses text as a TDateTime value. This is the preferred,
+                   task-oriented name for the established FromString behavior.
+
+      @param AValue The date/time text to parse.
+      @param AFormat Optional explicit format matching AValue. If empty, the
+                     system date/time format is used with '-' or '/' separators.
+
+      @returns TDateTime - The parsed date/time value.
+
+      @warning Raises EConvertError with the rejected input and expected format
+               when parsing fails.
+
+      @example
+        Parsed := TChronoKit.ParseDateTime(
+          '2026-08-11 14:05', 'yyyy-mm-dd hh:nn');
+
+      @see FromString remains available for 1.x source compatibility.
+    }
+    class function ParseDateTime(const AValue: string;
+      const AFormat: string = ''): TDateTime; static;
     
     { Date Component Getters
       These functions extract specific parts of a date/time value.
@@ -2860,7 +2901,13 @@ begin
   if AFormat = '' then
     Result := DateTimeToStr(AValue)  // Use system default format
   else
-    Result := FormatDateTime(AFormat, AValue);  // Use specified format
+    Result := SysUtils.FormatDateTime(AFormat, AValue);  // Use specified format
+end;
+
+class function TChronoKit.FormatDateTime(const AValue: TDateTime;
+  const AFormat: string): string;
+begin
+  Result := GetAsString(AValue, AFormat);
 end;
 
 class function TChronoKit.FromString(const AValue: string; const AFormat: string): TDateTime;
@@ -2908,6 +2955,12 @@ begin
           [AValue, AFormat]);
     end;
   end;
+end;
+
+class function TChronoKit.ParseDateTime(const AValue: string;
+  const AFormat: string): TDateTime;
+begin
+  Result := FromString(AValue, AFormat);
 end;
 
 class function TChronoKit.GetYear(const AValue: TDateTime): Integer;

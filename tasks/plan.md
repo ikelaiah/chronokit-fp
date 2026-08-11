@@ -1,117 +1,104 @@
-# Implementation Plan: v1.4.0 trustworthy timezones
+# Implementation Plan: v1.5.0 discoverable API and 2.0 decision
 
 ## Overview
 
-Deliver the v1.4.0 roadmap milestone by making the v1.3.0 timezone contract
-executable on Windows and Linux. Named-zone conversion will use the requested
-zone and the supplied date, platform-native rules will replace hard-coded US
-transitions, and every local wall clock will be classified as valid,
-ambiguous, or nonexistent before it is converted.
+Deliver the v1.5.0 roadmap milestone by auditing common date/time tasks from a
+beginner's point of view, making the documentation searchable by intent, and
+adding only the small compatibility-preserving aliases justified by that
+audit. The milestone will also record whether current evidence supports a 2.0
+change list.
 
-The public timezone signatures remain source-compatible. The implementation
-will move platform-specific rule lookup into a small internal unit so the
-public `ChronoKit` unit only owns contract-level orchestration and errors.
+The public surface remains backwards compatible. `GetAsString` and
+`FromString` continue to work throughout 1.x; the clearer `FormatDateTime` and
+`ParseDateTime` names delegate to those established implementations.
 
 ## Architecture decisions
 
-- Resolve local clocks by testing the platform engine's possible UTC offsets.
-  Zero matching instants means nonexistent, one means valid, and two means
-  ambiguous. This makes gaps and overlaps visible without adding a caller
-  policy that the 1.x API cannot represent.
-- On Windows, read the registered timezone catalog and its per-year dynamic
-  rules, then use the OS conversion API for the requested identifier/date.
-- On Linux, read the installed IANA TZif file directly. This avoids changing
-  the process-wide `TZ` variable during conversion and uses the host's own
-  timezone database, including historical transitions.
-- Keep `UTC` as the sole portable identifier and retain the documented Linux
-  `Etc/UTC` aliases. Return canonical platform identifiers from discovery and
-  system-zone queries.
-- Add no dependency and no new public type or function. Continue reporting all
-  lookup, conversion, ambiguity, and gap failures through `ETimeZoneError`.
+- Treat task questions (for example, “How do I parse a date?”) as the primary
+  navigation model, with type/function taxonomy as a secondary reference.
+- Add `TChronoKit.FormatDateTime` and `TChronoKit.ParseDateTime` as thin public
+  aliases. The audit shows that text conversion is a first-five-minutes task,
+  while the existing names do not contain the terms beginners search for.
+- Keep `GetAsString` and `FromString` unchanged and documented as compatibility
+  names. Do not introduce deprecation warnings during 1.x.
+- Do not propose 2.0 removals without external usage/deprecation evidence. The
+  decision record will distinguish audit findings from proof that migration is
+  valuable.
+- Add no dependency and make no timezone or calendar behavior change.
 
 ## Task list
 
-### Phase 1: Executable contract
+### Phase 1: Audit and executable API additions
 
-#### Task 1: Add failing named-zone and DST classification regressions
+#### Task 1: Publish the beginner-focused API audit
 
-**Description:** Extend the shared matrix with logical Windows/Linux fixture
-names supplied by CI. Prove that target names affect conversion, northern and
-southern hemisphere rules differ, and gaps/overlaps raise descriptive errors.
+**Description:** Test common date/time questions against the current docs and
+public surface, recording the expected starting point, findability, example
+coverage, and action for every observed gap.
 
 **Acceptance criteria:**
 
-- [x] A non-system target conversion produces the target-zone wall clock.
-- [x] Sydney and New York seasonal offsets follow their own platform rules.
-- [x] System-local and named-source gaps/overlaps raise `ETimeZoneError` with
-      the value, zone, and classification in the message.
+- [x] The audit covers creation, parsing, formatting, arithmetic, boundaries,
+      comparisons, spans, business calendars, intervals, week systems, and
+      timezone conversion.
+- [x] Every proposed API addition is tied to an observed discovery problem.
+- [x] Documentation-only gaps and copy/paste errors are explicitly identified.
 
 **Verification:**
 
-- [x] The new tests fail against the v1.3.0 implementation for the expected
-      contract gaps.
-- [x] `fpc "-FU." "-Fu..\src" TestRunner.lpr` compiles the expanded suite.
+- [x] Every audit action maps to a later task or a documented no-change result.
+- [x] No unsupported claim about external user behavior is made.
 
 **Dependencies:** None
 
 **Files likely touched:**
 
-- `tests/ChronoKit.Test.pas`
-- `.github/workflows/test.yml`
+- `docs/API-Audit-v1.5.0.md`
 
-**Estimated scope:** Medium
+**Estimated scope:** Small
 
-#### Task 2: Implement the platform-native timezone engine
+#### Task 2: Add failing tests for discoverable text helpers
 
-**Description:** Add one internal unit that discovers platform identifiers,
-maps UTC instants with native rules, and classifies local wall clocks without
-guessing.
+**Description:** Specify the clearer formatting and parsing aliases before
+implementation, including explicit-format behavior and established error
+behavior.
 
 **Acceptance criteria:**
 
-- [x] Windows uses dynamic timezone data for the requested identifier/date.
-- [x] Linux parses installed TZif transition/type data for the requested IANA
-      identifier/date without mutating process-global timezone state.
-- [x] UTC and documented aliases remain deterministic and dependency-free.
+- [x] Tests require `FormatDateTime` to match `GetAsString`.
+- [x] Tests require `ParseDateTime` to match `FromString`.
+- [x] Invalid input still raises the established descriptive `EConvertError`.
 
 **Verification:**
 
-- [x] The engine compiles with Free Pascal 3.2.2 on the local Windows target.
-- [x] Focused engine-facing regressions pass after implementation.
+- [x] The focused compile fails before implementation because the methods do
+      not exist.
+- [x] The focused tests pass after implementation.
 
 **Dependencies:** Task 1
 
 **Files likely touched:**
 
-- `src/ChronoKitTimeZones.pas`
-- `packages/lazarus/chronokit_fp.lpk`
+- `tests/ChronoKit.Test.pas`
 
-**Estimated scope:** Medium
+**Estimated scope:** Small
 
-### Checkpoint: Platform engine
+#### Task 3: Implement and demonstrate the additive aliases
 
-- [x] Named target conversion fails before implementation and passes after it.
-- [x] No hard-coded regional DST transition calculation remains in use.
-- [x] The source tree builds without a new dependency.
-
-### Phase 2: Public contract conformance
-
-#### Task 3: Route public timezone operations through classified conversions
-
-**Description:** Make `GetTimeZone`, `WithTimeZone`, `ForceTimeZone`, discovery,
-and system-zone lookup delegate to the engine while preserving public
-signatures and translating backend failures to `ETimeZoneError`.
+**Description:** Add the two thin public aliases, document their relationship
+to the compatibility names, and update the copyable quick-start example.
 
 **Acceptance criteria:**
 
-- [x] Every conversion uses the supplied wall clock and requested zone.
-- [x] Ambiguous/nonexistent local inputs never return a guessed instant.
-- [x] Lookup failures never silently fall back to UTC.
+- [x] Both aliases delegate to the existing behavior without duplicating
+      parsing or formatting logic.
+- [x] Existing 1.x calls remain source-compatible.
+- [x] A shipped example compiles using both additions.
 
 **Verification:**
 
-- [x] The full FPCUnit suite passes locally.
-- [x] Public declarations have no breaking signature or type change.
+- [x] The focused alias tests pass.
+- [x] `examples/ChronoKitQuickStart/ChronoKitQuickStart.lpr` compiles.
 
 **Dependencies:** Task 2
 
@@ -119,62 +106,60 @@ signatures and translating backend failures to `ETimeZoneError`.
 
 - `src/ChronoKit.pas`
 - `tests/ChronoKit.Test.pas`
+- `examples/ChronoKitQuickStart/ChronoKitQuickStart.lpr`
 
-**Estimated scope:** Medium
+**Estimated scope:** Small
 
-#### Task 4: Complete the cross-platform release matrix
+### Checkpoint: Audited additions
 
-**Description:** Configure equivalent named-zone fixtures in both CI jobs and
-ensure all contract assertions run unchanged on Windows and Linux.
+- [x] Each new method is justified, tested, documented inline, and executable.
+- [x] No existing signature or behavior changed.
+- [x] The source tree remains dependency-free.
+
+### Phase 2: Task-oriented discovery
+
+#### Task 4: Rebuild the cheat sheet around searchable questions
+
+**Description:** Replace the long category-only reference with a searchable
+task index, copyable recipes, and a complete compact public-method index.
 
 **Acceptance criteria:**
 
-- [x] CI supplies native identifiers for New York, London, Sydney, Tokyo, and
-      Auckland on both operating systems.
-- [x] Assertion bodies contain no platform-specific skip, tolerance, or pass.
-- [x] Tests cover UTC, named conversion, seasonal rules, gaps, overlaps, date
-      boundaries, round trips, and invalid names.
+- [ ] Common search terms lead directly to the appropriate API and example.
+- [ ] Every public `TChronoKit` method appears in the compact index.
+- [ ] Incorrect `drs*` examples are replaced with the public `du*` enum.
 
 **Verification:**
 
-- [x] Workflow syntax and commands match the repository's established jobs.
-- [x] Local Windows run passes with the same logical fixture variables.
+- [ ] Method names in the index match the public declarations.
+- [ ] Every code sample uses the v1.5.0 public API.
 
 **Dependencies:** Task 3
 
 **Files likely touched:**
 
-- `.github/workflows/test.yml`
-- `tests/ChronoKit.Test.pas`
+- `docs/Cheat-Sheet.md`
 
-**Estimated scope:** Small
+**Estimated scope:** Medium
 
-### Checkpoint: Contract conformance
+#### Task 5: Group guides and API documentation by task
 
-- [x] The complete v1.3.0 matrix is executable without skipped behavior.
-- [x] The local Free Pascal 3.2.2 suite passes.
-- [x] CI is ready to enforce identical Windows/Linux semantics.
-
-### Phase 3: Documentation and release material
-
-#### Task 5: Update user and API documentation
-
-**Description:** Replace v1.3.0 implementation caveats with copyable guidance
-for choosing conversion operations, native identifiers, and handling DST
-boundary exceptions.
+**Description:** Make the README, getting-started guide, and complete guide
+lead from user intent to copyable answers, while preserving links to advanced
+calendar and timezone contracts.
 
 **Acceptance criteria:**
 
-- [x] README, getting started, API guide, cheat sheet, troubleshooting, and
-      timezone contract describe shipped v1.4.0 behavior consistently.
-- [x] Each public timezone operation has a copyable example and clear wall
-      clock/instant semantics.
-- [x] DST gap and overlap examples show `ETimeZoneError` handling.
+- [ ] The main documentation paths use the same task vocabulary and preferred
+      v1.5.0 names.
+- [ ] Parsing, formatting, arithmetic, business-day, interval, and timezone
+      tasks each have a documented answer.
+- [ ] Compatibility aliases are explained without prematurely deprecating them.
 
 **Verification:**
 
-- [x] Documentation links resolve within the repository.
-- [x] Examples use only public API available in v1.4.0.
+- [ ] Repository-local documentation links resolve.
+- [ ] Examples compile or correspond to compiled public calls.
 
 **Dependencies:** Task 4
 
@@ -183,59 +168,94 @@ boundary exceptions.
 - `README.md`
 - `docs/Getting-Started.md`
 - `docs/ChronoKit-FP.md`
-- `docs/Cheat-Sheet.md`
-- `docs/Timezone-Contract.md`
+- `docs/Troubleshooting.md`
 
 **Estimated scope:** Medium
 
-#### Task 6: Prepare v1.4.0 release records
+### Checkpoint: Discovery paths
 
-**Description:** Record completion in version metadata, roadmap, changelog,
-release notes, and PR notes.
+- [ ] Common questions can be answered without reading implementation code.
+- [ ] Searchable index and detailed guide agree on preferred operations.
+- [ ] Public additions have tests and copyable examples.
+
+### Phase 3: Version decision and release records
+
+#### Task 6: Publish the evidence-based 2.0 decision
+
+**Description:** Evaluate the audit, existing compatibility promises, and the
+absence or presence of proven deprecations, then publish the resulting 2.0
+decision and its reconsideration criteria.
 
 **Acceptance criteria:**
 
-- [x] Source and Lazarus package metadata report v1.4.0.
-- [x] Roadmap marks the milestone released only after verification succeeds.
-- [x] Changelog, release notes, and PR notes accurately state behavior and
-      compatibility.
+- [ ] The record separates repository evidence from assumptions about users.
+- [ ] A proposed 2.0 change list is published only if justified by evidence.
+- [ ] The decision defines what future evidence would trigger reconsideration.
 
 **Verification:**
 
-- [x] Version search finds no current-release metadata left at v1.3.0.
-- [x] Release records include the exact verification commands and outcomes.
+- [ ] The decision is consistent with the roadmap's conditional 2.0 policy.
+- [ ] README and roadmap link to the decision where appropriate.
 
 **Dependencies:** Task 5
 
 **Files likely touched:**
 
+- `docs/V2-DECISION.md`
+- `ROADMAP.md`
+- `README.md`
+
+**Estimated scope:** Small
+
+#### Task 7: Prepare v1.5.0 release documentation and metadata
+
+**Description:** Update version metadata, changelog, release notes, PR notes,
+and milestone status after verification.
+
+**Acceptance criteria:**
+
+- [ ] Source and Lazarus package metadata report v1.5.0.
+- [ ] Changelog and release notes describe additions and compatibility.
+- [ ] Roadmap status reflects the verified milestone outcome.
+
+**Verification:**
+
+- [ ] Version search finds no current-release metadata left at v1.4.0.
+- [ ] Release records state the exact verification commands and outcomes.
+
+**Dependencies:** Task 6
+
+**Files likely touched:**
+
 - `CHANGELOG.md`
 - `ROADMAP.md`
-- `docs/RELEASE-NOTES-v1.4.0.md`
-- `docs/PR-v1.4.0.md`
+- `docs/RELEASE-NOTES-v1.5.0.md`
+- `docs/PR-v1.5.0.md`
 - `packages/lazarus/chronokit_fp.lpk`
 
 **Estimated scope:** Medium
 
 ### Checkpoint: Complete
 
-- [x] All v1.4.0 roadmap goals and done criteria are met.
-- [x] Full FPCUnit suite passes with Free Pascal 3.2.2 (154 tests per OS).
-- [x] Every shipped example compiles and the Lazarus package builds.
-- [x] `git diff --check` and the five-axis review find no required issue.
-- [x] Windows/Linux CI configuration runs the same meaningful assertions.
+- [ ] All v1.5.0 roadmap goals and done criteria are met.
+- [ ] The full FPCUnit suite passes with the required local timezone fixtures.
+- [ ] Every shipped example compiles and the Lazarus package builds.
+- [ ] Documentation links and public-method coverage are verified.
+- [ ] `git diff --check` and the five-axis review find no required issue.
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Windows registry/API declarations differ across FPC targets | High | Use the standard FCL registry unit plus one stable Win32 conversion entry point, and compile on FPC 3.2.2. |
-| TZif variants or corrupt files produce unsafe reads | High | Validate magic, counts, indices, sizes, and every stream boundary before parsing. |
-| DST classification accidentally chooses an occurrence | High | Accept a local clock only when exactly one candidate instant round-trips through native rules. |
-| Target offset changes between source and destination dates | High | Resolve the source to an instant first, then query the target rule at that instant. |
-| Documentation overstates unverified Linux behavior | Medium | Keep the shared CI matrix as the release gate and distinguish local verification from CI readiness. |
+| New names conflict with `SysUtils` routines | Medium | Keep calls class-qualified for users and unit-qualify RTL calls inside the implementation. |
+| A documentation audit overstates user evidence | High | Record only reproducible repository findings and explicitly label missing external usage data. |
+| The cheat sheet becomes another long reference | Medium | Lead with question/search vocabulary and keep the exhaustive method list compact. |
+| Release docs drift from executable examples | Medium | Compile every shipped example and reuse the preferred names consistently. |
+| Local timezone tests fail without CI variables | Low | Run the documented Windows fixture matrix with system-local Sydney DST boundary values. |
 
 ## Open questions
 
-None. The v1.3.0 contract specifies the observable behavior and preserves the
-public API, so implementation choices do not require a new product decision.
+None. The roadmap explicitly permits additive helpers only where the audit
+finds a discovery problem, and it makes the 2.0 change list conditional on
+evidence. Both decisions can be made from documented repository evidence
+without breaking compatibility.

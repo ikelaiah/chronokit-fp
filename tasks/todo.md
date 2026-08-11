@@ -1,18 +1,19 @@
-# v1.4.0 checklist
+# v1.5.0 checklist
 
-- [x] New feature branch created: `feat/v1.4.0-trustworthy-timezones`
-- [x] Baseline FPCUnit suite passes (145 tests)
-- [x] Named-zone conversion regressions added and observed failing
-- [x] Northern/southern seasonal-rule regressions added
-- [x] Ambiguous and nonexistent local-time regressions added
-- [x] Platform-native timezone engine implemented
-- [x] Public timezone operations conform to the v1.3.0 contract
-- [x] Silent UTC fallbacks removed from timezone failures
-- [x] Equivalent Windows/Linux logical-zone fixtures configured in CI
-- [x] Public API remains source-compatible
-- [x] README, guides, API docs, cheat sheet, and timezone contract updated
-- [x] Version metadata, roadmap, changelog, release notes, and PR notes updated
-- [x] Full FPCUnit suite passes (154 tests on Windows and Linux)
-- [x] Every shipped example compiles on Windows and Linux
-- [x] Lazarus package builds
-- [x] Final five-axis review passes
+- [x] New feature branch created: `feature/v1.5.0-discoverable-api`
+- [x] Baseline suite compiled (141 tests pass; 13 require CI timezone fixtures)
+- [x] Beginner-focused common-task API audit published
+- [x] Failing tests added for discoverable text helpers
+- [x] `FormatDateTime` and `ParseDateTime` aliases implemented
+- [x] Existing `GetAsString` and `FromString` calls remain compatible
+- [x] Quick-start example uses and demonstrates both public additions
+- [ ] Searchable task-based cheat sheet covers every public method
+- [ ] README, getting started, complete guide, and troubleshooting updated
+- [ ] Copy/paste errors in existing examples corrected
+- [ ] Evidence-based 2.0 decision published and linked
+- [ ] Version metadata, roadmap, changelog, release notes, and PR notes updated
+- [ ] Full FPCUnit suite passes with local timezone fixtures
+- [ ] Every shipped example compiles
+- [ ] Lazarus package builds
+- [ ] Documentation links and public-method coverage verified
+- [ ] Final five-axis review passes

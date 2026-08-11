@@ -78,6 +78,9 @@ type
     procedure Test143_YQValidationMessage;
     procedure Test144_FromStringValidationMessage;
     procedure Test145_YQYearValidationMessage;
+    procedure Test146_FormatDateTimeAlias;
+    procedure Test147_ParseDateTimeAlias;
+    procedure Test148_ParseDateTimeValidationMessage;
     // Time Span Tests
     procedure Test34_CreatePeriod;
     procedure Test35_CreateDuration;
@@ -1003,6 +1006,48 @@ begin
     end;
   end;
   WriteLn('Test145_YQYearValidationMessage:Finished');
+end;
+
+procedure TDateTimeTests.Test146_FormatDateTimeAlias;
+var
+  TestDate: TDateTime;
+begin
+  WriteLn('Test146_FormatDateTimeAlias:Starting');
+  TestDate := EncodeDateTime(2026, 8, 11, 14, 5, 9, 0);
+  AssertEquals('FormatDateTime should use the established formatting behavior',
+    TChronoKit.GetAsString(TestDate, 'yyyy-mm-dd hh:nn:ss'),
+    TChronoKit.FormatDateTime(TestDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Test146_FormatDateTimeAlias:Finished');
+end;
+
+procedure TDateTimeTests.Test147_ParseDateTimeAlias;
+const
+  InputValue = '2026-08-11 14:05:09';
+  InputFormat = 'yyyy-mm-dd hh:nn:ss';
+begin
+  WriteLn('Test147_ParseDateTimeAlias:Starting');
+  AssertEquals('ParseDateTime should use the established parsing behavior',
+    TChronoKit.FromString(InputValue, InputFormat),
+    TChronoKit.ParseDateTime(InputValue, InputFormat));
+  WriteLn('Test147_ParseDateTimeAlias:Finished');
+end;
+
+procedure TDateTimeTests.Test148_ParseDateTimeValidationMessage;
+begin
+  WriteLn('Test148_ParseDateTimeValidationMessage:Starting');
+  try
+    TChronoKit.ParseDateTime('not-a-date');
+    Fail('ParseDateTime should reject invalid date/time input');
+  except
+    on E: EConvertError do
+    begin
+      AssertTrue('ParseDateTime error should include the rejected input',
+        Pos('not-a-date', E.Message) > 0);
+      AssertTrue('ParseDateTime error should explain the expected input',
+        Pos('system date/time format', E.Message) > 0);
+    end;
+  end;
+  WriteLn('Test148_ParseDateTimeValidationMessage:Finished');
 end;
 
 procedure TDateTimeTests.Test34_CreatePeriod;
