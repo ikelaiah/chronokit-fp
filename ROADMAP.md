@@ -29,6 +29,10 @@ concepts do matter, the API and documentation must make the choice explicit.
 - Keep Windows and Linux behaviour covered by automated tests.
 - Preserve backwards compatibility throughout 1.x; announce and document any
   2.0 migration before making breaking changes.
+- Treat user feedback as useful prioritisation input, not as a gate for
+  progress or release decisions. Maintainer experience, implementation
+  evidence, API coherence, and verified correctness are sufficient grounds to
+  advance the roadmap.
 
 ## 1.1.0 — First five minutes
 
@@ -128,25 +132,63 @@ additive discovery names and a task-oriented documentation rewrite. The
 [2.0 decision](docs/V2-DECISION.md) is to continue compatible 1.x releases;
 current evidence does not justify a breaking change list or deprecation.
 
-## 2.0.0 — Conditional: a focused, predictable ChronoKit
+## 1.6.0 — API consolidation and deprecations
 
-2.0.0 is not a release-date commitment. It will be cut only when 1.x contains
-documented deprecations with proven replacements and a migration is genuinely
-valuable to users.
+**Status:** Planned
 
-- Remove deprecated APIs only where a documented replacement has existed in
-  at least one 1.x release.
+Make the public surface smaller and more coherent without removing APIs in
+the 1.x line. Maintainer cost, duplicated entry points, misleading behaviour,
+and a clear replacement are sufficient evidence for deprecation; this
+milestone does not wait for external usage feedback.
+
+- Publish an exact deprecation matrix containing the replacement and migration
+  recipe for every affected API.
+- Deprecate `GetAsString` in favor of `FormatDateTime` and `FromString` in
+  favor of `ParseDateTime`.
+- Deprecate `GetDateTime`; it returns its `TDateTime` argument unchanged and
+  provides no conversion or validation.
+- Replace the approximate `PeriodToSeconds` and `SecondsToPeriod` operations
+  with APIs that distinguish calendar periods from fixed durations, then
+  deprecate the ambiguous operations.
+- Define and implement a documented meaning for `duSeason`, or deprecate it;
+  it must no longer remain a public option whose rounding behavior silently
+  returns the input unchanged.
+- Make preferred APIs the canonical implementations and retain deprecated
+  methods only as thin compatibility wrappers.
+- Add compiler deprecation annotations, tests for every replacement, and a
+  complete 1.6-to-2.0 migration guide.
+- Treat v1.6.0 as the final planned 1.x API-consolidation release. Fix-only
+  1.6.x releases may follow, but no deprecated API is removed before 2.0.0.
+
+**Done when:** every deprecation has a tested replacement and actionable
+migration example, existing 1.x callers still compile, the Windows and Linux
+release matrix passes, and the 2.0 removal list is explicit.
+
+The v1.5.0 decision remains the record of what was justified by that release's
+beginner audit. This milestone advances the project using maintainability and
+API coherence as additional evidence, without requiring a waiting period for
+external feedback.
+
+## 2.0.0 — A focused, predictable ChronoKit
+
+2.0.0 follows the v1.6.0 deprecation release. It is not a release-date
+commitment, but it does not require an additional time-based or user-feedback
+waiting period once the v1.6.0 acceptance criteria are met.
+
+- Remove the APIs deprecated in v1.6.0.
 - Apply consistent naming, validation, and error behaviour across the library.
 - Ship a complete migration guide and updated first-five-minutes tutorial.
 - Verify the supported Windows and Linux environments in CI before release.
 
 **Done when:** ChronoKit-FP presents one clear path for common date/time work,
-with predictable cross-platform behaviour and an actionable upgrade path. If
-these conditions are not met, the project will continue releasing compatible
-1.x versions instead.
+with predictable cross-platform behaviour and an actionable upgrade path, and
+all v1.6.0 deprecations have been either removed or deliberately retained with
+a documented reason.
 
 ## Feedback
 
 Please open an issue for a workflow or API that feels harder than it should.
-Usability feedback and reproducible cross-platform differences will be used to
-prioritise this roadmap.
+Usability feedback and reproducible cross-platform differences help prioritise
+work, but user feedback is not a prerequisite or gate for any milestone. The
+project will continue making and shipping evidence-based maintainability,
+correctness, and API-design decisions without waiting for external validation.
