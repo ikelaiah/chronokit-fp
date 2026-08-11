@@ -2,8 +2,9 @@
 
 ChronoKit-FP's priority through 2.0.0 is a library that is easy to discover,
 install, and use correctly. This roadmap describes the intended direction, not
-a release-date commitment. Features may move between releases as feedback and
-cross-platform testing reveal what needs the most attention.
+a release-date commitment. Features may move between releases as maintainer
+priorities, implementation evidence, and cross-platform testing reveal what
+needs the most attention; user feedback is useful input but is not a gate.
 
 ## Primary user
 
@@ -142,19 +143,24 @@ and a clear replacement are sufficient evidence for deprecation; this
 milestone does not wait for external usage feedback.
 
 - Publish an exact deprecation matrix containing the replacement and migration
-  recipe for every affected API.
-- Deprecate `GetAsString` in favor of `FormatDateTime` and `FromString` in
-  favor of `ParseDateTime`.
-- Deprecate `GetDateTime`; it returns its `TDateTime` argument unchanged and
-  provides no conversion or validation.
-- Replace the approximate `PeriodToSeconds` and `SecondsToPeriod` operations
-  with APIs that distinguish calendar periods from fixed durations, then
-  deprecate the ambiguous operations.
-- Define and implement a documented meaning for `duSeason`, or deprecate it;
-  it must no longer remain a public option whose rounding behavior silently
-  returns the input unchanged.
-- Make preferred APIs the canonical implementations and retain deprecated
-  methods only as thin compatibility wrappers.
+  recipe for every affected API. The proposed
+  [v1.6 API transition specification](docs/API-Deprecations-v1.6.0.md)
+  contains that matrix and is the implementation contract for this milestone.
+- Consolidate redundant aliases, fixed-format parsers, decimal-year names, and
+  timezone conversions whose direction is hidden by their current names.
+- Replace the tagged `TDateSpan` model with separate calendar-period and exact
+  duration types; no elapsed-time API may approximate months or years as
+  seconds.
+- Replace inclusive `TInterval` algebra with validated half-open ranges that
+  can represent empty, disjoint, intersecting, touching, and split results
+  without sentinel dates or discarded ranges.
+- Deprecate `duSeason`; its current type cannot express a hemisphere or season
+  definition, and rounding must no longer silently return the input.
+- Make preferred APIs the canonical implementations where contracts are
+  equivalent. Keep incompatible deprecated behaviour isolated from all new
+  implementation paths until removal in 2.0.
+- Correct the separately identified rounding, end-boundary, fractional-span,
+  interval-gap, decimal-round-trip, and interval-validation defects.
 - Add compiler deprecation annotations, tests for every replacement, and a
   complete 1.6-to-2.0 migration guide.
 - Treat v1.6.0 as the final planned 1.x API-consolidation release. Fix-only

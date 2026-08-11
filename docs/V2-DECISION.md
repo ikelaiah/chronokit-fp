@@ -1,5 +1,10 @@
 # 2.0 decision after v1.5.0
 
+**Status:** Historical. Superseded for future planning on 2026-08-12 by the
+[v1.6.0 API transition specification](API-Deprecations-v1.6.0.md). This record
+is retained to explain the decision made from the narrower v1.5.0 beginner
+audit; it is no longer the active 2.0 plan.
+
 **Decision:** Continue with compatible 1.x releases. Do not publish a proposed
 2.0 change list yet.
 
