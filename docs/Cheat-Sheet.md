@@ -1,219 +1,288 @@
-# 📋 ChronoKit-FP Cheat Sheet
+# ChronoKit-FP searchable cheat sheet
 
-A comprehensive reference for ChronoKit-FP DateTime operations and timezone handling.
+Use your browser or editor's find command and search for what you want to do:
+`parse`, `format`, `today`, `add`, `subtract`, `difference`, `between`,
+`start`, `end`, `round`, `business`, `holiday`, `range`, `interval`, `week`,
+`timezone`, `UTC`, or `DST`.
 
-## 🕙 DateTime Operations
+Examples assume:
 
-### Basic Operations
 ```pascal
-Now := TChronoKit.GetNow;                         // Current date and time
-Today := TChronoKit.GetToday;                     // Current date (time = 00:00:00)
-DateTime := TChronoKit.GetDateTime(Now);          // Validate/convert TDateTime
-FormattedDate := TChronoKit.GetAsString(Now, 'yyyy-mm-dd hh:nn:ss');  // Format date
-ParsedDate := TChronoKit.FromString('2024-07-15 10:30', 'yyyy-mm-dd hh:nn'); // Parse string
+uses
+  SysUtils,
+  ChronoKit;
 ```
 
-### Component Access
+## Find the operation by task
+
+| I want to… | Search words | Start with |
+|---|---|---|
+| create a date or date/time | create, encode, construct | Free Pascal `EncodeDate`, `EncodeDateTime` |
+| get today or the current local time | today, now, current | `GetToday`, `GetNow` |
+| parse text as a date/time | parse, read, input, string | `ParseDateTime` |
+| format a date/time for display | format, display, output, string | `FormatDateTime` |
+| add or subtract calendar units | add, subtract, tomorrow, next | `AddDays`, `AddMonths`, other `Add*` methods |
+| add a calendar period or fixed duration | period, duration, span | `CreatePeriod`, `CreateDuration`, `AddSpan` |
+| measure the difference between two values | difference, between, elapsed | `SpanBetween` |
+| get or replace one component | year, month, day, hour, part | `GetYear`, `SetYear`, and the other component methods |
+| find the start or end of a period | start, end, boundary | `StartOfDay`, `EndOfMonth`, and the other boundary methods |
+| floor, ceiling, or round a value | floor, ceiling, truncate, round | `FloorDate`, `CeilingDate`, `RoundDate` |
+| compare two dates | before, after, same, compare | `IsBefore`, `IsAfter`, `IsSameDay` |
+| calculate weekdays or holidays | business, workday, holiday, deadline | `AddBusinessDays`, `CreateBusinessCalendar` |
+| test, measure, or combine ranges | range, interval, overlap, gap, union | `CreateInterval` and the interval methods |
+| get ISO or epidemiological week values | ISO, epidemiological, epi, week | `GetISOWeek`, `GetEpiWeek` |
+| convert the same instant to another timezone | timezone, convert, target, UTC | `WithTimeZone` |
+| interpret a clock from a named timezone | timezone, source, assign, force | `ForceTimeZone` |
+| validate a timezone name or offset | timezone, valid, offset | `ValidateTimeZone`, `ValidateTimeZoneOffset` |
+
+## Create, parse, and format
+
 ```pascal
-Year := TChronoKit.GetYear(Now);                  // Extract year
-Month := TChronoKit.GetMonth(Now);                // Extract month
-Day := TChronoKit.GetDay(Now);                    // Extract day
-DayOfWeek := TChronoKit.GetDayOfWeek(Now);        // Get day of week (1=Sunday)
-DayOfYear := TChronoKit.GetDayOfYear(Now);        // Get day of year (1-366)
-Hour := TChronoKit.GetHour(Now);                  // Extract hour
-Minute := TChronoKit.GetMinute(Now);              // Extract minute
-Second := TChronoKit.GetSecond(Now);              // Extract second
-Millisecond := TChronoKit.GetMillisecond(Now);    // Extract millisecond
-Quarter := TChronoKit.GetQuarter(Now);            // Get quarter (1-4)
-IsAM := TChronoKit.IsAM(Now);                     // Check if time is AM
-IsPM := TChronoKit.IsPM(Now);                     // Check if time is PM
+var
+  CreatedDate, CreatedDateTime, ParsedDate: TDateTime;
+  DisplayText: string;
+begin
+  CreatedDate := EncodeDate(2026, 8, 11);
+  CreatedDateTime := EncodeDateTime(2026, 8, 11, 14, 5, 0, 0);
+
+  ParsedDate := TChronoKit.ParseDateTime(
+    '2026-08-11 14:05', 'yyyy-mm-dd hh:nn');
+  DisplayText := TChronoKit.FormatDateTime(
+    ParsedDate, 'dd mmm yyyy, hh:nn');
+end;
 ```
 
-### Component Modification
+Pass an explicit format for data from users, files, or APIs. In Free Pascal
+format strings, `mm` is the month and `nn` is the minute. Parsing failures
+raise `EConvertError`.
+
+`GetAsString` and `FromString` are the original 1.x names for the same
+behavior. They remain supported; new code should prefer the task-oriented
+`FormatDateTime` and `ParseDateTime` names.
+
+For fixed-order input with `-` or `/` separators, use:
+
 ```pascal
-// Set individual components
-NewDate := TChronoKit.SetYear(Now, 2024);
-NewDate := TChronoKit.SetMonth(Now, 5);
-NewDate := TChronoKit.SetDay(Now, 15);
-NewDate := TChronoKit.SetHour(Now, 10);
-NewDate := TChronoKit.SetMinute(Now, 30);
-NewDate := TChronoKit.SetSecond(Now, 45);
-NewDate := TChronoKit.SetMillisecond(Now, 500);
+Date1 := TChronoKit.YMD('2024-08-11');
+Date2 := TChronoKit.MDY('08-11-2024');
+Date3 := TChronoKit.DMY('11-08-2024');
+QuarterStart := TChronoKit.YQ('2024-3');
 ```
 
-### Date Arithmetic
+## Current values and components
+
 ```pascal
-// Add or subtract time units
-Tomorrow := TChronoKit.AddDays(Now, 1);
-Yesterday := TChronoKit.AddDays(Now, -1);
-NextMonth := TChronoKit.AddMonths(Now, 1);
-NextYear := TChronoKit.AddYears(Now, 1);
-OneHourLater := TChronoKit.AddHours(Now, 1);
-ThirtyMinutesAgo := TChronoKit.AddMinutes(Now, -30);
-OneMinuteLater := TChronoKit.AddSeconds(Now, 60);
+LocalNow := TChronoKit.GetNow;
+TodayAtMidnight := TChronoKit.GetToday;
 
-// Business day calculations
-IsWorkday := TChronoKit.IsBusinessDay(Now);
-NextWorkday := TChronoKit.NextBusinessDay(Now);
-PrevWorkday := TChronoKit.PreviousBusinessDay(Now);
-FiveDaysLater := TChronoKit.AddBusinessDays(Now, 5);
+YearNumber := TChronoKit.GetYear(LocalNow);
+MonthNumber := TChronoKit.GetMonth(LocalNow);
+DayNumber := TChronoKit.GetDay(LocalNow);
+HourNumber := TChronoKit.GetHour(LocalNow);
 
-// Exclude holidays while keeping the default Monday-Friday week
-Calendar := TChronoKit.CreateBusinessCalendar([
-  EncodeDate(2026, 1, 1), EncodeDate(2026, 12, 25)
-]);
-DueDate := TChronoKit.AddBusinessDays(StartDate, 5, Calendar);
-
-// Configure a Sunday-Thursday working week
-Calendar := TChronoKit.CreateBusinessCalendar(
-  [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday], []
-);
-IsWorkday := TChronoKit.IsBusinessDay(SomeDate, Calendar);
+Changed := TChronoKit.SetYear(LocalNow, 2030);
+Changed := TChronoKit.SetMonth(Changed, 12);
+Changed := TChronoKit.SetDay(Changed, 25);
 ```
 
-### Period Operations
+Setter methods return a new `TDateTime`; they do not mutate the input.
+
+## Add, subtract, and measure
+
+Use the direct methods for a single unit. A negative amount subtracts:
+
 ```pascal
-// Create time spans
-Period := TChronoKit.CreatePeriod(1, 2, 15);        // 1 year, 2 months, 15 days
-Duration := TChronoKit.CreateDuration(0, 0, 0, 5, 30, 0, 0);  // 5h 30m
-
-// Add/subtract time spans
-NewDate := TChronoKit.AddSpan(Now, Period);
-PastDate := TChronoKit.SubtractSpan(Now, Period);
-
-// Calculate spans between dates
-PeriodSpan := TChronoKit.SpanBetween(Date1, Date2, dskPeriod);
-DurationSpan := TChronoKit.SpanBetween(Date1, Date2, dskDuration);
+Tomorrow := TChronoKit.AddDays(StartDate, 1);
+LastWeek := TChronoKit.AddDays(StartDate, -7);
+NextMonth := TChronoKit.AddMonths(StartDate, 1);
+InNinetyMinutes := TChronoKit.AddMinutes(StartDate, 90);
 ```
 
-### Interval Operations
+Use a period for calendar concepts and a duration for fixed elapsed time:
+
 ```pascal
-// Create intervals
-Interval := TChronoKit.CreateInterval(StartDate, EndDate);
+var
+  OneMonth, NinetyMinutes, Difference: TDateSpan;
+begin
+  OneMonth := TChronoKit.CreatePeriod(0, 1);
+  NinetyMinutes := TChronoKit.CreateDuration(0, 0, 0, 0, 90);
 
-// Check if date is within interval
-if TChronoKit.IsWithinInterval(TestDate, Interval) then ...
+  CalendarResult := TChronoKit.AddSpan(StartDate, OneMonth);
+  ElapsedResult := TChronoKit.AddSpan(StartDate, NinetyMinutes);
+  Earlier := TChronoKit.SubtractSpan(StartDate, NinetyMinutes);
 
-// Check if intervals overlap
-if TChronoKit.IntervalsOverlap(Interval1, Interval2) then ...
-
-// Get interval duration
-Duration := TChronoKit.IntervalLength(Interval, dskDuration);
+  Difference := TChronoKit.SpanBetween(
+    StartDate, EndDate, dskDuration);
+end;
 ```
 
-### Date Comparison
+`dskPeriod` expresses calendar components. `dskDuration` expresses fixed
+elapsed time. Avoid duration years and months when exact elapsed length
+matters because those fields use fixed approximations.
+
+## Boundaries and rounding
+
 ```pascal
-// Compare dates
-if TChronoKit.IsBefore(Date1, Date2) then ...     // Date1 < Date2
-if TChronoKit.IsAfter(Date1, Date2) then ...      // Date1 > Date2
-if TChronoKit.IsSameDay(Date1, Date2) then ...    // Same date (ignore time)
-if TChronoKit.IsSameMonth(Date1, Date2) then ...  // Same month and year
-if TChronoKit.IsSameYear(Date1, Date2) then ...   // Same year
+DayStart := TChronoKit.StartOfDay(Value);
+DayEnd := TChronoKit.EndOfDay(Value);
+MonthStart := TChronoKit.StartOfMonth(Value);
+MonthEnd := TChronoKit.EndOfMonth(Value);
+
+HourFloor := TChronoKit.FloorDate(Value, duHour);
+NextHour := TChronoKit.CeilingDate(Value, duHour);
+NearestDay := TChronoKit.RoundDate(Value, duDay);
 ```
 
-### Period Boundaries
-```pascal
-// Start of time period
-StartOfDay := TChronoKit.StartOfDay(Now);
-StartOfWeek := TChronoKit.StartOfWeek(Now);
-StartOfMonth := TChronoKit.StartOfMonth(Now);
-StartOfQuarter := TChronoKit.StartOfQuarter(Now);
-StartOfYear := TChronoKit.StartOfYear(Now);
+`CeilingDate` returns an upper boundary rather than the last representable
+instant from an `EndOf*` method. Exact year and week boundaries remain
+unchanged; the other implemented units advance to their next boundary. The
+`TDateUnit` values are `duSecond`, `duMinute`, `duHour`,
+`duDay`, `duWeek`, `duMonth`, `duBiMonth`, `duQuarter`, `duSeason`,
+`duHalfYear`, and `duYear`. `duSeason` is declared but not implemented in
+v1.5.0; floor, ceiling, and round return the input unchanged for that unit.
 
-// End of time period
-EndOfDay := TChronoKit.EndOfDay(Now);
-EndOfWeek := TChronoKit.EndOfWeek(Now);
-EndOfMonth := TChronoKit.EndOfMonth(Now);
-EndOfQuarter := TChronoKit.EndOfQuarter(Now);
-EndOfYear := TChronoKit.EndOfYear(Now);
+## Compare dates and times
+
+```pascal
+if TChronoKit.IsBefore(FirstDate, SecondDate) then ...
+if TChronoKit.IsAfter(FirstDate, SecondDate) then ...
+if TChronoKit.IsSameDay(FirstDate, SecondDate) then ...
+if TChronoKit.IsSameMonth(FirstDate, SecondDate) then ...
+if TChronoKit.IsSameYear(FirstDate, SecondDate) then ...
 ```
 
-### Date Rounding
-```pascal
-// Round down (floor) to time units
-RoundToSecond := TChronoKit.FloorDate(Now, duSecond);  // 12:34:56.789 -> 12:34:56.000
-RoundToMinute := TChronoKit.FloorDate(Now, duMinute);  // 12:34:56.789 -> 12:34:00.000
-RoundToHour := TChronoKit.FloorDate(Now, duHour);      // 12:34:56.789 -> 12:00:00.000
-RoundToDay := TChronoKit.FloorDate(Now, duDay);        // 2023-04-15 12:34 -> 2023-04-15 00:00
-RoundToMonth := TChronoKit.FloorDate(Now, duMonth);    // 2023-04-15 -> 2023-04-01
-RoundToYear := TChronoKit.FloorDate(Now, duYear);      // 2023-04-15 -> 2023-01-01
+The `IsSame*` methods ignore smaller units: `IsSameDay` ignores time, while
+`IsSameMonth` compares month and year.
 
-// Round up (ceiling) to time units
-RoundToSecond := TChronoKit.CeilingDate(Now, duSecond); // 12:34:56.789 -> 12:34:57.000
-RoundToMinute := TChronoKit.CeilingDate(Now, duMinute); // 12:34:56.789 -> 12:35:00.000
-RoundToHour := TChronoKit.CeilingDate(Now, duHour);     // 12:34:56.789 -> 13:00:00.000
-RoundToDay := TChronoKit.CeilingDate(Now, duDay);       // 2023-04-15 12:34 -> 2023-04-16 00:00
-RoundToMonth := TChronoKit.CeilingDate(Now, duMonth);   // 2023-04-15 -> 2023-05-01
-RoundToYear := TChronoKit.CeilingDate(Now, duYear);     // 2023-04-15 -> 2024-01-01
+## Business days, workdays, and holidays
+
+Calls without a calendar use Monday to Friday:
+
+```pascal
+IsWorkday := TChronoKit.IsBusinessDay(Value);
+NextWorkday := TChronoKit.NextBusinessDay(Value);
+PreviousWorkday := TChronoKit.PreviousBusinessDay(Value);
+DueDate := TChronoKit.AddBusinessDays(StartDate, 5);
 ```
 
-### Timezone Operations
+Exclude holidays while keeping that working week:
 
 ```pascal
-// AValue is interpreted in the computer's system timezone.
-TZInfo := TChronoKit.GetTimeZone(AValue);
-WriteLn('Timezone: ', TZInfo.Name);
-WriteLn('Offset east of UTC: ', TZInfo.Offset, ' minutes');
-WriteLn('DST: ', BoolToStr(TZInfo.IsDST, True));
+var
+  Calendar: TBusinessCalendar;
+begin
+  Calendar := TChronoKit.CreateBusinessCalendar([
+    EncodeDate(2026, 1, 1),
+    EncodeDate(2026, 12, 25)
+  ]);
+  DueDate := TChronoKit.AddBusinessDays(StartDate, 5, Calendar);
+end;
+```
 
-// Preserve the instant and return its UTC wall-clock representation.
-UTCValue := TChronoKit.WithTimeZone(AValue, 'UTC');
+See [Business calendars](Business-Calendars.md) for alternative working weeks,
+boundary rules, and deadline recipes. A calendar with no working days raises
+`EBusinessCalendarError`.
 
-// Interpret a UTC wall clock and return the equivalent system-local value.
-LocalValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
+## Ranges and intervals
 
-// Interpret a named-zone wall clock. The identifier is platform-native.
+```pascal
+Workday := TChronoKit.CreateInterval(
+  EncodeDateTime(2026, 8, 11, 9, 0, 0, 0),
+  EncodeDateTime(2026, 8, 11, 17, 0, 0, 0));
+
+if TChronoKit.IsWithinInterval(Value, Workday) then ...
+if TChronoKit.IntervalsOverlap(FirstRange, SecondRange) then ...
+
+Length := TChronoKit.IntervalLength(Workday, dskDuration);
+Gap := TChronoKit.IntervalGap(FirstRange, SecondRange);
+CommonRange := TChronoKit.IntervalIntersection(FirstRange, SecondRange);
+CombinedRange := TChronoKit.IntervalUnion(FirstRange, SecondRange);
+```
+
+Intervals are inclusive. `IntervalUnion` returns an empty `0..0` interval when
+the inputs have a gap. `IntervalIntersection` returns `0..0` when there is no
+overlap. If subtraction would split an interval, `IntervalSetdiff` can return
+only the first remaining interval; use a collection in application code when
+both pieces are required.
+
+## Calendar reporting
+
+```pascal
+ISOYear := TChronoKit.GetISOYear(Value);
+ISOWeek := TChronoKit.GetISOWeek(Value);
+EpiYear := TChronoKit.GetEpiYear(Value);
+EpiWeek := TChronoKit.GetEpiWeek(Value);
+Quarter := TChronoKit.GetQuarter(Value);
+Semester := TChronoKit.GetSemester(Value);
+
+DecimalValue := TChronoKit.GetDecimalDate(Value);
+RestoredDate := TChronoKit.DateDecimal(DecimalValue);
+```
+
+ISO and epidemiological week years can differ from the calendar year near a
+year boundary; read the year and week as a pair.
+
+## Timezone conversion, UTC, and DST
+
+`TDateTime` does not store a timezone name. Keep the intended name beside the
+value when it matters.
+
+```pascal
+// Interpret Value in the computer's system timezone and preserve the instant.
+UTCValue := TChronoKit.WithTimeZone(Value, 'UTC');
+
+// Interpret UTCValue as a UTC wall clock and return a system-local wall clock.
+SystemValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
+
+Info := TChronoKit.GetTimeZone(Value);
+SystemZone := TChronoKit.GetSystemTimeZone;
+Names := TChronoKit.GetTimeZoneNames;
+```
+
+For a named source, use its platform-native identifier and handle DST gaps and
+overlaps:
+
+```pascal
 try
-  LocalValue := TChronoKit.ForceTimeZone(InputValue, SourceTimeZone);
+  SystemValue := TChronoKit.ForceTimeZone(InputValue, SourceTimeZone);
 except
   on E: ETimeZoneError do
-    WriteLn('The local clock is invalid or cannot identify one instant');
+    WriteLn('The local clock cannot identify one instant: ', E.Message);
 end;
-
-// UTC is the only portable identifier. Other exact names come from the OS.
-TZNames := TChronoKit.GetTimeZoneNames;
 ```
 
-`TDateTime` does not retain `TZInfo.Name`. Keep the name beside the value when
-it is needed later. IANA identifiers such as `America/New_York` are native to
-Linux; Windows uses identifiers such as `Eastern Standard Time`. Catch
-`ETimeZoneError` for unsupported identifiers and DST-discontinuity inputs. See
-the [timezone contract](Timezone-Contract.md) for mappings and the precise
-ambiguous/nonexistent-time policy.
+`UTC` is the only portable identifier. Linux uses IANA names such as
+`America/New_York`; Windows uses names such as `Eastern Standard Time`. See the
+[timezone contract](Timezone-Contract.md) for mappings and exact failure
+rules.
 
-### Specialized Date Parsing
-```pascal
-// Parse various date formats
-Date1 := TChronoKit.YMD('2024-12-25');              // Year-Month-Day
-Date2 := TChronoKit.MDY('12-25-2024');              // Month-Day-Year
-Date3 := TChronoKit.DMY('25-12-2024');              // Day-Month-Year
-Date4 := TChronoKit.YQ('2024-4');                   // Year-Quarter
+## Complete public method index
 
-// Decimal date
-DecimalDate := TChronoKit.DateDecimal(2024.5);      // Mid-year 2024
-```
+This index includes every public `TChronoKit` method. Overloads appear once.
 
-### ISO Date Functions
-```pascal
-// ISO year and week
-ISOYear := TChronoKit.GetISOYear(SomeDate);
-ISOWeek := TChronoKit.GetISOWeek(SomeDate);
+| Task group | Methods |
+|---|---|
+| Current values and text | `GetNow`, `GetToday`, `GetDateTime`, `FormatDateTime`, `ParseDateTime`, `GetAsString`, `FromString` |
+| Date/time components | `GetYear`, `GetMonth`, `GetDay`, `GetDayOfWeek`, `GetDayOfYear`, `GetHour`, `GetMinute`, `GetSecond`, `GetMillisecond`, `GetQuarter`, `GetSemester`, `IsAM`, `IsPM` |
+| Replace components | `SetYear`, `SetMonth`, `SetDay`, `SetHour`, `SetMinute`, `SetSecond`, `SetMilliSecond` |
+| Direct arithmetic | `AddYears`, `AddMonths`, `AddDays`, `AddHours`, `AddMinutes`, `AddSeconds`, `RollbackMonth`, `RollForwardMonth` |
+| Boundaries and rounding | `StartOfYear`, `StartOfMonth`, `StartOfWeek`, `StartOfDay`, `StartOfHour`, `EndOfYear`, `EndOfMonth`, `EndOfWeek`, `EndOfDay`, `EndOfHour`, `FloorDate`, `CeilingDate`, `RoundDate` |
+| Comparisons | `IsBefore`, `IsAfter`, `IsSameDay`, `IsSameMonth`, `IsSameYear` |
+| Business calendars | `CreateBusinessCalendar`, `IsBusinessDay`, `NextBusinessDay`, `PreviousBusinessDay`, `AddBusinessDays` |
+| Spans and durations | `CreatePeriod`, `CreateDuration`, `AddSpan`, `SubtractSpan`, `SpanBetween`, `PeriodToSeconds`, `SecondsToPeriod`, `StandardizePeriod` |
+| Intervals and ranges | `CreateInterval`, `IsWithinInterval`, `IntervalsOverlap`, `IntervalLength`, `IntervalAlign`, `IntervalGap`, `IntervalSetdiff`, `IntervalUnion`, `IntervalIntersection` |
+| Fixed input formats and reporting | `YMD`, `MDY`, `DMY`, `YQ`, `DateDecimal`, `GetDecimalDate`, `GetISOYear`, `GetISOWeek`, `GetEpiYear`, `GetEpiWeek` |
+| Timezones | `GetTimeZone`, `GetSystemTimeZone`, `GetTimeZoneNames`, `IsValidTimeZoneName`, `IsValidUTCOffset`, `ValidateTimeZone`, `ValidateTimeZoneOffset`, `WithTimeZone`, `ForceTimeZone` |
 
-// Epidemiological year and week
-EpiYear := TChronoKit.GetEpiYear(SomeDate);
-EpiWeek := TChronoKit.GetEpiWeek(SomeDate);
-```
+## Public types and errors
 
-### Additional Date Operations
-```pascal
-// Round to nearest date unit
-RoundedDate := TChronoKit.RoundDate(SomeDate, drsDay);
-RoundedDate := TChronoKit.RoundDate(SomeDate, drsWeek);
-RoundedDate := TChronoKit.RoundDate(SomeDate, drsMonth);
-RoundedDate := TChronoKit.RoundDate(SomeDate, drsYear);
-
-// Set specific time components
-NewDate := TChronoKit.SetMillisecond(SomeDate, 500);
-WeekStart := TChronoKit.StartOfWeek(SomeDate);
-WeekEnd := TChronoKit.EndOfWeek(SomeDate);
-```
+| Type | Use |
+|---|---|
+| `TDateSpan`, `TDateSpanKind` | Calendar periods (`dskPeriod`) and fixed durations (`dskDuration`) |
+| `TDateUnit` | Units accepted by floor, ceiling, and round operations |
+| `TInterval` | Inclusive start/end range |
+| `TBusinessCalendar`, `TBusinessWeek`, `TBusinessWeekday` | Working-week and holiday rules |
+| `TTimeZoneInfo` | Platform name, offset in minutes east of UTC, and DST state |
+| `EConvertError` | Invalid parsing input |
+| `EBusinessCalendarError` | Invalid business-calendar rules |
+| `ETimeZoneError` | Unsupported timezone, missing rules, DST gap, or DST overlap |

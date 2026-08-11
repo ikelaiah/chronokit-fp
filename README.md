@@ -7,7 +7,7 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-4.0+-60A5FA.svg)](https://www.lazarus-ide.org/)
 ![Supports Windows](https://img.shields.io/badge/support-Windows-F59E0B?logo=Windows)
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
-[![Version](https://img.shields.io/badge/version-1.4.0-8B5CF6.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.5.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
@@ -22,7 +22,8 @@ var
 begin
   Today := TChronoKit.GetToday;
   NextWeek := TChronoKit.AddBusinessDays(Today, 5);
-  WriteLn('Next workday: ', TChronoKit.GetAsString(NextWeek, 'yyyy-mm-dd'));
+  WriteLn('Next workday: ',
+    TChronoKit.FormatDateTime(NextWeek, 'yyyy-mm-dd'));
 end;
 ```
 
@@ -114,12 +115,13 @@ var
   CreatedDate, ParsedDate, NextWeek: TDateTime;
 begin
   CreatedDate := EncodeDate(2026, 8, 10);
-  WriteLn('Created: ', TChronoKit.GetAsString(CreatedDate, 'yyyy-mm-dd'));
+  WriteLn('Created: ', TChronoKit.FormatDateTime(CreatedDate, 'yyyy-mm-dd'));
 
-  ParsedDate := TChronoKit.FromString('2026-08-10', 'yyyy-mm-dd');
+  ParsedDate := TChronoKit.ParseDateTime('2026-08-10', 'yyyy-mm-dd');
   NextWeek := TChronoKit.AddDays(ParsedDate, 7);
 
-  WriteLn('One week later: ', TChronoKit.GetAsString(NextWeek, 'yyyy-mm-dd'));
+  WriteLn('One week later: ',
+    TChronoKit.FormatDateTime(NextWeek, 'yyyy-mm-dd'));
 end.
 ```
 
@@ -129,6 +131,23 @@ The output is deterministic:
 Created: 2026-08-10
 One week later: 2026-08-17
 ```
+
+### Find an answer by task
+
+| Question | Start with |
+|---|---|
+| How do I parse date/time text? | `TChronoKit.ParseDateTime` |
+| How do I format a date/time? | `TChronoKit.FormatDateTime` |
+| How do I add or subtract a unit? | `TChronoKit.AddDays` and the other `Add*` methods; use a negative amount to subtract |
+| How do I measure the difference between values? | `TChronoKit.SpanBetween` with `dskPeriod` or `dskDuration` |
+| How do I calculate a working-day deadline? | `TChronoKit.AddBusinessDays` |
+| How do I check whether ranges overlap? | `TChronoKit.IntervalsOverlap` |
+| How do I convert local time to UTC? | `TChronoKit.WithTimeZone(Value, 'UTC')` |
+| How do I interpret a named-zone clock? | `TChronoKit.ForceTimeZone` |
+
+Use the [searchable cheat sheet](docs/Cheat-Sheet.md) for synonyms, copyable
+recipes, and the complete public method index. `GetAsString` and `FromString`
+remain supported 1.x compatibility names for formatting and parsing.
 
 Use `TChronoKit.GetToday` when you need the current date at midnight and
 `TChronoKit.GetNow` when you need the current local date and time. A
@@ -209,8 +228,10 @@ begin
   CurrentTime := TChronoKit.GetNow;
   NextWorkday := TChronoKit.NextBusinessDay(CurrentTime);
   
-  WriteLn('Current time: ', TChronoKit.GetAsString(CurrentTime, 'yyyy-mm-dd hh:nn:ss'));
-  WriteLn('Next workday: ', TChronoKit.GetAsString(NextWorkday, 'yyyy-mm-dd'));
+  WriteLn('Current time: ',
+    TChronoKit.FormatDateTime(CurrentTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Next workday: ',
+    TChronoKit.FormatDateTime(NextWorkday, 'yyyy-mm-dd'));
   
   // Business hours check (9 AM - 5 PM)
   BusinessHours := TChronoKit.CreateInterval(
@@ -255,8 +276,10 @@ For detailed documentation, check out:
 - 🛠️ [Troubleshooting](docs/Troubleshooting.md) - Search paths, formats, and platforms
 - 💼 [Business Calendars](docs/Business-Calendars.md) - Holidays, working weeks, and recipes
 - 🌐 [Timezone Contract](docs/Timezone-Contract.md) - Identifiers, conversion semantics, and DST failures
-- 📋 [API Cheat Sheet](docs/Cheat-Sheet.md) - Quick reference for all functions
-- 📖 [Complete Documentation](docs/ChronoKit-FP.md) - Full guide and examples
+- 📋 [Searchable API Cheat Sheet](docs/Cheat-Sheet.md) - Find operations by question, synonym, or method
+- 📖 [Task Guide](docs/ChronoKit-FP.md) - Behavior, choices, and examples grouped by task
+- 🔎 [v1.5.0 API Audit](docs/API-Audit-v1.5.0.md) - Reproducible discovery findings and actions
+- 🧭 [2.0 Decision](docs/V2-DECISION.md) - Evidence and criteria for a future major version
 
 ## 🗺️ Roadmap
 

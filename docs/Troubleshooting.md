@@ -19,7 +19,8 @@ Pass the format that matches the input exactly. ChronoKit uses Free Pascal
 format tokens: `mm` is the month and `nn` is the minute.
 
 ```pascal
-Value := TChronoKit.FromString('2026-08-10 09:30', 'yyyy-mm-dd hh:nn');
+Value := TChronoKit.ParseDateTime(
+  '2026-08-10 09:30', 'yyyy-mm-dd hh:nn');
 ```
 
 Avoid relying on the computer's regional settings for values shared between
@@ -31,7 +32,7 @@ machines. Prefer an unambiguous form such as `yyyy-mm-dd`.
 component, include it in the format when diagnosing the result:
 
 ```pascal
-WriteLn(TChronoKit.GetAsString(Value, 'yyyy-mm-dd hh:nn:ss'));
+WriteLn(TChronoKit.FormatDateTime(Value, 'yyyy-mm-dd hh:nn:ss'));
 ```
 
 Use `EncodeDate` or `TChronoKit.GetToday` when the value should be a date at

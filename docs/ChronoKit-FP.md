@@ -1,241 +1,259 @@
-# ChronoKit-FP v1.4.0
+# ChronoKit-FP v1.5.0 task guide
 
-The `ChronoKit` module provides comprehensive date and time manipulation utilities for Free Pascal applications. It offers a wide range of functionality for working with dates, times, timezones, and daylight saving time (DST), with full cross-platform support for Windows and Linux.
+ChronoKit-FP is a dependency-free date/time toolkit for Free Pascal 3.2.2+ on
+Windows and Linux. This guide is organized by what you need to accomplish. For
+a compact exhaustive index, use the [searchable cheat sheet](Cheat-Sheet.md).
 
-New users should begin with the [Getting Started guide](Getting-Started.md),
-then use [Troubleshooting](Troubleshooting.md) if a compiler search path,
-format, or platform setup needs attention. For working-week and holiday rules,
-continue with [Business calendars](Business-Calendars.md).
+## Choose a task
 
-## Features
+| Need | Preferred operation | Important choice |
+|---|---|---|
+| Create a date or date/time | `EncodeDate`, `EncodeDateTime` | These are Free Pascal RTL functions returning `TDateTime`. |
+| Get today or the current time | `GetToday`, `GetNow` | Both use the computer's local clock. |
+| Parse input text | `ParseDateTime` | Pass an explicit format for portable input. |
+| Format for display or output | `FormatDateTime` | `nn` means minute; `mm` means month. |
+| Add one unit | `AddDays`, `AddMonths`, other `Add*` methods | Negative values subtract. |
+| Add a multi-part span | `CreatePeriod` or `CreateDuration`, then `AddSpan` | Choose calendar meaning or fixed elapsed time. |
+| Find a boundary | `StartOf*`, `EndOf*`, or rounding methods | A ceiling is the next boundary, not the end of a unit. |
+| Compare or measure | `IsBefore`, `IsSameDay`, `SpanBetween` | Choose period or duration for a span. |
+| Apply working-day rules | Business-calendar methods | Calls without a calendar use Monday to Friday. |
+| Work with ranges | Interval methods | Intervals include both endpoints. |
+| Convert a timezone | `WithTimeZone` or `ForceTimeZone` | Decide whether the input is system-local or belongs to a named source zone. |
 
-- **Basic Date/Time Operations**: Create, manipulate, and format dates and times
-- **Date Parts**: Extract and modify individual components of dates and times
-- **Date Manipulations**: Add or subtract time periods from dates
-- **Date Truncations**: Get the start or end of various time periods (day, month, year, etc.)
-- **Date Comparisons**: Compare dates using various criteria
-- **Business Calendars**: Work with configurable weekdays and holidays
-- **Date Unit Operations**: Floor, ceiling, and round dates to various units
-- **Trustworthy Timezone Conversion**: Date-specific Windows and IANA rules for the requested zone
-- **Visible DST Discontinuities**: Ambiguous and nonexistent local clocks raise `ETimeZoneError`
-- **Cross-Platform Regression Matrix**: Shared UTC, named-zone, conversion, and DST assertions
+## Understand the value type
 
-## Business-calendar operations
+ChronoKit uses Free Pascal's `TDateTime`:
 
-Calls without a calendar keep the original Monday-to-Friday behavior:
+- a date is conventionally a `TDateTime` at midnight;
+- a local date/time is a wall-clock value, such as `GetNow`; and
+- the value does not store a timezone name or distinguish repeated DST clocks.
+
+Operations return new values; they do not modify their inputs. Keep a timezone
+name beside a value in your application when that context must be retained.
+
+## Create, parse, and format values
+
+```pascal
+var
+  CreatedDate, ParsedDate: TDateTime;
+  OutputText: string;
+begin
+  CreatedDate := EncodeDate(2026, 8, 11);
+  ParsedDate := TChronoKit.ParseDateTime(
+    '2026-08-11 09:30', 'yyyy-mm-dd hh:nn');
+  OutputText := TChronoKit.FormatDateTime(
+    ParsedDate, 'dd mmm yyyy, hh:nn');
+end;
+```
+
+Parsing failures raise `EConvertError`. Omitting the format uses the system
+date/time format and accepts `-` or `/` as the date separator, which is useful
+for local input but not a portable storage contract.
+
+`GetAsString` and `FromString` are the original 1.x names for the same
+behavior. They remain supported for compatibility; new code should prefer the
+names that say `Format` and `Parse` directly.
+
+For fixed-order layouts, `YMD`, `MDY`, and `DMY` parse values with `-` or `/`
+separators, and `YQ` parses a year and quarter such as `2026-3`.
+
+## Read or replace components
+
+Component readers cover year, month, day, day of week, day of year, hour,
+minute, second, millisecond, quarter, and semester:
+
+```pascal
+YearNumber := TChronoKit.GetYear(Value);
+DayNumber := TChronoKit.GetDay(Value);
+QuarterNumber := TChronoKit.GetQuarter(Value);
+SemesterNumber := TChronoKit.GetSemester(Value);
+```
+
+Setters return a new value:
+
+```pascal
+Changed := TChronoKit.SetYear(Value, 2030);
+Changed := TChronoKit.SetHour(Changed, 9);
+```
+
+Use `IsAM` and `IsPM` when only the time-of-day half matters.
+
+## Add and subtract dates
+
+The direct arithmetic methods cover years through seconds:
+
+```pascal
+Tomorrow := TChronoKit.AddDays(Value, 1);
+LastMonth := TChronoKit.AddMonths(Value, -1);
+InTwoHours := TChronoKit.AddHours(Value, 2);
+```
+
+`RollbackMonth` and `RollForwardMonth` move one month while handling a day that
+does not exist in the target month. Use the direct `AddMonths` path unless that
+specialized rolling operation is specifically needed.
+
+### Period or duration?
+
+A period expresses calendar units such as one month. A duration expresses
+fixed elapsed units such as 90 minutes:
+
+```pascal
+var
+  BillingPeriod, Timeout, Difference: TDateSpan;
+begin
+  BillingPeriod := TChronoKit.CreatePeriod(0, 1);
+  Timeout := TChronoKit.CreateDuration(0, 0, 0, 0, 90);
+
+  NextBillingDate := TChronoKit.AddSpan(StartDate, BillingPeriod);
+  Expiry := TChronoKit.AddSpan(StartDate, Timeout);
+  Previous := TChronoKit.SubtractSpan(StartDate, Timeout);
+
+  Difference := TChronoKit.SpanBetween(
+    StartDate, EndDate, dskDuration);
+end;
+```
+
+`PeriodToSeconds`, `SecondsToPeriod`, and `StandardizePeriod` support explicit
+span conversion and normalization. Duration months and years use fixed
+approximations, so prefer days and smaller units when exact elapsed time
+matters.
+
+## Find boundaries and round values
+
+Use the named boundary methods when the unit is known in code:
+
+```pascal
+DayStart := TChronoKit.StartOfDay(Value);
+WeekStart := TChronoKit.StartOfWeek(Value);
+MonthEnd := TChronoKit.EndOfMonth(Value);
+HourEnd := TChronoKit.EndOfHour(Value);
+```
+
+Use an enum for dynamic precision:
+
+```pascal
+HourFloor := TChronoKit.FloorDate(Value, duHour);
+NextMonthBoundary := TChronoKit.CeilingDate(Value, duMonth);
+NearestDay := TChronoKit.RoundDate(Value, duDay);
+```
+
+`CeilingDate` returns an upper boundary rather than an `EndOf*` value. Exact
+year and week boundaries remain unchanged; the other implemented units
+advance to their next boundary. `duSeason` is declared but not implemented in
+v1.5.0 and returns the input unchanged. `StartOfWeek` follows the Sunday-based
+week boundary; ISO week reporting is a separate operation.
+
+## Compare and measure values
+
+```pascal
+if TChronoKit.IsBefore(FirstDate, SecondDate) then ...
+if TChronoKit.IsAfter(FirstDate, SecondDate) then ...
+if TChronoKit.IsSameDay(FirstDate, SecondDate) then ...
+if TChronoKit.IsSameMonth(FirstDate, SecondDate) then ...
+if TChronoKit.IsSameYear(FirstDate, SecondDate) then ...
+```
+
+Use `SpanBetween` for a structured difference. `dskPeriod` reports calendar
+components; `dskDuration` reports fixed elapsed time.
+
+## Apply business-calendar rules
+
+Without an explicit calendar, ChronoKit uses Monday through Friday:
 
 ```pascal
 DueDate := TChronoKit.AddBusinessDays(StartDate, 5);
 ```
 
-Use `CreateBusinessCalendar` to exclude holidays or select a different working
-week. Holiday time portions are ignored.
+Add holidays or change the working week with `CreateBusinessCalendar`:
 
 ```pascal
-type
-  TBusinessWeekday = (
-    bwdSunday, bwdMonday, bwdTuesday, bwdWednesday,
-    bwdThursday, bwdFriday, bwdSaturday
-  );
-  TBusinessWeek = set of TBusinessWeekday;
+var
+  Calendar: TBusinessCalendar;
+begin
+  Calendar := TChronoKit.CreateBusinessCalendar([
+    EncodeDate(2026, 1, 1),
+    EncodeDate(2026, 12, 25)
+  ]);
 
-Calendar := TChronoKit.CreateBusinessCalendar([
-  EncodeDate(2026, 1, 1), EncodeDate(2026, 12, 25)
-]);
-
-Calendar := TChronoKit.CreateBusinessCalendar(
-  [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday],
-  [EncodeDate(2026, 1, 1)]
-);
+  IsWorking := TChronoKit.IsBusinessDay(Value, Calendar);
+  NextWorking := TChronoKit.NextBusinessDay(Value, Calendar);
+  PreviousWorking := TChronoKit.PreviousBusinessDay(Value, Calendar);
+  DueDate := TChronoKit.AddBusinessDays(StartDate, 5, Calendar);
+end;
 ```
 
-The calendar-aware overloads are:
-
-```pascal
-class function IsBusinessDay(const AValue: TDateTime;
-  const ACalendar: TBusinessCalendar): Boolean; static;
-class function NextBusinessDay(const AValue: TDateTime;
-  const ACalendar: TBusinessCalendar): TDateTime; static;
-class function PreviousBusinessDay(const AValue: TDateTime;
-  const ACalendar: TBusinessCalendar): TDateTime; static;
-class function AddBusinessDays(const AValue: TDateTime; const ADays: Integer;
-  const ACalendar: TBusinessCalendar): TDateTime; static;
-```
-
-`NextBusinessDay` and `PreviousBusinessDay` are strict. `AddBusinessDays` does
-not count the starting date, and zero returns it unchanged. Invalid calendars
+The navigation methods are strict: they do not return the input day.
+`AddBusinessDays(..., 0, ...)` returns the input unchanged. Invalid calendars
 with no working days raise `EBusinessCalendarError`. See
-[Business calendars](Business-Calendars.md) for complete deadline,
-reporting-period, and date-range recipes.
+[Business calendars](Business-Calendars.md) for full recipes.
 
-## Timezone Operations
-
-ChronoKit's timezone functions operate on unzoned `TDateTime` wall clocks.
-`GetTimeZone` reads the system-zone offset for the supplied local value;
-`WithTimeZone` treats its input as system-local and preserves the instant while
-producing a target-zone wall clock; `ForceTimeZone` interprets the input clock
-in the named zone and returns the equivalent system-local wall clock.
-
-`UTC` is the only portable identifier. Linux uses IANA identifiers and Windows
-uses Windows identifiers; call `GetTimeZoneNames` for exact values accepted on
-the running platform. Offsets are minutes east of UTC, so
-`local = UTC + offset`.
-
-A plain `TDateTime` cannot select between repeated clock values. The contract
-requires `ETimeZoneError` for ambiguous and nonexistent local inputs instead of
-silently guessing. The [timezone contract](Timezone-Contract.md) defines the
-identifier mappings, operation table, failure rules, regression matrix, and
-boundary examples implemented by v1.4.0.
+## Work with intervals and ranges
 
 ```pascal
-var
-  LocalValue, UTCValue: TDateTime;
-  TZInfo: TTimeZoneInfo;
-begin
-  LocalValue := EncodeDateTime(2026, 8, 11, 9, 30, 0, 0);
-  TZInfo := TChronoKit.GetTimeZone(LocalValue);
-  UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
-
-  WriteLn(TZInfo.Name, ' offset: ', TZInfo.Offset, ' minutes');
-  WriteLn('UTC: ', TChronoKit.GetAsString(UTCValue, 'yyyy-mm-dd hh:nn:ss'));
-end;
+Range := TChronoKit.CreateInterval(StartDate, EndDate);
+Contains := TChronoKit.IsWithinInterval(Value, Range);
+Overlaps := TChronoKit.IntervalsOverlap(FirstRange, SecondRange);
+Length := TChronoKit.IntervalLength(Range, dskDuration);
 ```
 
-For a named source wall clock, select the platform-native identifier and use
-`ForceTimeZone`:
+The extended operations are `IntervalAlign`, `IntervalGap`,
+`IntervalSetdiff`, `IntervalUnion`, and `IntervalIntersection`. Empty results
+use `StartDate = 0` and `EndDate = 0`. A set difference that splits one range
+can return only the first remaining part, so model a list of intervals in
+application code when both pieces are required.
+
+## Produce calendar reports
+
+Use year/week pairs near year boundaries:
 
 ```pascal
-var
-  NamedValue, SystemValue: TDateTime;
-  SourceTimeZone: string;
-begin
-  {$IFDEF WINDOWS}
-  SourceTimeZone := 'Eastern Standard Time';
-  {$ELSE}
-  SourceTimeZone := 'America/New_York';
-  {$ENDIF}
-
-  NamedValue := EncodeDateTime(2024, 3, 10, 2, 30, 0, 0);
-  try
-    SystemValue := TChronoKit.ForceTimeZone(NamedValue, SourceTimeZone);
-  except
-    on E: ETimeZoneError do
-      WriteLn('Nonexistent or ambiguous local time: ', E.Message);
-  end;
-end;
+ISOYear := TChronoKit.GetISOYear(Value);
+ISOWeek := TChronoKit.GetISOWeek(Value);
+EpiYear := TChronoKit.GetEpiYear(Value);
+EpiWeek := TChronoKit.GetEpiWeek(Value);
 ```
 
-## Examples
+`GetQuarter` and `GetSemester` report larger calendar groupings.
+`GetDecimalDate` converts a date to a decimal year and `DateDecimal` converts a
+decimal year back to `TDateTime`.
 
-### Basic Date/Time Operations
+## Convert timezones safely
+
+ChronoKit's timezone functions operate on unzoned wall clocks:
+
+- `GetTimeZone(Value)` interprets `Value` in the system zone and returns its
+  name, minutes east of UTC, and DST state for that date.
+- `WithTimeZone(Value, TargetZone)` interprets `Value` as system-local,
+  preserves its instant, and returns the target-zone wall clock.
+- `ForceTimeZone(Value, SourceZone)` interprets `Value` in the named source
+  zone and returns the equivalent system-local wall clock.
 
 ```pascal
-var
-  CurrentTime: TDateTime;
-  NextWorkday: TDateTime;
-begin
-  // Get current time
-  CurrentTime := TChronoKit.GetNow;
-  
-  // Get next business day
-  NextWorkday := TChronoKit.NextBusinessDay(CurrentTime);
-  
-  // Format for display
-  WriteLn(TChronoKit.GetAsString(NextWorkday, 'yyyy-mm-dd'));
-end;
+LocalValue := TChronoKit.GetNow;
+UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
+SystemValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
 ```
 
-### Timezone and DST Operations
+`UTC` is the only portable identifier. Get exact platform-native values from
+`GetTimeZoneNames`, inspect the current name with `GetSystemTimeZone`, and use
+`IsValidTimeZoneName` or `ValidateTimeZone` before accepting a configured
+name. Offset validation uses `IsValidUTCOffset` or `ValidateTimeZoneOffset` and
+minutes east of UTC.
 
-```pascal
-var
-  CurrentTime: TDateTime;
-  I: Integer;
-  TZInfo: TTimeZoneInfo;
-  TZNames: TStringArray;
-begin
-  // Get current time
-  CurrentTime := TChronoKit.GetNow;
-  
-  // Get timezone information
-  TZInfo := TChronoKit.GetTimeZone(CurrentTime);
-  WriteLn('Timezone: ', TZInfo.Name);
-  WriteLn('Offset: ', TZInfo.Offset, ' minutes');
-  WriteLn('DST: ', BoolToStr(TZInfo.IsDST, True));
-  
-  // List available timezones
-  TZNames := TChronoKit.GetTimeZoneNames;
-  for I := Low(TZNames) to High(TZNames) do
-    WriteLn('Available timezone: ', TZNames[I]);
-end;
-```
+Ambiguous and nonexistent source clocks raise `ETimeZoneError`; ChronoKit does
+not silently choose an occurrence. The [timezone contract](Timezone-Contract.md)
+defines platform mappings and exact boundary behavior.
 
-## API Reference
+## Continue from here
 
-### TTimeZoneInfo
-
-```pascal
-TTimeZoneInfo = record
-  Name: string;           // Timezone name (e.g., 'UTC', 'America/New_York')
-  Offset: Integer;        // Minutes east of UTC: local = UTC + Offset
-  IsDST: Boolean;        // Whether daylight savings is in effect
-end;
-```
-
-### TDSTRule
-
-```pascal
-TDSTRule = record
-  Region: string;           // Region identifier (e.g., 'US', 'EU', 'AU')
-  StartMonth: Integer;      // Month when DST starts (1-12)
-  StartWeek: Integer;       // Week of the month (1-5, where 5 means last)
-  StartDayOfWeek: Integer;  // Day of week (1-7, where 1=Sunday)
-  StartHour: Integer;       // Hour when DST starts (0-23)
-  EndMonth: Integer;        // Month when DST ends (1-12)
-  EndWeek: Integer;         // Week of the month (1-5, where 5 means last)
-  EndDayOfWeek: Integer;    // Day of week (1-7, where 1=Sunday)
-  EndHour: Integer;         // Hour when DST ends (0-23)
-  Offset: Integer;          // DST offset in minutes (typically 60)
-end;
-```
-
-`TDSTRule` remains for 1.x source compatibility. The public timezone
-conversion functions do not use it; v1.4.0 obtains the requested zone's rules
-from Windows dynamic timezone data or the installed IANA TZif database.
-
-### Timezone functions
-
-```pascal
-class function GetTimeZone(const AValue: TDateTime): TTimeZoneInfo; static;
-class function GetTimeZoneNames: TStringArray; static;
-class function GetSystemTimeZone: string; static;
-class function WithTimeZone(const AValue: TDateTime;
-  const ATimeZone: string): TDateTime; static;
-class function ForceTimeZone(const AValue: TDateTime;
-  const ATimeZone: string): TDateTime; static;
-```
-
-- `GetTimeZone` interprets `AValue` as a system-local wall clock and returns
-  the system-zone information for that value.
-- `GetTimeZoneNames` returns exact platform-native inputs and always includes
-  `UTC`.
-- `GetSystemTimeZone` returns the current platform-native system-zone name.
-- `WithTimeZone` preserves an instant while changing its wall-clock
-  representation.
-- `ForceTimeZone` assigns the named source-zone meaning to the input clock and
-  returns the equivalent system-local clock.
-
-All failures use `ETimeZoneError`. See the
-[timezone contract](Timezone-Contract.md) before using non-UTC identifiers or
-values at a DST transition.
-
-## Cross-platform considerations
-
-- Windows uses Windows timezone identifiers, such as
-  `Eastern Standard Time`.
-- Linux uses IANA identifiers, such as `America/New_York`, and requires an
-  installed timezone database (commonly `tzdata`).
-- Windows and IANA names are mappings, not cross-platform aliases.
-- The pull-request workflow supplies equivalent New York, London, Sydney,
-  Tokyo, and Auckland identifiers and runs the same assertions on Windows and
-  Linux.
+- [Searchable cheat sheet](Cheat-Sheet.md): question index and every public
+  method.
+- [Getting Started](Getting-Started.md): installation and first program.
+- [Business calendars](Business-Calendars.md): holidays, working weeks, and
+  reporting recipes.
+- [Timezone contract](Timezone-Contract.md): identifiers, conversions, and DST
+  failures.
+- [Troubleshooting](Troubleshooting.md): build paths, formats, and platforms.
+- [v1.5.0 API audit](API-Audit-v1.5.0.md): why the discovery changes were made.
+- [2.0 decision](V2-DECISION.md): why the project is or is not proposing a
+  major-version change.

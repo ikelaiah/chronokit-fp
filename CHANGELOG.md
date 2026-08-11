@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-11
+
+### Added
+
+- `TChronoKit.FormatDateTime`, a discoverable alias for the established
+  `GetAsString` formatting behavior.
+- `TChronoKit.ParseDateTime`, a discoverable alias for the established
+  `FromString` parsing and validation behavior.
+- A beginner-focused API audit covering common date/time tasks and the
+  evidence required for public-surface changes.
+- A searchable question-and-synonym index plus an exhaustive task-grouped
+  index of every public `TChronoKit` method.
+- An evidence-based 2.0 decision with explicit reconsideration criteria.
+
+### Changed
+
+- README, Getting Started, troubleshooting, and complete API guidance now use
+  one task-oriented vocabulary and teach `FormatDateTime` and `ParseDateTime`
+  as the preferred first path.
+- The shipped quick-start example now demonstrates both additive helpers.
+- The cheat sheet now documents omitted boundary, span, reporting, interval,
+  and timezone-validation operations.
+
+### Fixed
+
+- Cheat-sheet rounding examples now use the public `TDateUnit` values (`du*`)
+  instead of nonexistent `drs*` values.
+
+### Compatibility
+
+- `GetAsString` and `FromString` remain supported with unchanged signatures,
+  results, and errors throughout 1.x.
+- No existing public type, method, parameter, or return type changed.
+- No API is deprecated, and current usage evidence does not justify a proposed
+  2.0 breaking-change list.
+
 ## [1.4.0] - 2026-08-11
 
 ### Added
