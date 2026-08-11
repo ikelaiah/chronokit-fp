@@ -1014,7 +1014,10 @@ var
 begin
   WriteLn('Test146_FormatDateTimeAlias:Starting');
   TestDate := EncodeDateTime(2026, 8, 11, 14, 5, 9, 0);
-  AssertEquals('FormatDateTime should use the established formatting behavior',
+  AssertEquals('FormatDateTime should produce the requested representation',
+    '2026-08-11 14:05:09',
+    TChronoKit.FormatDateTime(TestDate, 'yyyy-mm-dd hh:nn:ss'));
+  AssertEquals('FormatDateTime should preserve the compatibility behavior',
     TChronoKit.GetAsString(TestDate, 'yyyy-mm-dd hh:nn:ss'),
     TChronoKit.FormatDateTime(TestDate, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn('Test146_FormatDateTimeAlias:Finished');
@@ -1026,7 +1029,10 @@ const
   InputFormat = 'yyyy-mm-dd hh:nn:ss';
 begin
   WriteLn('Test147_ParseDateTimeAlias:Starting');
-  AssertEquals('ParseDateTime should use the established parsing behavior',
+  AssertEquals('ParseDateTime should produce the requested date/time',
+    EncodeDateTime(2026, 8, 11, 14, 5, 9, 0),
+    TChronoKit.ParseDateTime(InputValue, InputFormat));
+  AssertEquals('ParseDateTime should preserve the compatibility behavior',
     TChronoKit.FromString(InputValue, InputFormat),
     TChronoKit.ParseDateTime(InputValue, InputFormat));
   WriteLn('Test147_ParseDateTimeAlias:Finished');

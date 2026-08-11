@@ -60,12 +60,12 @@ raise `EConvertError`.
 behavior. They remain supported; new code should prefer the task-oriented
 `FormatDateTime` and `ParseDateTime` names.
 
-For compact fixed-order input, use:
+For fixed-order input with `-` or `/` separators, use:
 
 ```pascal
-Date1 := TChronoKit.YMD('20240811');
-Date2 := TChronoKit.MDY('08112024');
-Date3 := TChronoKit.DMY('11082024');
+Date1 := TChronoKit.YMD('2024-08-11');
+Date2 := TChronoKit.MDY('08-11-2024');
+Date3 := TChronoKit.DMY('11-08-2024');
 QuarterStart := TChronoKit.YQ('2024-3');
 ```
 
@@ -133,10 +133,13 @@ NextHour := TChronoKit.CeilingDate(Value, duHour);
 NearestDay := TChronoKit.RoundDate(Value, duDay);
 ```
 
-`CeilingDate` returns the start of the next unit even when the input is already
-on a boundary. The `TDateUnit` values are `duSecond`, `duMinute`, `duHour`,
+`CeilingDate` returns an upper boundary rather than the last representable
+instant from an `EndOf*` method. Exact year and week boundaries remain
+unchanged; the other implemented units advance to their next boundary. The
+`TDateUnit` values are `duSecond`, `duMinute`, `duHour`,
 `duDay`, `duWeek`, `duMonth`, `duBiMonth`, `duQuarter`, `duSeason`,
-`duHalfYear`, and `duYear`.
+`duHalfYear`, and `duYear`. `duSeason` is declared but not implemented in
+v1.5.0; floor, ceiling, and round return the input unchanged for that unit.
 
 ## Compare dates and times
 

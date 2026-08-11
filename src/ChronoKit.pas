@@ -149,7 +149,7 @@ type
     duMonth,      ///< Round to month boundary (1st day 00:00:00)
     duBiMonth,    ///< Round to bi-month boundary (every 2 months)
     duQuarter,    ///< Round to quarter boundary (Jan/Apr/Jul/Oct 1st)
-    duSeason,     ///< Round to season boundary (meteorological seasons)
+    duSeason,     ///< Declared but not implemented; current rounding returns the input unchanged
     duHalfYear,   ///< Round to half-year boundary (Jan 1st or Jul 1st)
     duYear        ///< Round to year boundary (January 1st 00:00:00)
   );
@@ -1698,12 +1698,14 @@ type
       @param AValue The TDateTime value to round up.
       @param AUnit The unit to ceil to (second, minute, hour, day, month, year). See TDateUnit type.
         
-      @returns TDateTime - The date/time value rounded up to the start of the next unit.
+      @returns TDateTime - The date/time value at the operation's upper unit boundary.
       
       @warning Uses direct calculation based on `EncodeDate`/`EncodeTime`/`IncMonth` for each unit.
-               If the value is already exactly at the start of a unit, it returns the *next* unit boundary
-               (e.g., Ceil(10:00:00, duHour) -> 11:00:00). This differs from 'EndOf...' functions.
-               Handles duYear, duHalfYear, duQuarter, duBiMonth, duMonth, duWeek, duDay, duHour, duMinute, duSecond.
+               An exact year or week boundary is returned unchanged. Other implemented units advance
+               to their next boundary (e.g., Ceil(10:00:00, duHour) -> 11:00:00).
+               This differs from 'EndOf...' functions. Handles duYear, duHalfYear, duQuarter,
+               duBiMonth, duMonth, duWeek, duDay, duHour, duMinute, and duSecond.
+               duSeason currently returns the input unchanged.
       
       @example
         var
@@ -2020,7 +2022,8 @@ type
     
     { Parse Date-Times with specific formats }
     {
-      @description Parses a string in the format 'YYYYMMDD' into a TDateTime value.
+      @description Parses a string in the format 'YYYY-MM-DD' or 'YYYY/MM/DD'
+                   into a TDateTime value.
       
       @usage Use to convert date strings in a specific format into TDateTime values.
       
@@ -2028,22 +2031,23 @@ type
         
       @returns TDateTime - The parsed date/time value.
       
-      @warning Assumes the input string is in the 'YYYYMMDD' format. If the format is incorrect,
-               the result may be unexpected or an exception may be raised.
+      @warning Raises EConvertError when the input does not use the documented
+               order and separators or is not a valid calendar date.
       
       @example
         var
           DateString: string;
           ParsedDate: TDateTime;
         begin
-          DateString := '20240715';
+          DateString := '2024-07-15';
           ParsedDate := TChronoKit.YMD(DateString);
           // ParsedDate: 2024-07-15 00:00:00.000
         end;
     }
     class function YMD(const AValue: string): TDateTime; static;
     {
-      @description Parses a string in the format 'MMDDYYYY' into a TDateTime value.
+      @description Parses a string in the format 'MM-DD-YYYY' or 'MM/DD/YYYY'
+                   into a TDateTime value.
       
       @usage Use to convert date strings in a specific format into TDateTime values.
       
@@ -2051,22 +2055,23 @@ type
         
       @returns TDateTime - The parsed date/time value.
       
-      @warning Assumes the input string is in the 'MMDDYYYY' format. If the format is incorrect,
-               the result may be unexpected or an exception may be raised.
+      @warning Raises EConvertError when the input does not use the documented
+               order and separators or is not a valid calendar date.
       
       @example
         var
           DateString: string;
           ParsedDate: TDateTime;
         begin
-          DateString := '07152024';
+          DateString := '07-15-2024';
           ParsedDate := TChronoKit.MDY(DateString);
           // ParsedDate: 2024-07-15 00:00:00.000
         end;
     }
     class function MDY(const AValue: string): TDateTime; static;
     {
-      @description Parses a string in the format 'DDMMYYYY' into a TDateTime value.
+      @description Parses a string in the format 'DD-MM-YYYY' or 'DD/MM/YYYY'
+                   into a TDateTime value.
       
       @usage Use to convert date strings in a specific format into TDateTime values.
       
@@ -2074,22 +2079,23 @@ type
         
       @returns TDateTime - The parsed date/time value.
       
-      @warning Assumes the input string is in the 'DDMMYYYY' format. If the format is incorrect,
-               the result may be unexpected or an exception may be raised.
+      @warning Raises EConvertError when the input does not use the documented
+               order and separators or is not a valid calendar date.
       
       @example
         var
           DateString: string;
           ParsedDate: TDateTime;
         begin
-          DateString := '15072024';
+          DateString := '15-07-2024';
           ParsedDate := TChronoKit.DMY(DateString);
           // ParsedDate: 2024-07-15 00:00:00.000
         end;
     }
     class function DMY(const AValue: string): TDateTime; static;
     {
-      @description Parses a string in the format 'YYYYQ' into a TDateTime value, where Q is the quarter (1-4).
+      @description Parses a string in the format 'YYYY-Q' or 'YYYY/Q', where Q
+                   is the quarter (1-4).
       
       @usage Use to convert year and quarter strings into TDateTime values.
       
@@ -2097,15 +2103,15 @@ type
         
       @returns TDateTime - The parsed date/time value.
       
-      @warning Assumes the input string is in the 'YYYYQ' format. If the format is incorrect,
-               the result may be unexpected or an exception may be raised.
+      @warning Raises EConvertError when the input does not use the documented
+               order and separators or the year/quarter is out of range.
       
       @example
         var
           DateString: string;
           ParsedDate: TDateTime;
         begin
-          DateString := '20242'; // 2024, Quarter 2
+          DateString := '2024-2'; // 2024, Quarter 2
           ParsedDate := TChronoKit.YQ(DateString);
           // ParsedDate: 2024-04-01 00:00:00.000 (April 1st of the year)
         end;

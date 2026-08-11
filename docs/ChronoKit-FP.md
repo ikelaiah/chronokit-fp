@@ -54,8 +54,8 @@ for local input but not a portable storage contract.
 behavior. They remain supported for compatibility; new code should prefer the
 names that say `Format` and `Parse` directly.
 
-For fixed compact layouts, `YMD`, `MDY`, and `DMY` parse eight digits, and `YQ`
-parses a year and quarter such as `2026-3`.
+For fixed-order layouts, `YMD`, `MDY`, and `DMY` parse values with `-` or `/`
+separators, and `YQ` parses a year and quarter such as `2026-3`.
 
 ## Read or replace components
 
@@ -137,9 +137,11 @@ NextMonthBoundary := TChronoKit.CeilingDate(Value, duMonth);
 NearestDay := TChronoKit.RoundDate(Value, duDay);
 ```
 
-`CeilingDate` returns the start of the next unit even when the input is already
-at a unit boundary. `StartOfWeek` follows the library's Sunday-based week
-boundary; ISO week reporting is a separate operation.
+`CeilingDate` returns an upper boundary rather than an `EndOf*` value. Exact
+year and week boundaries remain unchanged; the other implemented units
+advance to their next boundary. `duSeason` is declared but not implemented in
+v1.5.0 and returns the input unchanged. `StartOfWeek` follows the Sunday-based
+week boundary; ISO week reporting is a separate operation.
 
 ## Compare and measure values
 

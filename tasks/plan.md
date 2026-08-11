@@ -237,11 +237,11 @@ and milestone status after verification.
 
 ### Checkpoint: Complete
 
-- [ ] All v1.5.0 roadmap goals and done criteria are met.
-- [ ] The full FPCUnit suite passes with the required local timezone fixtures.
-- [ ] Every shipped example compiles and the Lazarus package builds.
-- [ ] Documentation links and public-method coverage are verified.
-- [ ] `git diff --check` and the five-axis review find no required issue.
+- [x] All v1.5.0 roadmap goals and done criteria are met.
+- [x] The full FPCUnit suite passes with the required local timezone fixtures.
+- [x] Every shipped example compiles and the Lazarus package builds.
+- [x] Documentation links and public-method coverage are verified.
+- [x] `git diff --check` and the five-axis review find no required issue.
 
 ## Risks and mitigations
 

@@ -16,4 +16,4 @@
 - [x] Every shipped example compiles
 - [x] Lazarus package builds
 - [x] Documentation links and public-method coverage verified
-- [ ] Final five-axis review passes
+- [x] Final five-axis review passes
