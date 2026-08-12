@@ -1,5 +1,7 @@
 # feat(api): deliver API consolidation and deprecations
 
+Release date: 2026-08-13
+
 ## Scope
 
 Implements only the v1.6.0 milestone in `ROADMAP.md` and the accepted API
