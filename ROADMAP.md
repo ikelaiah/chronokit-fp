@@ -35,6 +35,30 @@ concepts do matter, the API and documentation must make the choice explicit.
   evidence, API coherence, and verified correctness are sufficient grounds to
   advance the roadmap.
 
+## 2.0 quality bar
+
+The remaining 1.x milestones prepare one stable preferred surface for 2.0.
+They do not add another round of aliases, deprecations, or competing concepts.
+Each milestone must improve at least one of these outcomes without regressing
+the others:
+
+- **Easy to use:** a common task has one preferred operation, important
+  semantic choices are visible in names and types, and invalid or ambiguous
+  input has a predictable result or error.
+- **Easy to learn:** documentation introduces concepts progressively, every
+  taught path has a small executable example, and task-oriented guidance leads
+  to a complete reference without requiring implementation reading.
+- **Easy to maintain:** domain boundaries are explicit, tests follow those
+  boundaries, the public surface is mechanically tracked, and release checks
+  are reproducible rather than dependent on undocumented manual steps.
+
+The preferred v1.6 API is the compatibility baseline through v1.9. Version
+1.7 may make one bounded additive pass for the three workflows named in that
+milestone, after their contracts are reviewed against executable examples.
+The resulting preferred v1.7 surface is then frozen through v1.9. Other gaps
+found by later usability work are recorded as post-2.0 design input; they do
+not justify expanding the 1.x surface by default.
+
 ## 1.1.0 — First five minutes
 
 **Status:** Released 2026-08-10
@@ -135,7 +159,7 @@ current evidence does not justify a breaking change list or deprecation.
 
 ## 1.6.0 — API consolidation and deprecations
 
-**Status:** Planned
+**Status:** Completed on 2026-08-12
 
 Make the public surface smaller and more coherent without removing APIs in
 the 1.x line. Maintainer cost, duplicated entry points, misleading behaviour,
@@ -143,7 +167,7 @@ and a clear replacement are sufficient evidence for deprecation; this
 milestone does not wait for external usage feedback.
 
 - Publish an exact deprecation matrix containing the replacement and migration
-  recipe for every affected API. The proposed
+  recipe for every affected API. The accepted
   [v1.6 API transition specification](docs/API-Deprecations-v1.6.0.md)
   contains that matrix and is the implementation contract for this milestone.
 - Consolidate redundant aliases, fixed-format parsers, decimal-year names, and
@@ -163,8 +187,11 @@ milestone does not wait for external usage feedback.
   interval-gap, decimal-round-trip, and interval-validation defects.
 - Add compiler deprecation annotations, tests for every replacement, and a
   complete 1.6-to-2.0 migration guide.
-- Treat v1.6.0 as the final planned 1.x API-consolidation release. Fix-only
-  1.6.x releases may follow, but no deprecated API is removed before 2.0.0.
+- Treat v1.6.0 as the final planned 1.x API-consolidation and deprecation
+  release. Later 1.x milestones improve learning, internal maintainability,
+  and release confidence without removing deprecated APIs. The only planned
+  additive exception is the small, contract-first v1.7 workflow set below;
+  it does not introduce aliases or new deprecations.
 
 **Done when:** every deprecation has a tested replacement and actionable
 migration example, existing 1.x callers still compile, the Windows and Linux
@@ -175,21 +202,155 @@ beginner audit. This milestone advances the project using maintainability and
 API coherence as additional evidence, without requiring a waiting period for
 external feedback.
 
+## 1.7.0 — Executable learning path and focused API gaps
+
+**Status:** Planned
+
+Make the preferred v1.6 API understandable as a small set of concepts rather
+than a long list of methods, and close three concrete workflow gaps before
+the internal refactor and API freeze. This remains primarily a documentation
+and learning-system release; its additive runtime scope is limited to the
+operations explicitly listed below.
+
+- Publish one progressive path covering `TDateTime` dates and system-local
+  wall clocks, calendar periods versus exact durations, half-open ranges,
+  business calendars, and named timezones with DST.
+- Back every taught workflow with a shipped program or fixture that compiles
+  on Windows and Linux. Documentation snippets must come from, or be checked
+  against, those executable sources so examples cannot drift silently.
+- Add concise decision guides for choosing a value type, choosing an operation,
+  and understanding validation and timezone errors.
+- Repeat the task-oriented beginner audit using only preferred v1.6 APIs and
+  record every point where the user must inspect source code or legacy docs.
+  Resolve documentation gaps here. Use executable tasks to review the
+  contracts below before implementation, and record any other genuine API gap
+  as post-2.0 design input rather than expanding this milestone.
+- Add a direct named-source-to-named-target timezone conversion, provisionally
+  `ConvertBetweenTimeZones(Value, SourceTimeZone, TargetTimeZone)`. Its
+  contract must state that the input is a wall clock in the source zone, the
+  output is the target-zone wall clock for the same instant, the returned
+  `TDateTime` retains no zone identity, and ambiguous or nonexistent source
+  clocks raise the established timezone error.
+- Add `StartOfQuarter(Value)` and `EndOfQuarter(Value)` boundary operations,
+  while retaining `StartOfQuarter(Year, Quarter)`. Define them consistently
+  with the existing start/end boundary conventions and cover leap years,
+  year transitions, fractional input times, and the fourth quarter.
+- Add `BusinessDaysBetween(StartDate, EndDate)` and its custom-calendar
+  overload. Specify signed direction, endpoint inclusion, same-day behaviour,
+  preservation or rejection of time components, holidays, alternative work
+  weeks, and invalid calendars before implementation.
+- Add focused Windows and Linux tests, declaration comments, searchable
+  reference entries, and copyable examples for each new operation. Do not add
+  convenience aliases, unrelated RTL wrappers, recurrence APIs, or new
+  instant/zoned value types in this release.
+- Generate a searchable API reference from public declaration comments and
+  fail its documentation check when a preferred declaration lacks a useful
+  contract, error rule, or example link.
+- Verify both documented installation paths from clean consumer projects, not
+  from a checkout that already contains compiled units.
+
+**Done when:** a developer starting from the README can choose the correct
+value type, complete the common date, duration, range, business-calendar, and
+timezone workflows without using a deprecated name; direct named-zone
+conversion, quarter boundaries, and business-day counting each have one
+reviewed and tested path; and every taught example runs on either supported
+platform. The preferred public surface is then closed to further additions
+through v1.9.
+
+## 1.8.0 — Maintainable internals
+
+**Status:** Planned
+
+Make changes safer by separating domain logic while preserving the complete
+1.7 public and behavioural contract. This milestone changes structure, not
+the user-facing model.
+
+- Publish a short internal architecture design that defines ownership and
+  dependency direction for calendar arithmetic, duration and range algebra,
+  business calendars, timezone conversion, parsing and formatting, and the
+  public `ChronoKit` facade.
+- Split the monolithic test unit into domain suites before moving production
+  logic, retaining the same assertions and cross-platform fixtures.
+- Move implementations into domain-focused internal units behind the existing
+  public `ChronoKit` unit. Avoid circular dependencies and keep deprecated
+  compatibility paths out of preferred implementations.
+- Centralise only genuinely shared validation, checked arithmetic, and error
+  construction; do not replace domain boundaries with a new catch-all helper
+  unit.
+- Capture the preferred and deprecated public declarations in a versioned API
+  manifest and compare it in CI so an internal refactor cannot silently change
+  a signature, directive, or visibility.
+- Add contributor guidance showing where a domain change, regression test,
+  public contract comment, and executable example belong.
+
+**Done when:** a change to one date/time domain can be implemented and tested
+without editing unrelated domain implementations, the public API manifest is
+unchanged, and the full Windows/Linux behaviour matrix passes before and after
+the refactor.
+
+## 1.9.0 — Reproducible release and 2.0 freeze
+
+**Status:** Planned
+
+Turn every release claim into an automated or explicitly recorded check, then
+freeze the contract that 2.0 will retain or remove. No new public declaration
+or deprecation is planned for this milestone.
+
+- Run unit tests, named-timezone fixtures, example compilation, the legacy
+  compatibility fixture, Lazarus package compilation, documentation links,
+  generated-reference coverage, API-manifest comparison, and version-metadata
+  consistency from the release workflow.
+- Keep compiler outputs outside source and example directories and fail when a
+  release build leaves untracked binaries or units in the checkout.
+- Maintain two consumer fixtures: a complete v1.6 legacy client that compiles
+  with expected deprecation diagnostics and a preferred client that compiles
+  without deprecation warnings and is intended to survive 2.0 unchanged.
+- Audit the migration guide against the compiler-visible deprecation inventory
+  and the preferred API manifest so every removal has exactly one actionable
+  destination or an explicit domain-specific decision.
+- Publish the 2.0 implementation specification with the exact removal list,
+  retained API snapshot, validation and error conventions, migration tests,
+  and rollback criteria before changing the public surface.
+- Perform a clean-checkout release rehearsal on Windows and Linux, including
+  package metadata, changelog, release notes, and generated artifacts.
+
+**Done when:** the complete release gate is reproducible, the preferred client
+is warning-free, the legacy client proves the promised 1.x compatibility, and
+2.0 implementation is a reviewed mechanical change rather than a new design
+exercise.
+
 ## 2.0.0 — A focused, predictable ChronoKit
 
-2.0.0 follows the v1.6.0 deprecation release. It is not a release-date
-commitment, but it does not require an additional time-based or user-feedback
-waiting period once the v1.6.0 acceptance criteria are met.
+2.0.0 follows the v1.9 contract freeze. It is a deliberately narrow breaking
+release: remove the superseded surface, retain the proven preferred model, and
+ship the learning and maintenance system established in v1.7 through v1.9.
+It does not require an additional time-based or user-feedback waiting period
+once those acceptance criteria are met.
 
 - Remove the APIs deprecated in v1.6.0.
-- Apply consistent naming, validation, and error behaviour across the library.
-- Ship a complete migration guide and updated first-five-minutes tutorial.
+- Remove `duSeason` and every compatibility-only implementation that no longer
+  has a public caller.
+- Preserve the preferred API manifest frozen in v1.9; do not combine removals
+  with unrelated feature additions or another naming redesign.
+- Apply the reviewed validation and error conventions consistently across the
+  retained library.
+- Ship the audited migration guide, progressive learning path, generated API
+  reference, and updated first-five-minutes tutorial.
+- Replace legacy compatibility checks with migration and preferred-client
+  checks that prove the documented 2.0 surface.
 - Verify the supported Windows and Linux environments in CI before release.
 
+Deliver 2.0 through pre-releases: alpha proves the exact removals and retained
+surface, beta proves clean installation and real migration fixtures, and the
+release candidate freezes code except for release-blocking correctness,
+portability, or documentation defects.
+
 **Done when:** ChronoKit-FP presents one clear path for common date/time work,
-with predictable cross-platform behaviour and an actionable upgrade path, and
-all v1.6.0 deprecations have been either removed or deliberately retained with
-a documented reason.
+with predictable cross-platform behaviour and an actionable upgrade path;
+every taught example is executable; domain changes are isolated and covered by
+focused tests; the full release gate is reproducible; and all v1.6.0
+deprecations have been either removed or deliberately retained with a
+documented reason.
 
 ## Feedback
 

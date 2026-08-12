@@ -51,7 +51,7 @@ begin
   Submitted := EncodeDate(2026, 8, 7);
   DueDate := TChronoKit.AddBusinessDays(Submitted, 5, Calendar);
 
-  WriteLn(TChronoKit.GetAsString(DueDate, 'yyyy-mm-dd'));
+  WriteLn(TChronoKit.FormatDateTime(DueDate, 'yyyy-mm-dd'));
 end.
 ```
 
@@ -99,7 +99,7 @@ EndDate := EncodeDate(2026, 8, 14);
 while CurrentDate <= EndDate do
 begin
   if TChronoKit.IsBusinessDay(CurrentDate, Calendar) then
-    WriteLn(TChronoKit.GetAsString(CurrentDate, 'yyyy-mm-dd'));
+    WriteLn(TChronoKit.FormatDateTime(CurrentDate, 'yyyy-mm-dd'));
   CurrentDate := TChronoKit.AddDays(CurrentDate, 1);
 end;
 ```

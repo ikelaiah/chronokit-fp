@@ -41,7 +41,7 @@ midnight.
 ## Timezone results differ from a local time
 
 `GetNow` returns the computer's local wall-clock time. A conversion with
-`WithTimeZone` is a separate operation that depends on the supplied target
+`SystemLocalToTimeZone` is a separate operation that depends on the supplied target
 timezone and the platform's timezone data. Keep the timezone name with values
 whose intended timezone must be preserved by your application.
 

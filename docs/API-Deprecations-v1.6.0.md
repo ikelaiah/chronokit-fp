@@ -1,6 +1,6 @@
 # ChronoKit-FP v1.6.0 API transition specification
 
-**Status:** Proposed for implementation
+**Status:** Accepted and implemented
 
 **Target:** v1.6.0
 
@@ -413,12 +413,12 @@ existing named-timezone matrix on Windows and Linux.
 - Documentation teaches only the preferred v1.6 path while keeping one
   discoverable migration index for deprecated names.
 
-## Implementation gate
+## Implementation record
 
-This specification defines scope but does not itself authorise implementation.
-After review, the accepted version will be converted into ordered tasks in
-`tasks/plan.md` and `tasks/todo.md`. Implementation begins only after that plan
-is approved.
+The accepted work was converted into ordered tasks in `tasks/plan.md` and
+`tasks/todo.md`. The v1.6.0 implementation follows this specification; the
+release verification record is in `RELEASE-NOTES-v1.6.0.md` and
+`PR-v1.6.0.md`.
 
 ## Open questions
 

@@ -7,7 +7,7 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-4.0+-60A5FA.svg)](https://www.lazarus-ide.org/)
 ![Supports Windows](https://img.shields.io/badge/support-Windows-F59E0B?logo=Windows)
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
-[![Version](https://img.shields.io/badge/version-1.5.0-8B5CF6.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.6.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
@@ -139,22 +139,23 @@ One week later: 2026-08-17
 | How do I parse date/time text? | `TChronoKit.ParseDateTime` |
 | How do I format a date/time? | `TChronoKit.FormatDateTime` |
 | How do I add or subtract a unit? | `TChronoKit.AddDays` and the other `Add*` methods; use a negative amount to subtract |
-| How do I measure the difference between values? | `TChronoKit.SpanBetween` with `dskPeriod` or `dskDuration` |
+| How do I measure exact elapsed time? | `TChronoKit.DurationBetween` |
 | How do I calculate a working-day deadline? | `TChronoKit.AddBusinessDays` |
-| How do I check whether ranges overlap? | `TChronoKit.IntervalsOverlap` |
-| How do I convert local time to UTC? | `TChronoKit.WithTimeZone(Value, 'UTC')` |
-| How do I interpret a named-zone clock? | `TChronoKit.ForceTimeZone` |
+| How do I check whether ranges overlap? | `TChronoKit.RangesOverlap` |
+| How do I convert local time to UTC? | `TChronoKit.SystemLocalToTimeZone(Value, 'UTC')` |
+| How do I interpret a named-zone clock? | `TChronoKit.TimeZoneToSystemLocal` |
 
 Use the [searchable cheat sheet](docs/Cheat-Sheet.md) for synonyms, copyable
-recipes, and the complete public method index. `GetAsString` and `FromString`
-remain supported 1.x compatibility names for formatting and parsing.
+recipes, and the complete preferred-method index. The
+[v1.6-to-2.0 migration guide](docs/MIGRATION-v1.6-to-v2.0.md) covers every
+deprecated 1.x name; all remain source-compatible until 2.0.
 
 Use `TChronoKit.GetToday` when you need the current date at midnight and
 `TChronoKit.GetNow` when you need the current local date and time. A
 `TDateTime` value does not retain a timezone name: a date is conventionally a
 `TDateTime` at midnight, a local date/time is a wall-clock value from the
-computer, and `WithTimeZone` converts that system-local value to an explicit
-target timezone while preserving the instant. `UTC` is the only identifier
+computer, and `SystemLocalToTimeZone` converts that system-local value to an
+explicit target timezone while preserving the instant. `UTC` is the only identifier
 guaranteed on Windows and Linux; other identifiers use each platform's native
 naming system. ChronoKit uses the supplied date and the operating system's
 rules, and raises `ETimeZoneError` instead of guessing at a DST gap or overlap.
@@ -180,9 +181,9 @@ end;
 See [Business calendars](docs/Business-Calendars.md) for alternative working
 weeks and recipes for deadlines, reporting periods, and date ranges.
 
-Convert a system-local value to UTC with `WithTimeZone`. Use `ForceTimeZone`
-when the input clock belongs to the named zone and the result should be in the
-computer's system timezone:
+Convert a system-local value to UTC with `SystemLocalToTimeZone`. Use
+`TimeZoneToSystemLocal` when the input clock belongs to the named zone and the
+result should be in the computer's system timezone:
 
 ```pascal
 var
@@ -190,8 +191,8 @@ var
   SourceTimeZone: string;
 begin
   LocalValue := TChronoKit.GetNow;
-  UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
-  SystemValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
+  UTCValue := TChronoKit.SystemLocalToTimeZone(LocalValue, 'UTC');
+  SystemValue := TChronoKit.TimeZoneToSystemLocal(UTCValue, 'UTC');
 
   {$IFDEF WINDOWS}
   SourceTimeZone := 'Eastern Standard Time';
@@ -200,7 +201,7 @@ begin
   {$ENDIF}
 
   try
-    SystemValue := TChronoKit.ForceTimeZone(
+    SystemValue := TChronoKit.TimeZoneToSystemLocal(
       EncodeDateTime(2024, 3, 10, 2, 30, 0, 0),
       SourceTimeZone
     );
@@ -221,7 +222,7 @@ uses
 var
   CurrentTime, NextWorkday: TDateTime;
   TZInfo: TTimeZoneInfo;
-  BusinessHours: TInterval;
+  BusinessHours: TDateTimeRange;
   OffsetSign: string;
 begin
   // Basic date/time operations
@@ -234,18 +235,18 @@ begin
     TChronoKit.FormatDateTime(NextWorkday, 'yyyy-mm-dd'));
   
   // Business hours check (9 AM - 5 PM)
-  BusinessHours := TChronoKit.CreateInterval(
+  BusinessHours := TChronoKit.CreateRange(
     TChronoKit.StartOfDay(CurrentTime) + EncodeTime(9, 0, 0, 0),
     TChronoKit.StartOfDay(CurrentTime) + EncodeTime(17, 0, 0, 0)
   );
   
-  if TChronoKit.IsWithinInterval(CurrentTime, BusinessHours) then
+  if TChronoKit.RangeContains(BusinessHours, CurrentTime) then
     WriteLn('✅ Within business hours')
   else
     WriteLn('❌ Outside business hours');
     
   // Timezone information
-  TZInfo := TChronoKit.GetTimeZone(CurrentTime);
+  TZInfo := TChronoKit.GetSystemTimeZoneInfo(CurrentTime);
   if TZInfo.Offset >= 0 then
     OffsetSign := '+'
   else
@@ -280,6 +281,7 @@ For detailed documentation, check out:
 - 📖 [Task Guide](docs/ChronoKit-FP.md) - Behavior, choices, and examples grouped by task
 - 🔎 [v1.5.0 API Audit](docs/API-Audit-v1.5.0.md) - Reproducible discovery findings and actions
 - 🧭 [2.0 Decision](docs/V2-DECISION.md) - Evidence and criteria for a future major version
+- 🔁 [v1.6-to-2.0 Migration](docs/MIGRATION-v1.6-to-v2.0.md) - Every deprecated name and its replacement
 
 ## 🗺️ Roadmap
 

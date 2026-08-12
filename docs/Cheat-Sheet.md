@@ -22,17 +22,17 @@ uses
 | parse text as a date/time | parse, read, input, string | `ParseDateTime` |
 | format a date/time for display | format, display, output, string | `FormatDateTime` |
 | add or subtract calendar units | add, subtract, tomorrow, next | `AddDays`, `AddMonths`, other `Add*` methods |
-| add a calendar period or fixed duration | period, duration, span | `CreatePeriod`, `CreateDuration`, `AddSpan` |
-| measure the difference between two values | difference, between, elapsed | `SpanBetween` |
+| add a calendar period or fixed duration | period, duration, span | `CreateCalendarPeriod`, `DurationFromParts`, `AddPeriod`, `AddDuration` |
+| measure the difference between two values | difference, between, elapsed | `DurationBetween` |
 | get or replace one component | year, month, day, hour, part | `GetYear`, `SetYear`, and the other component methods |
 | find the start or end of a period | start, end, boundary | `StartOfDay`, `EndOfMonth`, and the other boundary methods |
 | floor, ceiling, or round a value | floor, ceiling, truncate, round | `FloorDate`, `CeilingDate`, `RoundDate` |
 | compare two dates | before, after, same, compare | `IsBefore`, `IsAfter`, `IsSameDay` |
 | calculate weekdays or holidays | business, workday, holiday, deadline | `AddBusinessDays`, `CreateBusinessCalendar` |
-| test, measure, or combine ranges | range, interval, overlap, gap, union | `CreateInterval` and the interval methods |
-| get ISO or epidemiological week values | ISO, epidemiological, epi, week | `GetISOWeek`, `GetEpiWeek` |
-| convert the same instant to another timezone | timezone, convert, target, UTC | `WithTimeZone` |
-| interpret a clock from a named timezone | timezone, source, assign, force | `ForceTimeZone` |
+| test, measure, or combine ranges | range, overlap, gap, union | `CreateRange` and the range methods |
+| get ISO week values | ISO, week | `GetISOYear`, `GetISOWeek` |
+| convert the same instant to another timezone | timezone, convert, target, UTC | `SystemLocalToTimeZone` |
+| interpret a clock from a named timezone | timezone, source, assign | `TimeZoneToSystemLocal` |
 | validate a timezone name or offset | timezone, valid, offset | `ValidateTimeZone`, `ValidateTimeZoneOffset` |
 
 ## Create, parse, and format
@@ -56,17 +56,13 @@ Pass an explicit format for data from users, files, or APIs. In Free Pascal
 format strings, `mm` is the month and `nn` is the minute. Parsing failures
 raise `EConvertError`.
 
-`GetAsString` and `FromString` are the original 1.x names for the same
-behavior. They remain supported; new code should prefer the task-oriented
-`FormatDateTime` and `ParseDateTime` names.
-
-For fixed-order input with `-` or `/` separators, use:
+Use an explicit format for fixed-order input:
 
 ```pascal
-Date1 := TChronoKit.YMD('2024-08-11');
-Date2 := TChronoKit.MDY('08-11-2024');
-Date3 := TChronoKit.DMY('11-08-2024');
-QuarterStart := TChronoKit.YQ('2024-3');
+Date1 := TChronoKit.ParseDateTime('2024-08-11', 'yyyy-mm-dd');
+Date2 := TChronoKit.ParseDateTime('08-11-2024', 'mm-dd-yyyy');
+Date3 := TChronoKit.ParseDateTime('11-08-2024', 'dd-mm-yyyy');
+QuarterStart := TChronoKit.StartOfQuarter(2024, 3);
 ```
 
 ## Current values and components
@@ -102,23 +98,23 @@ Use a period for calendar concepts and a duration for fixed elapsed time:
 
 ```pascal
 var
-  OneMonth, NinetyMinutes, Difference: TDateSpan;
+  OneMonth: TCalendarPeriod;
+  NinetyMinutes, Difference: TDuration;
 begin
-  OneMonth := TChronoKit.CreatePeriod(0, 1);
-  NinetyMinutes := TChronoKit.CreateDuration(0, 0, 0, 0, 90);
+  OneMonth := TChronoKit.CreateCalendarPeriod(0, 1);
+  NinetyMinutes := TChronoKit.DurationFromParts(0, 0, 90);
 
-  CalendarResult := TChronoKit.AddSpan(StartDate, OneMonth);
-  ElapsedResult := TChronoKit.AddSpan(StartDate, NinetyMinutes);
-  Earlier := TChronoKit.SubtractSpan(StartDate, NinetyMinutes);
+  CalendarResult := TChronoKit.AddPeriod(StartDate, OneMonth);
+  ElapsedResult := TChronoKit.AddDuration(StartDate, NinetyMinutes);
+  Earlier := TChronoKit.SubtractDuration(StartDate, NinetyMinutes);
 
-  Difference := TChronoKit.SpanBetween(
-    StartDate, EndDate, dskDuration);
+  Difference := TChronoKit.DurationBetween(StartDate, EndDate);
 end;
 ```
 
-`dskPeriod` expresses calendar components. `dskDuration` expresses fixed
-elapsed time. Avoid duration years and months when exact elapsed length
-matters because those fields use fixed approximations.
+Calendar periods apply components in order and may contain years or months.
+Durations contain exact elapsed milliseconds and never approximate calendar
+units.
 
 ## Boundaries and rounding
 
@@ -136,10 +132,10 @@ NearestDay := TChronoKit.RoundDate(Value, duDay);
 `CeilingDate` returns an upper boundary rather than the last representable
 instant from an `EndOf*` method. Exact year and week boundaries remain
 unchanged; the other implemented units advance to their next boundary. The
-`TDateUnit` values are `duSecond`, `duMinute`, `duHour`,
-`duDay`, `duWeek`, `duMonth`, `duBiMonth`, `duQuarter`, `duSeason`,
-`duHalfYear`, and `duYear`. `duSeason` is declared but not implemented in
-v1.5.0; floor, ceiling, and round return the input unchanged for that unit.
+Supported `TDateUnit` values are `duSecond`, `duMinute`, `duHour`, `duDay`,
+`duWeek`, `duMonth`, `duBiMonth`, `duQuarter`, `duHalfYear`, and `duYear`.
+Seasonal rounding is deprecated because it needs a hemisphere and definition;
+passing `duSeason` raises `EArgumentException`.
 
 ## Compare dates and times
 
@@ -183,44 +179,42 @@ See [Business calendars](Business-Calendars.md) for alternative working weeks,
 boundary rules, and deadline recipes. A calendar with no working days raises
 `EBusinessCalendarError`.
 
-## Ranges and intervals
+## Half-open ranges
 
 ```pascal
-Workday := TChronoKit.CreateInterval(
+Workday := TChronoKit.CreateRange(
   EncodeDateTime(2026, 8, 11, 9, 0, 0, 0),
   EncodeDateTime(2026, 8, 11, 17, 0, 0, 0));
 
-if TChronoKit.IsWithinInterval(Value, Workday) then ...
-if TChronoKit.IntervalsOverlap(FirstRange, SecondRange) then ...
+if TChronoKit.RangeContains(Workday, Value) then ...
+if TChronoKit.RangesOverlap(FirstRange, SecondRange) then ...
 
-Length := TChronoKit.IntervalLength(Workday, dskDuration);
-Gap := TChronoKit.IntervalGap(FirstRange, SecondRange);
-CommonRange := TChronoKit.IntervalIntersection(FirstRange, SecondRange);
-CombinedRange := TChronoKit.IntervalUnion(FirstRange, SecondRange);
+Length := TChronoKit.RangeDuration(Workday);
+Gap := TChronoKit.RangeGap(FirstRange, SecondRange);
+if TChronoKit.TryIntersectRanges(FirstRange, SecondRange, CommonRange) then ...
+if TChronoKit.TryMergeRanges(FirstRange, SecondRange, CombinedRange) then ...
+RemainingRanges := TChronoKit.SubtractRange(FirstRange, SecondRange);
 ```
 
-Intervals are inclusive. `IntervalUnion` returns an empty `0..0` interval when
-the inputs have a gap. `IntervalIntersection` returns `0..0` when there is no
-overlap. If subtraction would split an interval, `IntervalSetdiff` can return
-only the first remaining interval; use a collection in application code when
-both pieces are required.
+Ranges include their start and exclude their end. Equal endpoints represent an
+empty range. The `Try*` Boolean reports disjoint results, and subtraction can
+return zero, one, or two ranges.
 
 ## Calendar reporting
 
 ```pascal
 ISOYear := TChronoKit.GetISOYear(Value);
 ISOWeek := TChronoKit.GetISOWeek(Value);
-EpiYear := TChronoKit.GetEpiYear(Value);
-EpiWeek := TChronoKit.GetEpiWeek(Value);
 Quarter := TChronoKit.GetQuarter(Value);
 Semester := TChronoKit.GetSemester(Value);
+QuarterStart := TChronoKit.StartOfQuarter(ISOYear, Quarter);
 
-DecimalValue := TChronoKit.GetDecimalDate(Value);
-RestoredDate := TChronoKit.DateDecimal(DecimalValue);
+DecimalValue := TChronoKit.DateTimeToDecimalYear(Value);
+RestoredDate := TChronoKit.DecimalYearToDateTime(DecimalValue);
 ```
 
-ISO and epidemiological week years can differ from the calendar year near a
-year boundary; read the year and week as a pair.
+ISO week years can differ from the calendar year near a year boundary; read
+the ISO year and week as a pair.
 
 ## Timezone conversion, UTC, and DST
 
@@ -229,12 +223,12 @@ value when it matters.
 
 ```pascal
 // Interpret Value in the computer's system timezone and preserve the instant.
-UTCValue := TChronoKit.WithTimeZone(Value, 'UTC');
+UTCValue := TChronoKit.SystemLocalToTimeZone(Value, 'UTC');
 
 // Interpret UTCValue as a UTC wall clock and return a system-local wall clock.
-SystemValue := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
+SystemValue := TChronoKit.TimeZoneToSystemLocal(UTCValue, 'UTC');
 
-Info := TChronoKit.GetTimeZone(Value);
+Info := TChronoKit.GetSystemTimeZoneInfo(Value);
 SystemZone := TChronoKit.GetSystemTimeZone;
 Names := TChronoKit.GetTimeZoneNames;
 ```
@@ -244,7 +238,7 @@ overlaps:
 
 ```pascal
 try
-  SystemValue := TChronoKit.ForceTimeZone(InputValue, SourceTimeZone);
+  SystemValue := TChronoKit.TimeZoneToSystemLocal(InputValue, SourceTimeZone);
 except
   on E: ETimeZoneError do
     WriteLn('The local clock cannot identify one instant: ', E.Message);
@@ -256,31 +250,33 @@ end;
 [timezone contract](Timezone-Contract.md) for mappings and exact failure
 rules.
 
-## Complete public method index
+## Preferred public method index
 
-This index includes every public `TChronoKit` method. Overloads appear once.
+This index includes the preferred v1.6 `TChronoKit` methods. Deprecated 1.x
+methods are indexed in the [migration guide](MIGRATION-v1.6-to-v2.0.md).
 
 | Task group | Methods |
 |---|---|
-| Current values and text | `GetNow`, `GetToday`, `GetDateTime`, `FormatDateTime`, `ParseDateTime`, `GetAsString`, `FromString` |
+| Current values and text | `GetNow`, `GetToday`, `FormatDateTime`, `ParseDateTime` |
 | Date/time components | `GetYear`, `GetMonth`, `GetDay`, `GetDayOfWeek`, `GetDayOfYear`, `GetHour`, `GetMinute`, `GetSecond`, `GetMillisecond`, `GetQuarter`, `GetSemester`, `IsAM`, `IsPM` |
 | Replace components | `SetYear`, `SetMonth`, `SetDay`, `SetHour`, `SetMinute`, `SetSecond`, `SetMilliSecond` |
-| Direct arithmetic | `AddYears`, `AddMonths`, `AddDays`, `AddHours`, `AddMinutes`, `AddSeconds`, `RollbackMonth`, `RollForwardMonth` |
-| Boundaries and rounding | `StartOfYear`, `StartOfMonth`, `StartOfWeek`, `StartOfDay`, `StartOfHour`, `EndOfYear`, `EndOfMonth`, `EndOfWeek`, `EndOfDay`, `EndOfHour`, `FloorDate`, `CeilingDate`, `RoundDate` |
+| Direct arithmetic | `AddYears`, `AddMonths`, `AddDays`, `AddHours`, `AddMinutes`, `AddSeconds` |
+| Boundaries and rounding | `StartOfYear`, `StartOfQuarter`, `StartOfMonth`, `StartOfWeek`, `StartOfDay`, `StartOfHour`, `EndOfYear`, `EndOfMonth`, `EndOfWeek`, `EndOfDay`, `EndOfHour`, `FloorDate`, `CeilingDate`, `RoundDate` |
 | Comparisons | `IsBefore`, `IsAfter`, `IsSameDay`, `IsSameMonth`, `IsSameYear` |
 | Business calendars | `CreateBusinessCalendar`, `IsBusinessDay`, `NextBusinessDay`, `PreviousBusinessDay`, `AddBusinessDays` |
-| Spans and durations | `CreatePeriod`, `CreateDuration`, `AddSpan`, `SubtractSpan`, `SpanBetween`, `PeriodToSeconds`, `SecondsToPeriod`, `StandardizePeriod` |
-| Intervals and ranges | `CreateInterval`, `IsWithinInterval`, `IntervalsOverlap`, `IntervalLength`, `IntervalAlign`, `IntervalGap`, `IntervalSetdiff`, `IntervalUnion`, `IntervalIntersection` |
-| Fixed input formats and reporting | `YMD`, `MDY`, `DMY`, `YQ`, `DateDecimal`, `GetDecimalDate`, `GetISOYear`, `GetISOWeek`, `GetEpiYear`, `GetEpiWeek` |
-| Timezones | `GetTimeZone`, `GetSystemTimeZone`, `GetTimeZoneNames`, `IsValidTimeZoneName`, `IsValidUTCOffset`, `ValidateTimeZone`, `ValidateTimeZoneOffset`, `WithTimeZone`, `ForceTimeZone` |
+| Calendar periods and durations | `CreateCalendarPeriod`, `NormalizeCalendarPeriod`, `DurationFromParts`, `DurationFromSeconds`, `AddPeriod`, `SubtractPeriod`, `AddDuration`, `SubtractDuration`, `DurationBetween` |
+| Half-open ranges | `CreateRange`, `RangeContains`, `RangesOverlap`, `RangeDuration`, `RangesTouch`, `RangeGap`, `SubtractRange`, `TryMergeRanges`, `TryIntersectRanges` |
+| Calendar reporting | `DecimalYearToDateTime`, `DateTimeToDecimalYear`, `GetISOYear`, `GetISOWeek` |
+| Timezones | `GetSystemTimeZoneInfo`, `GetSystemTimeZone`, `GetTimeZoneNames`, `IsValidTimeZoneName`, `IsValidUTCOffset`, `ValidateTimeZone`, `ValidateTimeZoneOffset`, `SystemLocalToTimeZone`, `TimeZoneToSystemLocal` |
 
 ## Public types and errors
 
 | Type | Use |
 |---|---|
-| `TDateSpan`, `TDateSpanKind` | Calendar periods (`dskPeriod`) and fixed durations (`dskDuration`) |
-| `TDateUnit` | Units accepted by floor, ceiling, and round operations |
-| `TInterval` | Inclusive start/end range |
+| `TCalendarPeriod` | Calendar-relative years through milliseconds |
+| `TDuration` | Exact elapsed milliseconds |
+| `TDateUnit` | Units accepted by floor, ceiling, and round operations; do not use `duSeason` |
+| `TDateTimeRange`, `TDateTimeRangeArray` | Validated half-open ranges and split results |
 | `TBusinessCalendar`, `TBusinessWeek`, `TBusinessWeekday` | Working-week and holiday rules |
 | `TTimeZoneInfo` | Platform name, offset in minutes east of UTC, and DST state |
 | `EConvertError` | Invalid parsing input |

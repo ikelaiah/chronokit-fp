@@ -62,13 +62,13 @@ One week later: 2026-08-17
 | A date/time entered as text | `TChronoKit.ParseDateTime` with an explicit format |
 | Text formatted for display or output | `TChronoKit.FormatDateTime` with an explicit format |
 | A date a fixed number of days away | `TChronoKit.AddDays` |
-| The same instant represented in a named timezone | `TChronoKit.WithTimeZone` |
-| A wall clock that should be interpreted in a named timezone | `TChronoKit.ForceTimeZone` |
+| The same instant represented in a named timezone | `TChronoKit.SystemLocalToTimeZone` |
+| A wall clock that should be interpreted in a named timezone | `TChronoKit.TimeZoneToSystemLocal` |
 
 ChronoKit uses Free Pascal's `TDateTime` type. A **date** is conventionally a
 `TDateTime` at midnight. A **local date/time** is a wall-clock value such as
 the value returned by `GetNow`. A **timezone conversion** is an explicit
-operation—use `WithTimeZone` only when the target timezone matters. The result
+operation—use `SystemLocalToTimeZone` only when the target timezone matters. The result
 is still a `TDateTime`; keep the intended timezone alongside the value in your
 application when it must be known later. `UTC` is the only portable timezone
 identifier. Before converting named zones, read the
@@ -77,7 +77,7 @@ mappings and DST-boundary errors.
 
 ## Convert a timezone value
 
-`WithTimeZone` starts with a system-local wall clock and returns the same
+`SystemLocalToTimeZone` starts with a system-local wall clock and returns the same
 instant displayed in the target zone. This portable example converts the
 current local time to UTC:
 
@@ -86,12 +86,12 @@ var
   LocalValue, UTCValue: TDateTime;
 begin
   LocalValue := TChronoKit.GetNow;
-  UTCValue := TChronoKit.WithTimeZone(LocalValue, 'UTC');
+  UTCValue := TChronoKit.SystemLocalToTimeZone(LocalValue, 'UTC');
   WriteLn(TChronoKit.FormatDateTime(UTCValue, 'yyyy-mm-dd hh:nn:ss'));
 end;
 ```
 
-`ForceTimeZone` starts with clock fields that belong to the named source zone.
+`TimeZoneToSystemLocal` starts with clock fields that belong to the named source zone.
 It returns the equivalent clock in the computer's system zone. Names are
 platform-native: use `America/New_York` on Linux or `Eastern Standard Time` on
 Windows for New York.
@@ -102,7 +102,7 @@ occurrence silently:
 
 ```pascal
 try
-  SystemValue := TChronoKit.ForceTimeZone(InputValue, SourceTimeZone);
+  SystemValue := TChronoKit.TimeZoneToSystemLocal(InputValue, SourceTimeZone);
 except
   on E: ETimeZoneError do
     WriteLn('Choose another local time: ', E.Message);
@@ -125,9 +125,9 @@ Always pass the format when parsing user or file input. The common tokens are:
 For example, parse `2026-08-10 09:30` with
 `'yyyy-mm-dd hh:nn'`. Notice that minutes use `nn`, not `mm`.
 
-`GetAsString` and `FromString` are the original 1.x names for formatting and
-parsing. They remain supported; new code should prefer `FormatDateTime` and
-`ParseDateTime`, which use the same behavior and errors.
+The original 1.x formatting and parsing names remain source compatible but are
+deprecated. New code should use `FormatDateTime` and `ParseDateTime`, which use
+the same behavior and errors. See the [v1.6 migration guide](MIGRATION-v1.6-to-v2.0.md).
 
 ## Next steps
 

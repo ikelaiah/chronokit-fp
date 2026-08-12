@@ -1,104 +1,117 @@
-# Implementation Plan: v1.5.0 discoverable API and 2.0 decision
+# Implementation Plan: v1.6.0 API consolidation and deprecations
+
+**Status:** Completed on 2026-08-12. See `tasks/todo.md` for the verified
+completion checklist.
 
 ## Overview
 
-Deliver the v1.5.0 roadmap milestone by auditing common date/time tasks from a
-beginner's point of view, making the documentation searchable by intent, and
-adding only the small compatibility-preserving aliases justified by that
-audit. The milestone will also record whether current evidence supports a 2.0
-change list.
-
-The public surface remains backwards compatible. `GetAsString` and
-`FromString` continue to work throughout 1.x; the clearer `FormatDateTime` and
-`ParseDateTime` names delegate to those established implementations.
+Implement the accepted `docs/API-Deprecations-v1.6.0.md` transition contract:
+add explicit period/duration and half-open range APIs, make preferred names the
+canonical paths, correct the seven listed defects, annotate every superseded
+declaration that Free Pascal 3.2.2 can annotate, and publish a complete
+1.6-to-2.0 migration index. All existing 1.x declarations remain present and
+source-compatible. No 2.0 removal or unrelated API change is in scope.
 
 ## Architecture decisions
 
-- Treat task questions (for example, “How do I parse a date?”) as the primary
-  navigation model, with type/function taxonomy as a secondary reference.
-- Add `TChronoKit.FormatDateTime` and `TChronoKit.ParseDateTime` as thin public
-  aliases. The audit shows that text conversion is a first-five-minutes task,
-  while the existing names do not contain the terms beginners search for.
-- Keep `GetAsString` and `FromString` unchanged and documented as compatibility
-  names. Do not introduce deprecation warnings during 1.x.
-- Do not propose 2.0 removals without external usage/deprecation evidence. The
-  decision record will distinguish audit findings from proof that migration is
-  valuable.
-- Add no dependency and make no timezone or calendar behavior change.
+- Keep all public compatibility types and methods in `src/ChronoKit.pas`.
+- Represent calendar-relative values with `TCalendarPeriod` and exact elapsed
+  values with a checked `Int64` millisecond `TDuration`.
+- Represent intervals canonically as validated half-open `TDateTimeRange`
+  values, using arrays and Boolean `Try*` results instead of sentinel dates.
+- Implement preferred methods directly. Equivalent deprecated methods delegate
+  toward them; incompatible legacy behavior stays isolated.
+- Use Free Pascal 3.2.2 deprecation directives only where the compiler supports
+  the declaration kind, with documentation markers for unsupported enum values.
+- Preserve timezone rules and conversion semantics; only introduce clearer
+  directional entry points and delegate legacy names to them.
+- Update current documentation to teach preferred APIs and keep one explicit
+  migration guide for deprecated names.
 
 ## Task list
 
-### Phase 1: Audit and executable API additions
+### Phase 1: Compiler contract and correctness regressions
 
-#### Task 1: Publish the beginner-focused API audit
+#### Task 1: Verify deprecation syntax and add regression tests
 
-**Description:** Test common date/time questions against the current docs and
-public surface, recording the expected starting point, findability, example
-coverage, and action for every observed gap.
+**Description:** Verify the Free Pascal 3.2.2 directive forms for methods,
+records, enums, and enum values, then add tests that expose the seven listed
+v1.5 correctness defects before production changes.
 
 **Acceptance criteria:**
 
-- [x] The audit covers creation, parsing, formatting, arithmetic, boundaries,
-      comparisons, spans, business calendars, intervals, week systems, and
-      timezone conversion.
-- [x] Every proposed API addition is tied to an observed discovery problem.
-- [x] Documentation-only gaps and copy/paste errors are explicitly identified.
+- [ ] The supported deprecation directive forms and enum-value limitation are
+      established with compiler evidence.
+- [ ] Regression tests cover ceiling rollovers, end boundaries, fractional
+      legacy durations, sub-day legacy gaps, decimal round trips, reversed
+      legacy intervals, and `duSeason` errors.
+- [ ] Each new regression fails against the current implementation for the
+      intended reason.
 
 **Verification:**
 
-- [x] Every audit action maps to a later task or a documented no-change result.
-- [x] No unsupported claim about external user behavior is made.
+- [ ] `fpc "-FU." "-Fu..\src" TestRunner.lpr` fails at the expected tests.
 
 **Dependencies:** None
 
 **Files likely touched:**
 
-- `docs/API-Audit-v1.5.0.md`
+- `tests/ChronoKit.Test.pas`
+- `build-temp/deprecation-probe.pas` (temporary, removed after the probe)
 
 **Estimated scope:** Small
 
-#### Task 2: Add failing tests for discoverable text helpers
+#### Task 2: Correct retained and legacy behavior
 
-**Description:** Specify the clearer formatting and parsing aliases before
-implementation, including explicit-format behavior and established error
-behavior.
+**Description:** Fix only the defects enumerated in the v1.6 transition spec,
+without changing unrelated rounding, interval, or timezone contracts.
 
 **Acceptance criteria:**
 
-- [x] Tests require `FormatDateTime` to match `GetAsString`.
-- [x] Tests require `ParseDateTime` to match `FromString`.
-- [x] Invalid input still raises the established descriptive `EConvertError`.
+- [ ] All seven regression categories pass.
+- [ ] Month-end rolling aliases are proven equivalent to `AddMonths` before
+      annotation.
+- [ ] No canonical replacement depends on incompatible legacy code.
 
 **Verification:**
 
-- [x] The focused compile fails before implementation because the methods do
-      not exist.
-- [x] The focused tests pass after implementation.
+- [ ] Focused regression tests pass.
+- [ ] Existing tests continue to pass except fixture-gated timezone tests.
 
 **Dependencies:** Task 1
 
 **Files likely touched:**
 
+- `src/ChronoKit.pas`
 - `tests/ChronoKit.Test.pas`
 
-**Estimated scope:** Small
+**Estimated scope:** Medium
 
-#### Task 3: Implement and demonstrate the additive aliases
+### Checkpoint: Correctness baseline
 
-**Description:** Add the two thin public aliases, document their relationship
-to the compatibility names, and update the copyable quick-start example.
+- [ ] The seven specified defects are covered and fixed.
+- [ ] No API has been removed or had its signature changed.
+
+### Phase 2: Explicit replacement APIs
+
+#### Task 3: Add calendar-period and exact-duration APIs
+
+**Description:** Add the replacement value types, checked constructors,
+normalization, arithmetic, and elapsed-difference operations with tests written
+first.
 
 **Acceptance criteria:**
 
-- [x] Both aliases delegate to the existing behavior without duplicating
-      parsing or formatting logic.
-- [x] Existing 1.x calls remain source-compatible.
-- [x] A shipped example compiles using both additions.
+- [ ] Calendar periods apply components in the specified order and support
+      month-end/leap behavior without converting months or years to seconds.
+- [ ] Durations store exact milliseconds and checked construction raises
+      `ERangeError` on overflow.
+- [ ] Negative values and `DurationBetween` one-millisecond accuracy are tested.
 
 **Verification:**
 
-- [x] The focused alias tests pass.
-- [x] `examples/ChronoKitQuickStart/ChronoKitQuickStart.lpr` compiles.
+- [ ] New focused period/duration tests pass.
+- [ ] Full suite remains green apart from documented missing fixtures.
 
 **Dependencies:** Task 2
 
@@ -106,156 +119,155 @@ to the compatibility names, and update the copyable quick-start example.
 
 - `src/ChronoKit.pas`
 - `tests/ChronoKit.Test.pas`
-- `examples/ChronoKitQuickStart/ChronoKitQuickStart.lpr`
 
-**Estimated scope:** Small
+**Estimated scope:** Medium
 
-### Checkpoint: Audited additions
+#### Task 4: Add validated half-open range APIs
 
-- [x] Each new method is justified, tested, documented inline, and executable.
-- [x] No existing signature or behavior changed.
-- [x] The source tree remains dependency-free.
-
-### Phase 2: Task-oriented discovery
-
-#### Task 4: Rebuild the cheat sheet around searchable questions
-
-**Description:** Replace the long category-only reference with a searchable
-task index, copyable recipes, and a complete compact public-method index.
+**Description:** Add the new range types and operations for containment,
+overlap, touch, exact duration/gap, subtraction, merge, and intersection.
 
 **Acceptance criteria:**
 
-- [x] Common search terms lead directly to the appropriate API and example.
-- [x] Every public `TChronoKit` method appears in the compact index.
-- [x] Incorrect `drs*` examples are replaced with the public `du*` enum.
+- [ ] Invalid ordering raises `EArgumentException`; equal endpoints represent
+      an empty range.
+- [ ] Empty, disjoint, intersecting, touching, and split cases have exact,
+      sentinel-free results.
+- [ ] Sub-day and millisecond precision are retained.
 
 **Verification:**
 
-- [x] Method names in the index match the public declarations.
-- [x] Every code sample uses the v1.5.0 public API.
+- [ ] New focused range tests pass.
+- [ ] Full suite remains green apart from documented missing fixtures.
 
 **Dependencies:** Task 3
 
 **Files likely touched:**
 
-- `docs/Cheat-Sheet.md`
+- `src/ChronoKit.pas`
+- `tests/ChronoKit.Test.pas`
 
 **Estimated scope:** Medium
 
-#### Task 5: Group guides and API documentation by task
+#### Task 5: Add explicit parsing, decimal-year, and timezone names
 
-**Description:** Make the README, getting-started guide, and complete guide
-lead from user intent to copyable answers, while preserving links to advanced
-calendar and timezone contracts.
+**Description:** Add `StartOfQuarter`, corrected bidirectional decimal-year
+conversion, and explicit timezone-direction methods, then redirect equivalent
+legacy entry points to the canonical implementations.
 
 **Acceptance criteria:**
 
-- [x] The main documentation paths use the same task vocabulary and preferred
-      v1.5.0 names.
-- [x] Parsing, formatting, arithmetic, business-day, interval, and timezone
-      tasks each have a documented answer.
-- [x] Compatibility aliases are explained without prematurely deprecating them.
+- [ ] Quarter validation covers year `1..9999` and quarter `1..4`.
+- [ ] Decimal conversions include time of day and round-trip within one
+      millisecond across common and leap years.
+- [ ] Timezone replacements retain all v1.3/v1.4 DST and validation behavior.
 
 **Verification:**
 
-- [x] Repository-local documentation links resolve.
-- [x] Examples compile or correspond to compiled public calls.
+- [ ] Focused tests for each replacement pass.
+- [ ] The named-timezone regression matrix passes with local fixtures.
 
 **Dependencies:** Task 4
+
+**Files likely touched:**
+
+- `src/ChronoKit.pas`
+- `tests/ChronoKit.Test.pas`
+
+**Estimated scope:** Medium
+
+### Checkpoint: Replacement surface
+
+- [ ] Every replacement in the transition specification is public and tested.
+- [ ] Canonical implementations do not call deprecated methods.
+- [ ] Existing callers remain source-compatible.
+
+### Phase 3: Deprecations, migration, and release records
+
+#### Task 6: Annotate the complete deprecation matrix
+
+**Description:** Add supported compiler deprecation directives with actionable
+messages, document unsupported enum-value annotations, and compile a legacy
+compatibility fixture that exercises every retained declaration.
+
+**Acceptance criteria:**
+
+- [ ] Every matrix declaration has a compiler annotation or documented marker.
+- [ ] Warning messages identify the replacement or migration direction.
+- [ ] A compatibility fixture compiles under Free Pascal 3.2.2.
+
+**Verification:**
+
+- [ ] Compiler output contains expected deprecation diagnostics.
+- [ ] Unit tests and examples still compile with warnings enabled.
+
+**Dependencies:** Task 5
+
+**Files likely touched:**
+
+- `src/ChronoKit.pas`
+- `tests/LegacyCompatibility.pas`
+- `tests/ChronoKit.Test.pas`
+
+**Estimated scope:** Medium
+
+#### Task 7: Publish migration guidance and v1.6 release records
+
+**Description:** Update user-facing API guidance to preferred v1.6 paths,
+publish the complete migration guide/removal list, and update version metadata,
+changelog, roadmap status, release notes, and PR notes after verification.
+
+**Acceptance criteria:**
+
+- [ ] Every deprecated declaration has an actionable migration example.
+- [ ] Current guides and shipped examples teach only preferred APIs.
+- [ ] Metadata and release records consistently report v1.6.0 and explicitly
+      defer removals to 2.0.
+
+**Verification:**
+
+- [ ] Documentation links and public-method coverage checks pass.
+- [ ] Every shipped example compiles and the Lazarus package builds.
+- [ ] Full fixture-backed FPCUnit suite passes.
+- [ ] `git diff --check` and final code review pass.
+
+**Dependencies:** Task 6
 
 **Files likely touched:**
 
 - `README.md`
 - `docs/Getting-Started.md`
 - `docs/ChronoKit-FP.md`
-- `docs/Troubleshooting.md`
-
-**Estimated scope:** Medium
-
-### Checkpoint: Discovery paths
-
-- [x] Common questions can be answered without reading implementation code.
-- [x] Searchable index and detailed guide agree on preferred operations.
-- [x] Public additions have tests and copyable examples.
-
-### Phase 3: Version decision and release records
-
-#### Task 6: Publish the evidence-based 2.0 decision
-
-**Description:** Evaluate the audit, existing compatibility promises, and the
-absence or presence of proven deprecations, then publish the resulting 2.0
-decision and its reconsideration criteria.
-
-**Acceptance criteria:**
-
-- [x] The record separates repository evidence from assumptions about users.
-- [x] A proposed 2.0 change list is published only if justified by evidence.
-- [x] The decision defines what future evidence would trigger reconsideration.
-
-**Verification:**
-
-- [x] The decision is consistent with the roadmap's conditional 2.0 policy.
-- [x] README and roadmap link to the decision where appropriate.
-
-**Dependencies:** Task 5
-
-**Files likely touched:**
-
-- `docs/V2-DECISION.md`
-- `ROADMAP.md`
-- `README.md`
-
-**Estimated scope:** Small
-
-#### Task 7: Prepare v1.5.0 release documentation and metadata
-
-**Description:** Update version metadata, changelog, release notes, PR notes,
-and milestone status after verification.
-
-**Acceptance criteria:**
-
-- [x] Source and Lazarus package metadata report v1.5.0.
-- [x] Changelog and release notes describe additions and compatibility.
-- [x] Roadmap status reflects the verified milestone outcome.
-
-**Verification:**
-
-- [x] Version search finds no current-release metadata left at v1.4.0.
-- [x] Release records state the exact verification commands and outcomes.
-
-**Dependencies:** Task 6
-
-**Files likely touched:**
-
+- `docs/Cheat-Sheet.md`
+- `docs/MIGRATION-v1.6-to-v2.0.md`
+- `docs/RELEASE-NOTES-v1.6.0.md`
+- `docs/PR-v1.6.0.md`
 - `CHANGELOG.md`
 - `ROADMAP.md`
-- `docs/RELEASE-NOTES-v1.5.0.md`
-- `docs/PR-v1.5.0.md`
 - `packages/lazarus/chronokit_fp.lpk`
+- shipped examples where legacy names appear
 
 **Estimated scope:** Medium
 
 ### Checkpoint: Complete
 
-- [x] All v1.5.0 roadmap goals and done criteria are met.
-- [x] The full FPCUnit suite passes with the required local timezone fixtures.
-- [x] Every shipped example compiles and the Lazarus package builds.
-- [x] Documentation links and public-method coverage are verified.
-- [x] `git diff --check` and the five-axis review find no required issue.
+- [ ] Every v1.6.0 roadmap goal and success criterion is met.
+- [ ] Windows-local tests, examples, package, links, and API coverage pass.
+- [ ] CI retains the equivalent Windows/Linux release matrix.
+- [ ] No declaration slated for 2.0 removal has been removed in v1.6.
 
 ## Risks and mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| New names conflict with `SysUtils` routines | Medium | Keep calls class-qualified for users and unit-qualify RTL calls inside the implementation. |
-| A documentation audit overstates user evidence | High | Record only reproducible repository findings and explicitly label missing external usage data. |
-| The cheat sheet becomes another long reference | Medium | Lead with question/search vocabulary and keep the exhaustive method list compact. |
-| Release docs drift from executable examples | Medium | Compile every shipped example and reuse the preferred names consistently. |
-| Local timezone tests fail without CI variables | Low | Run the documented Windows fixture matrix with system-local Sydney DST boundary values. |
+| Checked `Int64` arithmetic is compiler-mode dependent | High | Use explicit precondition checks and test every multiplication/addition boundary. |
+| `TDateTime` floating-point rounding loses a millisecond | High | Convert once at API boundaries and assert a one-millisecond round-trip tolerance. |
+| Half-open empty ranges create ambiguous touch/merge cases | Medium | Treat empty ranges as containing no values and cover each relation explicitly. |
+| Deprecating enum values is unsupported in FPC 3.2.2 | Medium | Verify with a compiler probe and use the required documentation marker when unsupported. |
+| Legacy warnings obscure internal builds | Medium | Ensure new implementations never reference deprecated declarations and isolate compatibility tests. |
+| Timezone aliases accidentally change conversion semantics | High | Move existing implementations under explicit names and rerun the complete named-zone matrix. |
 
 ## Open questions
 
-None. The roadmap explicitly permits additive helpers only where the audit
-finds a discovery problem, and it makes the 2.0 change list conditional on
-evidence. Both decisions can be made from documented repository evidence
-without breaking compatibility.
+None at scope level. The compiler probe in Task 1 determines only the supported
+annotation syntax; it does not change the transition contract.
