@@ -16,8 +16,8 @@ begin
   StartDate := EncodeDate(2026, 8, 7);
   DueDate := TChronoKit.AddBusinessDays(StartDate, 5, Calendar);
 
-  WriteLn('Start date: ', TChronoKit.GetAsString(StartDate, 'yyyy-mm-dd'));
+  WriteLn('Start date: ', TChronoKit.FormatDateTime(StartDate, 'yyyy-mm-dd'));
   WriteLn('Excluded holiday: 2026-08-10');
   WriteLn('Five business days later: ',
-    TChronoKit.GetAsString(DueDate, 'yyyy-mm-dd'));
+    TChronoKit.FormatDateTime(DueDate, 'yyyy-mm-dd'));
 end.

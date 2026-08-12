@@ -135,7 +135,7 @@ current evidence does not justify a breaking change list or deprecation.
 
 ## 1.6.0 — API consolidation and deprecations
 
-**Status:** Planned
+**Status:** Completed on 2026-08-12
 
 Make the public surface smaller and more coherent without removing APIs in
 the 1.x line. Maintainer cost, duplicated entry points, misleading behaviour,
@@ -143,7 +143,7 @@ and a clear replacement are sufficient evidence for deprecation; this
 milestone does not wait for external usage feedback.
 
 - Publish an exact deprecation matrix containing the replacement and migration
-  recipe for every affected API. The proposed
+  recipe for every affected API. The accepted
   [v1.6 API transition specification](docs/API-Deprecations-v1.6.0.md)
   contains that matrix and is the implementation contract for this milestone.
 - Consolidate redundant aliases, fixed-format parsers, decimal-year names, and

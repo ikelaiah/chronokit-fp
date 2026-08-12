@@ -1,19 +1,21 @@
-# v1.5.0 checklist
+# v1.6.0 checklist
 
-- [x] New feature branch created: `feature/v1.5.0-discoverable-api`
-- [x] Baseline suite compiled (141 tests pass; 13 require CI timezone fixtures)
-- [x] Beginner-focused common-task API audit published
-- [x] Failing tests added for discoverable text helpers
-- [x] `FormatDateTime` and `ParseDateTime` aliases implemented
-- [x] Existing `GetAsString` and `FromString` calls remain compatible
-- [x] Quick-start example uses and demonstrates both public additions
-- [x] Searchable task-based cheat sheet covers every public method
-- [x] README, getting started, complete guide, and troubleshooting updated
-- [x] Copy/paste errors in existing examples corrected
-- [x] Evidence-based 2.0 decision published and linked
-- [x] Version metadata, roadmap, changelog, release notes, and PR notes updated
-- [x] Full FPCUnit suite passes with local timezone fixtures (157 tests)
+- [x] Roadmap and binding API transition specification reviewed
+- [x] Scope bounded to v1.6.0; no 2.0 removals included
+- [x] Clean baseline worktree and Free Pascal 3.2.2 toolchain confirmed
+- [x] Deprecation syntax probe completed
+- [x] Seven correctness regressions added and observed failing
+- [x] Seven specified defects corrected
+- [x] Calendar-period and exact-duration replacements tested and implemented
+- [x] Half-open range replacements tested and implemented
+- [x] Quarter, decimal-year, and timezone replacements tested and implemented
+- [x] Complete deprecation matrix annotated or explicitly documented
+- [x] Free Pascal 3.2.2 legacy compatibility fixture compiles
+- [x] Preferred v1.6 paths documented with complete migration examples
+- [x] Version metadata, changelog, roadmap, release notes, and PR notes updated
+- [x] Full fixture-backed FPCUnit suite passes
 - [x] Every shipped example compiles
 - [x] Lazarus package builds
 - [x] Documentation links and public-method coverage verified
-- [x] Final five-axis review passes
+- [x] `git diff --check` passes
+- [x] Final multi-axis code review passes

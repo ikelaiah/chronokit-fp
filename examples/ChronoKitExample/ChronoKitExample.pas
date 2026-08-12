@@ -30,20 +30,24 @@ begin
   
   // Format dates using custom format strings
   // Format: yyyy=year, mm=month, dd=day, hh=hour, nn=minute, ss=second
-  FormattedDate := TChronoKit.GetAsString(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss');
+  FormattedDate := TChronoKit.FormatDateTime(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss');
   WriteLn('Current time (custom format): ', FormattedDate);
-  WriteLn('Today at midnight (default format): ', TChronoKit.GetAsString(TodayAtMidnight, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Today at midnight (default format): ', TChronoKit.FormatDateTime(TodayAtMidnight, 'yyyy-mm-dd hh:nn:ss'));
   
   // Parse dates from strings using custom format patterns
-  ParsedDate := TChronoKit.FromString('2024-03-15 14:30:00', 'yyyy-mm-dd hh:nn:ss');
-  WriteLn('Parsed from string "2024-03-15 14:30:00": ', TChronoKit.GetAsString(ParsedDate, 'yyyy-mm-dd hh:nn:ss'));
+  ParsedDate := TChronoKit.ParseDateTime('2024-03-15 14:30:00', 'yyyy-mm-dd hh:nn:ss');
+  WriteLn('Parsed from string "2024-03-15 14:30:00": ', TChronoKit.FormatDateTime(ParsedDate, 'yyyy-mm-dd hh:nn:ss'));
   
   WriteLn;
-  WriteLn('Common date format parsers:');
-  WriteLn('  YMD "2024-03-15": ', TChronoKit.GetAsString(TChronoKit.YMD('2024-03-15'), 'yyyy-mm-dd'));
-  WriteLn('  MDY "03-15-2024": ', TChronoKit.GetAsString(TChronoKit.MDY('03-15-2024'), 'yyyy-mm-dd'));
-  WriteLn('  DMY "15-03-2024": ', TChronoKit.GetAsString(TChronoKit.DMY('15-03-2024'), 'yyyy-mm-dd'));
-  WriteLn('  YQ "2024-1" (Q1): ', TChronoKit.GetAsString(TChronoKit.YQ('2024-1'), 'yyyy-mm-dd'));
+  WriteLn('Explicit date formats and quarter start:');
+  WriteLn('  YYYY-MM-DD: ', TChronoKit.FormatDateTime(
+    TChronoKit.ParseDateTime('2024-03-15', 'yyyy-mm-dd'), 'yyyy-mm-dd'));
+  WriteLn('  MM-DD-YYYY: ', TChronoKit.FormatDateTime(
+    TChronoKit.ParseDateTime('03-15-2024', 'mm-dd-yyyy'), 'yyyy-mm-dd'));
+  WriteLn('  DD-MM-YYYY: ', TChronoKit.FormatDateTime(
+    TChronoKit.ParseDateTime('15-03-2024', 'dd-mm-yyyy'), 'yyyy-mm-dd'));
+  WriteLn('  2024 Q1: ', TChronoKit.FormatDateTime(
+    TChronoKit.StartOfQuarter(2024, 1), 'yyyy-mm-dd'));
 end;
 
 procedure DemonstrateComponentAccess;
@@ -53,7 +57,7 @@ begin
   WriteLn('=== Component Access ===');
   CurrentDateTime := TChronoKit.GetNow;
   
-  WriteLn('Current date/time: ', TChronoKit.GetAsString(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Current date/time: ', TChronoKit.FormatDateTime(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Extract basic date/time components
@@ -81,10 +85,7 @@ begin
   WriteLn('  ISO Week: ', TChronoKit.GetISOWeek(CurrentDateTime), ' (1-53)');
   WriteLn;
   
-  // Get epidemiological calendar components (used in healthcare)
-  WriteLn('Epidemiological components:');
-  WriteLn('  Epi Year: ', TChronoKit.GetEpiYear(CurrentDateTime), ' (epidemiological year)');
-  WriteLn('  Epi Week: ', TChronoKit.GetEpiWeek(CurrentDateTime), ' (1-53)');
+  WriteLn('Use a domain-specific calendar when ISO week rules are not intended.');
 end;
 
 procedure DemonstrateComponentModification;
@@ -93,7 +94,7 @@ var
 begin
   WriteLn('=== Component Modification ===');
   OriginalDateTime := TChronoKit.GetNow;
-  WriteLn('Original: ', TChronoKit.GetAsString(OriginalDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Original: ', TChronoKit.FormatDateTime(OriginalDateTime, 'yyyy-mm-dd hh:nn:ss'));
   
   // Modify individual components while preserving others
   // Start with the original and apply changes step by step
@@ -106,7 +107,7 @@ begin
   ModifiedDateTime := TChronoKit.SetSecond(ModifiedDateTime, 45);          // Set second to 45
   ModifiedDateTime := TChronoKit.SetMilliSecond(ModifiedDateTime, 500);    // Set millisecond to 500
   
-  WriteLn('Modified: ', TChronoKit.GetAsString(ModifiedDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Modified: ', TChronoKit.FormatDateTime(ModifiedDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn('Target:   2025-06-15 14:30:45 (for comparison)');
 end;
 
@@ -116,7 +117,7 @@ var
 begin
   WriteLn('=== Date Arithmetic ===');
   StartDateTime := TChronoKit.GetNow;
-  WriteLn('Starting date: ', TChronoKit.GetAsString(StartDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Starting date: ', TChronoKit.FormatDateTime(StartDateTime, 'yyyy-mm-dd hh:nn:ss'));
   
   // Demonstrate various ways to add/subtract time units
   // Chain multiple operations to show cumulative effect
@@ -128,100 +129,73 @@ begin
   ResultDateTime := TChronoKit.AddMinutes(ResultDateTime, 30);     // Add 30 minutes
   ResultDateTime := TChronoKit.AddSeconds(ResultDateTime, -15);    // Subtract 15 seconds
   
-  WriteLn('After +1yr -2mo +7d +12h +30m -15s: ', TChronoKit.GetAsString(ResultDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('After +1yr -2mo +7d +12h +30m -15s: ', TChronoKit.FormatDateTime(ResultDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Business day calculations (skipping weekends)
   WriteLn('Business day operations:');
-  WriteLn('  Next business day: ', TChronoKit.GetAsString(TChronoKit.NextBusinessDay(StartDateTime), 'yyyy-mm-dd hh:nn:ss'));
-  WriteLn('  Previous business day: ', TChronoKit.GetAsString(TChronoKit.PreviousBusinessDay(StartDateTime), 'yyyy-mm-dd hh:nn:ss'));
-  WriteLn('  5 business days later: ', TChronoKit.GetAsString(TChronoKit.AddBusinessDays(StartDateTime, 5), 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Next business day: ', TChronoKit.FormatDateTime(TChronoKit.NextBusinessDay(StartDateTime), 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Previous business day: ', TChronoKit.FormatDateTime(TChronoKit.PreviousBusinessDay(StartDateTime), 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  5 business days later: ', TChronoKit.FormatDateTime(TChronoKit.AddBusinessDays(StartDateTime, 5), 'yyyy-mm-dd hh:nn:ss'));
 end;
 
 procedure DemonstratePeriodOperations;
 var
   StartDateTime: TDateTime;
-  Period: TDateSpan;      // Represents a period of time (years, months, days)
-  Duration: TDateSpan;    // Represents a duration in days
+  Period: TCalendarPeriod;
+  Duration, Difference: TDuration;
   Future: TDateTime;
-  Span: TDateSpan;
-  Seconds: Int64;
 begin
   WriteLn('=== Period Operations ===');
   StartDateTime := TChronoKit.GetNow;
-  WriteLn('Starting date: ', TChronoKit.GetAsString(StartDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Starting date: ', TChronoKit.FormatDateTime(StartDateTime,
+    'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
-  
-  // Create different types of time spans
-  Period := TChronoKit.CreatePeriod(1, 2, 3);      // 1 year, 2 months, 3 days
-  Duration := TChronoKit.CreateDuration(0, 0, 1);  // 1 day duration
-  
+
+  Period := TChronoKit.CreateCalendarPeriod(1, 2, 3);
+  Duration := TChronoKit.DurationFromParts(1);
+
   WriteLn('Period operations:');
-  // Add a period to a date
-  Future := TChronoKit.AddSpan(StartDateTime, Period);
-  WriteLn('  After adding period (1y 2m 3d): ', TChronoKit.GetAsString(Future, 'yyyy-mm-dd hh:nn:ss'));
-  
-  // Subtract a duration from a date
-  Future := TChronoKit.SubtractSpan(Future, Duration);
-  WriteLn('  After subtracting duration (1d): ', TChronoKit.GetAsString(Future, 'yyyy-mm-dd hh:nn:ss'));
-  WriteLn;
-  
-  // Calculate the period between two dates
-  Span := TChronoKit.SpanBetween(StartDateTime, Future, TDateSpanKind.dskPeriod);
-  WriteLn('Period between start and final dates:');
-  WriteLn('  Years: ', Span.Years);
-  WriteLn('  Months: ', Span.Months);
-  WriteLn('  Days: ', Span.Days);
-  WriteLn;
-  
-  // Convert periods to/from seconds
-  WriteLn('Period conversion:');
-  Seconds := TChronoKit.PeriodToSeconds(Period);
-  WriteLn('  Original period (1y 2m 3d) in seconds: ', Seconds);
-  
-  // Convert seconds back to a standardized period
-  Period := TChronoKit.SecondsToPeriod(Seconds);
-  Period := TChronoKit.StandardizePeriod(Period);  // Normalize the period
-  WriteLn('  Standardized period from seconds:');
-  WriteLn('    Years: ', Period.Years);
-  WriteLn('    Months: ', Period.Months);
-  WriteLn('    Days: ', Period.Days);
+  Future := TChronoKit.AddPeriod(StartDateTime, Period);
+  WriteLn('  After adding period (1y 2m 3d): ',
+    TChronoKit.FormatDateTime(Future, 'yyyy-mm-dd hh:nn:ss'));
+  Future := TChronoKit.SubtractDuration(Future, Duration);
+  WriteLn('  After subtracting exact duration (1d): ',
+    TChronoKit.FormatDateTime(Future, 'yyyy-mm-dd hh:nn:ss'));
+
+  Difference := TChronoKit.DurationBetween(StartDateTime, Future);
+  WriteLn('  Exact elapsed milliseconds: ', Difference.Milliseconds);
 end;
 
 procedure DemonstrateIntervalOperations;
 var
   StartDateTime, LaterDateTime: TDateTime;
-  Interval1, Interval2: TInterval;  // Represents a time interval with start/end dates
+  Range1, Range2: TDateTimeRange;
 begin
   WriteLn('=== Interval Operations ===');
   StartDateTime := TChronoKit.GetNow;
   LaterDateTime := TChronoKit.AddDays(StartDateTime, 5);
   
   WriteLn('Base dates:');
-  WriteLn('  Start: ', TChronoKit.GetAsString(StartDateTime, 'yyyy-mm-dd hh:nn:ss'));
-  WriteLn('  Later: ', TChronoKit.GetAsString(LaterDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Start: ', TChronoKit.FormatDateTime(StartDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Later: ', TChronoKit.FormatDateTime(LaterDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
-  // Create time intervals
-  Interval1 := TChronoKit.CreateInterval(StartDateTime, LaterDateTime);                    // 5-day interval
-  Interval2 := TChronoKit.CreateInterval(
-    TChronoKit.AddDays(StartDateTime, 3),                                         // Starts 3 days from now
-    TChronoKit.AddDays(StartDateTime, 8)                                          // Ends 8 days from now
-  );
+  Range1 := TChronoKit.CreateRange(StartDateTime, LaterDateTime);
+  Range2 := TChronoKit.CreateRange(
+    TChronoKit.AddDays(StartDateTime, 3),
+    TChronoKit.AddDays(StartDateTime, 8));
   
-  WriteLn('Interval definitions:');
-  WriteLn('  Interval1: 5-day span from start date');
-  WriteLn('  Interval2: 5-day span starting 3 days from start date');
+  WriteLn('Half-open range definitions:');
+  WriteLn('  Range1: 5-day span from start date');
+  WriteLn('  Range2: 5-day span starting 3 days from start date');
   WriteLn;
   
-  // Perform interval checks
-  WriteLn('Interval checks:');
-  WriteLn('  Start date is within interval1: ',
-    TChronoKit.IsWithinInterval(StartDateTime, Interval1));                       // Check if date is in interval
-  WriteLn('  Intervals overlap: ',
-    TChronoKit.IntervalsOverlap(Interval1, Interval2));                // Check if intervals overlap
-  WriteLn('  Intervals align (adjacent): ',
-    TChronoKit.IntervalAlign(Interval1, Interval2));                   // Check if intervals are adjacent
+  WriteLn('Range checks:');
+  WriteLn('  Start date is within range1: ',
+    TChronoKit.RangeContains(Range1, StartDateTime));
+  WriteLn('  Ranges overlap: ', TChronoKit.RangesOverlap(Range1, Range2));
+  WriteLn('  Ranges touch: ', TChronoKit.RangesTouch(Range1, Range2));
 end;
 
 procedure DemonstratePeriodBoundaries;
@@ -230,37 +204,37 @@ var
 begin
   WriteLn('=== Period Boundaries ===');
   CurrentDateTime := TChronoKit.GetNow;
-  WriteLn('Current date/time: ', TChronoKit.GetAsString(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Current date/time: ', TChronoKit.FormatDateTime(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Get start of various time periods
   WriteLn('Start of periods:');
   StartDate := TChronoKit.StartOfYear(CurrentDateTime);        // First moment of the year
-  WriteLn('  Start of year: ', TChronoKit.GetAsString(StartDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Start of year: ', TChronoKit.FormatDateTime(StartDate, 'yyyy-mm-dd hh:nn:ss'));
   
   StartDate := TChronoKit.StartOfMonth(CurrentDateTime);       // First moment of the month
-  WriteLn('  Start of month: ', TChronoKit.GetAsString(StartDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Start of month: ', TChronoKit.FormatDateTime(StartDate, 'yyyy-mm-dd hh:nn:ss'));
   
   StartDate := TChronoKit.StartOfWeek(CurrentDateTime);        // First moment of the week (Sunday)
-  WriteLn('  Start of week: ', TChronoKit.GetAsString(StartDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Start of week: ', TChronoKit.FormatDateTime(StartDate, 'yyyy-mm-dd hh:nn:ss'));
   
   StartDate := TChronoKit.StartOfDay(CurrentDateTime);         // Midnight (00:00:00)
-  WriteLn('  Start of day: ', TChronoKit.GetAsString(StartDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Start of day: ', TChronoKit.FormatDateTime(StartDate, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Get end of various time periods
   WriteLn('End of periods:');
   EndDate := TChronoKit.EndOfYear(CurrentDateTime);           // Last moment of the year
-  WriteLn('  End of year: ', TChronoKit.GetAsString(EndDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  End of year: ', TChronoKit.FormatDateTime(EndDate, 'yyyy-mm-dd hh:nn:ss'));
   
   EndDate := TChronoKit.EndOfMonth(CurrentDateTime);          // Last moment of the month
-  WriteLn('  End of month: ', TChronoKit.GetAsString(EndDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  End of month: ', TChronoKit.FormatDateTime(EndDate, 'yyyy-mm-dd hh:nn:ss'));
   
   EndDate := TChronoKit.EndOfWeek(CurrentDateTime);           // Last moment of the week (Saturday)
-  WriteLn('  End of week: ', TChronoKit.GetAsString(EndDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  End of week: ', TChronoKit.FormatDateTime(EndDate, 'yyyy-mm-dd hh:nn:ss'));
   
   EndDate := TChronoKit.EndOfDay(CurrentDateTime);            // Last moment of day (23:59:59.999)
-  WriteLn('  End of day: ', TChronoKit.GetAsString(EndDate, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  End of day: ', TChronoKit.FormatDateTime(EndDate, 'yyyy-mm-dd hh:nn:ss'));
 end;
 
 procedure DemonstrateTimezoneOperations;
@@ -274,11 +248,11 @@ var
 begin
   WriteLn('=== Timezone Operations ===');
   CurrentDateTime := TChronoKit.GetNow;
-  WriteLn('Current local time: ', TChronoKit.GetAsString(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Current local time: ', TChronoKit.FormatDateTime(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Get detailed timezone information
-  TZInfo := TChronoKit.GetTimeZone(CurrentDateTime);
+  TZInfo := TChronoKit.GetSystemTimeZoneInfo(CurrentDateTime);
   WriteLn('Current timezone details:');
   WriteLn('  Name: ', TZInfo.Name);
   WriteLn('  Offset from UTC: ', TZInfo.Offset, ' minutes');    // Minutes from UTC
@@ -299,11 +273,11 @@ begin
   
   // Convert between timezones
   WriteLn('Timezone conversions:');
-  UTC := TChronoKit.WithTimeZone(CurrentDateTime, 'UTC');      // Convert to UTC
-  WriteLn('  UTC time: ', TChronoKit.GetAsString(UTC, 'yyyy-mm-dd hh:nn:ss'));
+  UTC := TChronoKit.SystemLocalToTimeZone(CurrentDateTime, 'UTC');
+  WriteLn('  UTC time: ', TChronoKit.FormatDateTime(UTC, 'yyyy-mm-dd hh:nn:ss'));
   
-  Local := TChronoKit.WithTimeZone(UTC, SystemTZ); // Convert back to local time
-  WriteLn('  Back to local: ', TChronoKit.GetAsString(Local, 'yyyy-mm-dd hh:nn:ss'));
+  Local := TChronoKit.TimeZoneToSystemLocal(UTC, 'UTC');
+  WriteLn('  Back to local: ', TChronoKit.FormatDateTime(Local, 'yyyy-mm-dd hh:nn:ss'));
 end;
 
 procedure DemonstrateDateComparisons;
@@ -315,8 +289,8 @@ begin
   Date2 := TChronoKit.AddDays(Date1, 1);  // One day later
   
   WriteLn('Comparing dates:');
-  WriteLn('  Date1: ', TChronoKit.GetAsString(Date1, 'yyyy-mm-dd hh:nn:ss'));
-  WriteLn('  Date2: ', TChronoKit.GetAsString(Date2, 'yyyy-mm-dd hh:nn:ss'), ' (+1 day)');
+  WriteLn('  Date1: ', TChronoKit.FormatDateTime(Date1, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Date2: ', TChronoKit.FormatDateTime(Date2, 'yyyy-mm-dd hh:nn:ss'), ' (+1 day)');
   WriteLn;
   
   // Compare dates in various ways
@@ -345,31 +319,31 @@ var
 begin
   WriteLn('=== Date Rounding ===');
   OriginalDateTime := TChronoKit.GetNow;
-  WriteLn('Original: ', TChronoKit.GetAsString(OriginalDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Original: ', TChronoKit.FormatDateTime(OriginalDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Round to nearest time unit
   WriteLn('Rounding to nearest unit:');
   RoundedDateTime := TChronoKit.RoundDate(OriginalDateTime, TDateUnit.duHour);    // Round to nearest hour
-  WriteLn('  To nearest hour: ', TChronoKit.GetAsString(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  To nearest hour: ', TChronoKit.FormatDateTime(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
   
   RoundedDateTime := TChronoKit.RoundDate(OriginalDateTime, TDateUnit.duDay);     // Round to nearest day
-  WriteLn('  To nearest day: ', TChronoKit.GetAsString(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  To nearest day: ', TChronoKit.FormatDateTime(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
   
   RoundedDateTime := TChronoKit.RoundDate(OriginalDateTime, TDateUnit.duMonth);   // Round to nearest month
-  WriteLn('  To nearest month: ', TChronoKit.GetAsString(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  To nearest month: ', TChronoKit.FormatDateTime(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Floor (round down) to time unit
   WriteLn('Floor operations (round down):');
   RoundedDateTime := TChronoKit.FloorDate(OriginalDateTime, TDateUnit.duHour);    // Beginning of current hour
-  WriteLn('  Floor to hour: ', TChronoKit.GetAsString(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Floor to hour: ', TChronoKit.FormatDateTime(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Ceiling (round up) to time unit
   WriteLn('Ceiling operations (round up):');
   RoundedDateTime := TChronoKit.CeilingDate(OriginalDateTime, TDateUnit.duHour);  // Beginning of next hour
-  WriteLn('  Ceiling to hour: ', TChronoKit.GetAsString(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Ceiling to hour: ', TChronoKit.FormatDateTime(RoundedDateTime, 'yyyy-mm-dd hh:nn:ss'));
 end;
 
 procedure DemonstrateSpecialOperations;
@@ -380,26 +354,26 @@ var
 begin
   WriteLn('=== Special Operations ===');
   CurrentDateTime := TChronoKit.GetNow;
-  WriteLn('Current date: ', TChronoKit.GetAsString(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('Current date: ', TChronoKit.FormatDateTime(CurrentDateTime, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Month boundary operations with clearer explanations
-  PrevMonth := TChronoKit.RollbackMonth(CurrentDateTime);      // Last day of previous month
+  PrevMonth := TChronoKit.AddMonths(CurrentDateTime, -1);
   WriteLn('Month boundary operations:');
-  WriteLn('  Last day of previous month: ', TChronoKit.GetAsString(PrevMonth, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  One month earlier: ', TChronoKit.FormatDateTime(PrevMonth, 'yyyy-mm-dd hh:nn:ss'));
   
-  NextMonth := TChronoKit.RollForwardMonth(CurrentDateTime);   // First day of next month
-  WriteLn('  First day of next month: ', TChronoKit.GetAsString(NextMonth, 'yyyy-mm-dd hh:nn:ss'));
+  NextMonth := TChronoKit.AddMonths(CurrentDateTime, 1);
+  WriteLn('  One month later: ', TChronoKit.FormatDateTime(NextMonth, 'yyyy-mm-dd hh:nn:ss'));
   WriteLn;
   
   // Convert between decimal years and dates
   WriteLn('Decimal date conversion:');
-  DecimalDate := TChronoKit.GetDecimalDate(CurrentDateTime);   // Convert to decimal year (e.g., 2024.45)
+  DecimalDate := TChronoKit.DateTimeToDecimalYear(CurrentDateTime);
   WriteLn('  Date as decimal year: ', DecimalDate:0:4, ' (represents progress through the year)');
   
-  DateFromDecimal := TChronoKit.DateDecimal(DecimalDate);      // Convert back to date
-  WriteLn('  Back from decimal: ', TChronoKit.GetAsString(DateFromDecimal, 'yyyy-mm-dd hh:nn:ss'));
-  WriteLn('  Note: Some precision may be lost in conversion');
+  DateFromDecimal := TChronoKit.DecimalYearToDateTime(DecimalDate);
+  WriteLn('  Back from decimal: ', TChronoKit.FormatDateTime(DateFromDecimal, 'yyyy-mm-dd hh:nn:ss'));
+  WriteLn('  Round-trip precision: within one millisecond');
 end;
 
 begin

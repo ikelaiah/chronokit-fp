@@ -1,6 +1,7 @@
 unit ChronoKit.Test;
 
 {$mode objfpc}{$H+}{$J-}
+{$WARN SYMBOL_DEPRECATED OFF}
 
 interface
 
@@ -213,6 +214,25 @@ type
     procedure Test126_LogicalZoneFixturesAreDiscoverable;
     procedure Test127_TargetZoneUsesDateSpecificOffset;
     procedure Test128_FutureRecurringRules;
+    // v1.6.0 correctness regressions
+    procedure Test149_CeilingDateRollsAcrossTimeBoundaries;
+    procedure Test150_EndBoundariesContainTheirStartingBoundary;
+    procedure Test151_DurationSpanDoesNotDoubleCountMilliseconds;
+    procedure Test152_IntervalGapPreservesSubDayPrecision;
+    procedure Test153_DecimalDateRoundTripPreservesTime;
+    procedure Test154_CreateIntervalRejectsReverseOrder;
+    procedure Test155_SeasonRoundingRaises;
+    procedure Test156_MonthRollingMatchesAddMonths;
+    procedure Test157_DecimalYearReplacementRoundTrip;
+    procedure Test158_CalendarPeriodArithmetic;
+    procedure Test159_ExactDurationArithmetic;
+    procedure Test160_DurationConstructionRejectsOverflow;
+    procedure Test161_HalfOpenRangeValidationAndContainment;
+    procedure Test162_HalfOpenRangeRelationsAndGap;
+    procedure Test163_SubtractRangeReturnsEveryRemainder;
+    procedure Test164_RangeTryOperationsAvoidSentinels;
+    procedure Test165_StartOfQuarterValidatesInputs;
+    procedure Test166_ExplicitTimezoneNamesPreserveSemantics;
   end;
 
 implementation
@@ -1963,8 +1983,8 @@ begin
   // Test regular date
   TestDate := TChronoKit.DateDecimal(2024.5); // Mid-year
   AssertEquals('Year should be 2024', 2024, TChronoKit.GetYear(TestDate));
-  AssertEquals('Should be around July 2nd (leap year)',
-    183, TChronoKit.GetDayOfYear(TestDate));
+  AssertEquals('Halfway through a leap year should be July 2nd',
+    184, TChronoKit.GetDayOfYear(TestDate));
     
   // Test leap year handling
   TestDate := TChronoKit.DateDecimal(2024.25); // Quarter year
@@ -1973,8 +1993,8 @@ begin
     
   // Test non-leap year
   TestDate := TChronoKit.DateDecimal(2025.25); // Quarter year
-  AssertEquals('Should be around April 1st in non-leap year',
-    91, TChronoKit.GetDayOfYear(TestDate));
+  AssertEquals('Quarter-way through a non-leap year should be April 2nd',
+    92, TChronoKit.GetDayOfYear(TestDate));
   WriteLn('Test89_DateDecimal:Finished');
 end;
 
@@ -2914,6 +2934,428 @@ begin
       AssertTrue('Future recurring-rule overlap must be classified as ambiguous',
         Pos('ambiguous', LowerCase(E.Message)) > 0);
   end;
+end;
+
+procedure TDateTimeTests.Test149_CeilingDateRollsAcrossTimeBoundaries;
+begin
+  AssertEquals('Second ceiling must carry into the next minute',
+    EncodeDateTime(2024, 3, 15, 14, 31, 0, 0),
+    TChronoKit.CeilingDate(
+      EncodeDateTime(2024, 3, 15, 14, 30, 59, 500), duSecond));
+  AssertEquals('Minute ceiling must carry into the next hour',
+    EncodeDateTime(2024, 3, 15, 15, 0, 0, 0),
+    TChronoKit.CeilingDate(
+      EncodeDateTime(2024, 3, 15, 14, 59, 30, 0), duMinute));
+  AssertEquals('Hour ceiling must carry into the next day',
+    EncodeDate(2024, 3, 16),
+    TChronoKit.CeilingDate(
+      EncodeDateTime(2024, 3, 15, 23, 30, 0, 0), duHour));
+end;
+
+procedure TDateTimeTests.Test150_EndBoundariesContainTheirStartingBoundary;
+begin
+  AssertEquals('EndOfYear at January 1 must end the containing year',
+    EncodeDateTime(2024, 12, 31, 23, 59, 59, 999),
+    TChronoKit.EndOfYear(EncodeDate(2024, 1, 1)), OneMillisecond);
+  AssertEquals('EndOfWeek at Sunday midnight must end the containing week',
+    EncodeDateTime(2024, 3, 9, 23, 59, 59, 999),
+    TChronoKit.EndOfWeek(EncodeDate(2024, 3, 3)), OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test151_DurationSpanDoesNotDoubleCountMilliseconds;
+var
+  Span: TDateSpan;
+  StartValue: TDateTime;
+begin
+  StartValue := EncodeDate(2024, 1, 1);
+  Span := TChronoKit.SpanBetween(StartValue,
+    IncMilliSecond(StartValue, 1500), dskDuration);
+  AssertEquals('Duration seconds must contain only whole seconds',
+    1, Span.Seconds);
+  AssertEquals('Duration milliseconds must contain the remainder',
+    500, Span.Milliseconds);
+end;
+
+procedure TDateTimeTests.Test152_IntervalGapPreservesSubDayPrecision;
+var
+  FirstInterval, SecondInterval: TInterval;
+  Gap: TDateSpan;
+begin
+  FirstInterval := TChronoKit.CreateInterval(
+    EncodeDateTime(2024, 1, 1, 9, 0, 0, 0),
+    EncodeDateTime(2024, 1, 1, 10, 0, 0, 0));
+  SecondInterval := TChronoKit.CreateInterval(
+    EncodeDateTime(2024, 1, 1, 11, 30, 0, 0),
+    EncodeDateTime(2024, 1, 1, 12, 0, 0, 0));
+  Gap := TChronoKit.IntervalGap(FirstInterval, SecondInterval);
+  AssertEquals('A 90-minute gap must retain all elapsed seconds',
+    90 * 60, Gap.Seconds);
+  AssertEquals('A whole-second gap has no millisecond remainder',
+    0, Gap.Milliseconds);
+end;
+
+procedure TDateTimeTests.Test153_DecimalDateRoundTripPreservesTime;
+var
+  OriginalValue, RoundTrippedValue: TDateTime;
+begin
+  OriginalValue := EncodeDateTime(2024, 7, 2, 12, 34, 56, 789);
+  RoundTrippedValue := TChronoKit.DateDecimal(
+    TChronoKit.GetDecimalDate(OriginalValue));
+  AssertEquals('Decimal-year legacy pair must round-trip time of day',
+    OriginalValue, RoundTrippedValue, OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test154_CreateIntervalRejectsReverseOrder;
+var
+  Raised: Boolean;
+begin
+  Raised := False;
+  try
+    TChronoKit.CreateInterval(EncodeDate(2024, 1, 2),
+      EncodeDate(2024, 1, 1));
+  except
+    on E: EArgumentException do
+    begin
+      Raised := True;
+      AssertTrue('Interval validation must identify endpoint order',
+        Pos('start', LowerCase(E.Message)) > 0);
+    end;
+  end;
+  AssertTrue('CreateInterval must reject a start after its end', Raised);
+end;
+
+procedure TDateTimeTests.Test155_SeasonRoundingRaises;
+var
+  Raised: Boolean;
+  Value: TDateTime;
+begin
+  Value := EncodeDate(2024, 3, 15);
+
+  Raised := False;
+  try
+    TChronoKit.FloorDate(Value, duSeason);
+  except
+    on E: EArgumentException do
+      Raised := Pos('season', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('FloorDate must reject duSeason clearly', Raised);
+
+  Raised := False;
+  try
+    TChronoKit.CeilingDate(Value, duSeason);
+  except
+    on E: EArgumentException do
+      Raised := Pos('season', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('CeilingDate must reject duSeason clearly', Raised);
+
+  Raised := False;
+  try
+    TChronoKit.RoundDate(Value, duSeason);
+  except
+    on E: EArgumentException do
+      Raised := Pos('season', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('RoundDate must reject duSeason clearly', Raised);
+end;
+
+procedure TDateTimeTests.Test156_MonthRollingMatchesAddMonths;
+var
+  Value: TDateTime;
+begin
+  Value := EncodeDateTime(2024, 3, 31, 12, 34, 56, 789);
+  AssertEquals('RollbackMonth must match AddMonths at month end',
+    TChronoKit.AddMonths(Value, -1), TChronoKit.RollbackMonth(Value),
+    OneMillisecond);
+
+  Value := EncodeDateTime(2024, 1, 31, 12, 34, 56, 789);
+  AssertEquals('RollForwardMonth must match AddMonths at month end',
+    TChronoKit.AddMonths(Value, 1), TChronoKit.RollForwardMonth(Value),
+    OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test157_DecimalYearReplacementRoundTrip;
+var
+  CommonValue, LeapValue: TDateTime;
+begin
+  CommonValue := EncodeDateTime(2025, 4, 2, 6, 7, 8, 901);
+  AssertEquals('Common-year replacement pair must round-trip',
+    CommonValue,
+    TChronoKit.DecimalYearToDateTime(
+      TChronoKit.DateTimeToDecimalYear(CommonValue)), OneMillisecond);
+
+  LeapValue := EncodeDateTime(2024, 2, 29, 23, 59, 59, 999);
+  AssertEquals('Leap-year replacement pair must round-trip',
+    LeapValue,
+    TChronoKit.DecimalYearToDateTime(
+      TChronoKit.DateTimeToDecimalYear(LeapValue)), OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test158_CalendarPeriodArithmetic;
+var
+  Period, Normalized: TCalendarPeriod;
+  StartValue: TDateTime;
+  Raised: Boolean;
+begin
+  Period := TChronoKit.CreateCalendarPeriod(1, 13, 0, 25, 61, 61, 1001);
+  Normalized := TChronoKit.NormalizeCalendarPeriod(Period);
+  AssertEquals('Months must carry into years', 2, Normalized.Years);
+  AssertEquals('Normalized month remainder', 1, Normalized.Months);
+  AssertEquals('Hours must carry into days', 1, Normalized.Days);
+  AssertEquals('Normalized hour remainder', 2, Normalized.Hours);
+  AssertEquals('Normalized minute remainder', 2, Normalized.Minutes);
+  AssertEquals('Normalized second remainder', 2, Normalized.Seconds);
+  AssertEquals('Normalized millisecond remainder',
+    1, Normalized.Milliseconds);
+
+  StartValue := EncodeDateTime(2024, 1, 31, 10, 0, 0, 0);
+  Period := TChronoKit.CreateCalendarPeriod(0, 1, 1, 2);
+  AssertEquals('Periods apply months before days and time',
+    EncodeDateTime(2024, 3, 1, 12, 0, 0, 0),
+    TChronoKit.AddPeriod(StartValue, Period), OneMillisecond);
+  AssertEquals('SubtractPeriod uses calendar month-end rules',
+    EncodeDateTime(2024, 2, 29, 10, 0, 0, 0),
+    TChronoKit.SubtractPeriod(
+      EncodeDateTime(2024, 3, 31, 10, 0, 0, 0),
+      TChronoKit.CreateCalendarPeriod(0, 1)), OneMillisecond);
+
+  Raised := False;
+  try
+    TChronoKit.SubtractPeriod(StartValue,
+      TChronoKit.CreateCalendarPeriod(Low(Integer)));
+  except
+    on E: ERangeError do
+      Raised := True;
+  end;
+  AssertTrue('SubtractPeriod must reject an unrepresentable negation', Raised);
+end;
+
+procedure TDateTimeTests.Test159_ExactDurationArithmetic;
+var
+  Duration, Difference: TDuration;
+  StartValue, EndValue: TDateTime;
+begin
+  Duration := TChronoKit.DurationFromParts(1, 2, 3, 4, 5);
+  AssertEquals('Duration parts must produce exact elapsed milliseconds',
+    Int64(93784005), Duration.Milliseconds);
+  AssertEquals('Negative durations must remain exact',
+    Int64(-3600000),
+    TChronoKit.DurationFromParts(0, -1).Milliseconds);
+
+  StartValue := EncodeDateTime(2024, 1, 1, 12, 0, 0, 0);
+  Duration := TChronoKit.DurationFromSeconds(1);
+  Duration.Milliseconds := Duration.Milliseconds + 500;
+  EndValue := TChronoKit.AddDuration(StartValue, Duration);
+  AssertEquals('AddDuration must add exact milliseconds',
+    IncMilliSecond(StartValue, 1500), EndValue, OneMillisecond);
+  AssertEquals('SubtractDuration must reverse exact elapsed addition',
+    StartValue, TChronoKit.SubtractDuration(EndValue, Duration),
+    OneMillisecond);
+
+  Difference := TChronoKit.DurationBetween(StartValue, EndValue);
+  AssertEquals('DurationBetween must round once to milliseconds',
+    Int64(1500), Difference.Milliseconds);
+  Difference := TChronoKit.DurationBetween(EndValue, StartValue);
+  AssertEquals('DurationBetween must preserve direction',
+    Int64(-1500), Difference.Milliseconds);
+end;
+
+procedure TDateTimeTests.Test160_DurationConstructionRejectsOverflow;
+var
+  Raised: Boolean;
+begin
+  Raised := False;
+  try
+    TChronoKit.DurationFromParts(High(Int64));
+  except
+    on E: ERangeError do
+      Raised := True;
+  end;
+  AssertTrue('Day conversion overflow must raise ERangeError', Raised);
+
+  Raised := False;
+  try
+    TChronoKit.DurationFromSeconds(High(Int64));
+  except
+    on E: ERangeError do
+      Raised := True;
+  end;
+  AssertTrue('Second conversion overflow must raise ERangeError', Raised);
+end;
+
+procedure TDateTimeTests.Test161_HalfOpenRangeValidationAndContainment;
+var
+  RangeValue, EmptyRange: TDateTimeRange;
+  Raised: Boolean;
+begin
+  RangeValue := TChronoKit.CreateRange(EncodeDate(2024, 1, 1),
+    EncodeDate(2024, 1, 2));
+  AssertTrue('A half-open range contains its start',
+    TChronoKit.RangeContains(RangeValue, EncodeDate(2024, 1, 1)));
+  AssertFalse('A half-open range excludes its end',
+    TChronoKit.RangeContains(RangeValue, EncodeDate(2024, 1, 2)));
+
+  EmptyRange := TChronoKit.CreateRange(EncodeDate(2024, 1, 1),
+    EncodeDate(2024, 1, 1));
+  AssertFalse('An empty range contains no values',
+    TChronoKit.RangeContains(EmptyRange, EncodeDate(2024, 1, 1)));
+
+  Raised := False;
+  try
+    TChronoKit.CreateRange(EncodeDate(2024, 1, 2),
+      EncodeDate(2024, 1, 1));
+  except
+    on E: EArgumentException do
+      Raised := Pos('start', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('CreateRange must reject reversed endpoints', Raised);
+end;
+
+procedure TDateTimeTests.Test162_HalfOpenRangeRelationsAndGap;
+var
+  FirstRange, TouchingRange, OverlappingRange, DistantRange: TDateTimeRange;
+  Gap: TDuration;
+begin
+  FirstRange := TChronoKit.CreateRange(
+    EncodeDateTime(2024, 1, 1, 9, 0, 0, 0),
+    EncodeDateTime(2024, 1, 1, 10, 0, 0, 0));
+  TouchingRange := TChronoKit.CreateRange(
+    EncodeDateTime(2024, 1, 1, 10, 0, 0, 0),
+    EncodeDateTime(2024, 1, 1, 11, 0, 0, 0));
+  OverlappingRange := TChronoKit.CreateRange(
+    EncodeDateTime(2024, 1, 1, 9, 30, 0, 0),
+    EncodeDateTime(2024, 1, 1, 10, 30, 0, 0));
+  DistantRange := TChronoKit.CreateRange(
+    EncodeDateTime(2024, 1, 1, 10, 0, 0, 1),
+    EncodeDateTime(2024, 1, 1, 11, 0, 0, 0));
+
+  AssertTrue('Ranges with equal adjacent endpoints touch',
+    TChronoKit.RangesTouch(FirstRange, TouchingRange));
+  AssertFalse('Touching half-open ranges do not overlap',
+    TChronoKit.RangesOverlap(FirstRange, TouchingRange));
+  AssertTrue('Ranges sharing included values overlap',
+    TChronoKit.RangesOverlap(FirstRange, OverlappingRange));
+  AssertEquals('RangeDuration returns exact elapsed milliseconds',
+    Int64(60 * 60 * 1000),
+    TChronoKit.RangeDuration(FirstRange).Milliseconds);
+
+  Gap := TChronoKit.RangeGap(FirstRange, DistantRange);
+  AssertEquals('RangeGap preserves a one-millisecond gap',
+    Int64(1), Gap.Milliseconds);
+  AssertEquals('Touching ranges have a zero gap', Int64(0),
+    TChronoKit.RangeGap(FirstRange, TouchingRange).Milliseconds);
+end;
+
+procedure TDateTimeTests.Test163_SubtractRangeReturnsEveryRemainder;
+var
+  ValueRange, RemoveRange: TDateTimeRange;
+  Results: TDateTimeRangeArray;
+begin
+  ValueRange := TChronoKit.CreateRange(EncodeDate(2024, 1, 1),
+    EncodeDate(2024, 1, 10));
+  RemoveRange := TChronoKit.CreateRange(EncodeDate(2024, 1, 4),
+    EncodeDate(2024, 1, 6));
+  Results := TChronoKit.SubtractRange(ValueRange, RemoveRange);
+  AssertEquals('A middle removal must produce two ranges', 2, Length(Results));
+  AssertEquals('Left remainder starts at original start',
+    EncodeDate(2024, 1, 1), Results[0].StartValue);
+  AssertEquals('Left remainder ends at removal start',
+    EncodeDate(2024, 1, 4), Results[0].EndValue);
+  AssertEquals('Right remainder starts at removal end',
+    EncodeDate(2024, 1, 6), Results[1].StartValue);
+  AssertEquals('Right remainder ends at original end',
+    EncodeDate(2024, 1, 10), Results[1].EndValue);
+
+  Results := TChronoKit.SubtractRange(ValueRange,
+    TChronoKit.CreateRange(EncodeDate(2023, 12, 1),
+      EncodeDate(2024, 2, 1)));
+  AssertEquals('Complete removal returns no ranges', 0, Length(Results));
+
+  Results := TChronoKit.SubtractRange(ValueRange,
+    TChronoKit.CreateRange(EncodeDate(2024, 1, 10),
+      EncodeDate(2024, 1, 12)));
+  AssertEquals('A touching removal leaves the value unchanged',
+    1, Length(Results));
+  AssertEquals('Unchanged result preserves the end',
+    ValueRange.EndValue, Results[0].EndValue);
+end;
+
+procedure TDateTimeTests.Test164_RangeTryOperationsAvoidSentinels;
+var
+  FirstRange, SecondRange, ResultRange: TDateTimeRange;
+begin
+  FirstRange := TChronoKit.CreateRange(0, 1);
+  SecondRange := TChronoKit.CreateRange(0, 0.5);
+  AssertTrue('A valid intersection may start at TDateTime zero',
+    TChronoKit.TryIntersectRanges(FirstRange, SecondRange, ResultRange));
+  AssertEquals('Intersection preserves the valid zero start',
+    TDateTime(0), ResultRange.StartValue);
+  AssertEquals('Intersection chooses the earlier end',
+    TDateTime(0.5), ResultRange.EndValue);
+
+  SecondRange := TChronoKit.CreateRange(1, 2);
+  AssertTrue('Touching ranges can be merged',
+    TChronoKit.TryMergeRanges(FirstRange, SecondRange, ResultRange));
+  AssertEquals('Merged range spans both inputs', TDateTime(2),
+    ResultRange.EndValue);
+
+  SecondRange := TChronoKit.CreateRange(2, 3);
+  AssertFalse('Disjoint ranges cannot be represented by one merge result',
+    TChronoKit.TryMergeRanges(FirstRange, SecondRange, ResultRange));
+  AssertFalse('Disjoint ranges have no intersection',
+    TChronoKit.TryIntersectRanges(FirstRange, SecondRange, ResultRange));
+end;
+
+procedure TDateTimeTests.Test165_StartOfQuarterValidatesInputs;
+var
+  Raised: Boolean;
+begin
+  AssertEquals('Quarter 3 starts on July 1', EncodeDate(2024, 7, 1),
+    TChronoKit.StartOfQuarter(2024, 3));
+
+  Raised := False;
+  try
+    TChronoKit.StartOfQuarter(0, 1);
+  except
+    on E: EArgumentException do
+      Raised := Pos('year', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('StartOfQuarter must reject year zero', Raised);
+
+  Raised := False;
+  try
+    TChronoKit.StartOfQuarter(2024, 5);
+  except
+    on E: EArgumentException do
+      Raised := Pos('quarter', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('StartOfQuarter must reject quarter five', Raised);
+end;
+
+procedure TDateTimeTests.Test166_ExplicitTimezoneNamesPreserveSemantics;
+var
+  LocalValue, UTCValue, LegacyUTC, ExplicitLocal, LegacyLocal: TDateTime;
+  ExplicitInfo, LegacyInfo: TTimeZoneInfo;
+begin
+  LocalValue := EncodeDateTime(2024, 7, 15, 12, 0, 0, 0);
+  UTCValue := TChronoKit.SystemLocalToTimeZone(LocalValue, 'UTC');
+  LegacyUTC := TChronoKit.WithTimeZone(LocalValue, 'UTC');
+  AssertEquals('Explicit local-to-target name preserves conversion',
+    LegacyUTC, UTCValue, OneMillisecond);
+
+  ExplicitLocal := TChronoKit.TimeZoneToSystemLocal(UTCValue, 'UTC');
+  LegacyLocal := TChronoKit.ForceTimeZone(UTCValue, 'UTC');
+  AssertEquals('Explicit source-to-local name preserves conversion',
+    LegacyLocal, ExplicitLocal, OneMillisecond);
+
+  ExplicitInfo := TChronoKit.GetSystemTimeZoneInfo(LocalValue);
+  LegacyInfo := TChronoKit.GetTimeZone(LocalValue);
+  AssertEquals('Explicit timezone info preserves name',
+    LegacyInfo.Name, ExplicitInfo.Name);
+  AssertEquals('Explicit timezone info preserves offset',
+    LegacyInfo.Offset, ExplicitInfo.Offset);
+  AssertEquals('Explicit timezone info preserves DST state',
+    LegacyInfo.IsDST, ExplicitInfo.IsDST);
 end;
 
 initialization

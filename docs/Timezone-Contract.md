@@ -64,18 +64,18 @@ associated timezone separately whenever later code needs to know it.
 
 | Operation | Meaning of input | Result | Preservation rule |
 |---|---|---|---|
-| `GetTimeZone(AValue)` | `AValue` is a wall-clock value in the system timezone | System-zone name, offset in minutes east of UTC, and DST state at that local value | Query only; clock fields are unchanged |
+| `GetSystemTimeZoneInfo(AValue)` | `AValue` is a wall-clock value in the system timezone | System-zone name, offset in minutes east of UTC, and DST state at that local value | Query only; clock fields are unchanged |
 | `GetSystemTimeZone` | No date input | The current platform-native system-zone name | Query only |
 | `GetTimeZoneNames` | No date input | Exact identifiers accepted on this platform, including `UTC` | Query only |
-| `WithTimeZone(AValue, ATimeZone)` | `AValue` is a wall-clock value in the system timezone; `ATimeZone` is the destination | The destination-zone wall-clock representation of the same instant | Preserves the instant |
-| `ForceTimeZone(AValue, ATimeZone)` | `AValue` is a wall-clock value that should be interpreted in `ATimeZone` | The system-zone wall-clock representation of that instant | Preserves the input clock fields while assigning their source-zone meaning; the returned clock fields may differ |
+| `SystemLocalToTimeZone(AValue, ATimeZone)` | `AValue` is a wall-clock value in the system timezone; `ATimeZone` is the destination | The destination-zone wall-clock representation of the same instant | Preserves the instant |
+| `TimeZoneToSystemLocal(AValue, ATimeZone)` | `AValue` is a wall-clock value that should be interpreted in `ATimeZone` | The system-zone wall-clock representation of that instant | Preserves the input clock fields while assigning their source-zone meaning; the returned clock fields may differ |
 
 Offsets use `local = UTC + offset`. For example, Sydney standard time has
 offset `+600` minutes. Therefore a system-local Sydney value of
 `2026-06-01 12:00` represents `2026-06-01 02:00 UTC`.
 
 Converting to the system timezone is an identity operation. Converting to UTC
-and interpreting a UTC wall clock with `ForceTimeZone(..., 'UTC')` are inverse
+and interpreting a UTC wall clock with `TimeZoneToSystemLocal(..., 'UTC')` are inverse
 operations when neither value is at a DST discontinuity.
 
 ## Ambiguous and nonexistent local times
@@ -87,12 +87,12 @@ occurrence.
 
 ChronoKit therefore does not guess:
 
-- `GetTimeZone` raises `ETimeZoneError` when its system-local input is
+- `GetSystemTimeZoneInfo` raises `ETimeZoneError` when its system-local input is
   ambiguous or nonexistent.
-- `WithTimeZone` raises `ETimeZoneError` when its system-local source is
+- `SystemLocalToTimeZone` raises `ETimeZoneError` when its system-local source is
   ambiguous or nonexistent. Its target cannot be ambiguous because an instant
   maps to one offset and occurrence.
-- `ForceTimeZone` raises `ETimeZoneError` when the wall-clock input is
+- `TimeZoneToSystemLocal` raises `ETimeZoneError` when the wall-clock input is
   ambiguous or nonexistent in `ATimeZone`.
 
 The exception message identifies the rejected local value, timezone, and

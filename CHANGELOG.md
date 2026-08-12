@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-08-12
+
+### Added
+
+- Separate `TCalendarPeriod` and exact-millisecond `TDuration` types with
+  constructors, arithmetic, normalization, and elapsed-time measurement.
+- Validated half-open `TDateTimeRange` algebra, including empty, touching,
+  merge, intersection, gap, and two-part subtraction results.
+- `StartOfQuarter`, explicit decimal-year conversion names, and directional
+  timezone conversion names.
+- A complete 1.6-to-2.0 migration guide and legacy compatibility fixture.
+
+### Changed
+
+- Superseded 1.x types and methods are deprecated with actionable compiler
+  messages but remain source compatible until 2.0.
+- Current documentation and examples teach only the preferred v1.6 API.
+
+### Fixed
+
+- Boundary-safe ceiling rounding and correct exact week/year end boundaries.
+- Fractional legacy duration differences and precise legacy interval gaps.
+- Millisecond decimal-year round trips and reversed interval validation.
+- Seasonal rounding now rejects an undefined season instead of returning its
+  input silently.
+
+### Compatibility
+
+- No 1.x declaration was removed and no runtime dependency was added.
+
 ## [1.5.0] - 2026-08-11
 
 ### Added
