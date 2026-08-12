@@ -1,4 +1,4 @@
-# v1.6.0 implementation summary
+# feat(api): deliver API consolidation and deprecations
 
 ## Scope
 
