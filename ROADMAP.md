@@ -52,9 +52,12 @@ the others:
   boundaries, the public surface is mechanically tracked, and release checks
   are reproducible rather than dependent on undocumented manual steps.
 
-The preferred v1.6 API is the compatibility baseline through v1.9. Gaps found
-by later usability work are recorded as 2.0 design input; they do not justify
-expanding the 1.x surface by default.
+The preferred v1.6 API is the compatibility baseline through v1.9. Version
+1.7 may make one bounded additive pass for the three workflows named in that
+milestone, after their contracts are reviewed against executable examples.
+The resulting preferred v1.7 surface is then frozen through v1.9. Other gaps
+found by later usability work are recorded as post-2.0 design input; they do
+not justify expanding the 1.x surface by default.
 
 ## 1.1.0 — First five minutes
 
@@ -186,8 +189,9 @@ milestone does not wait for external usage feedback.
   complete 1.6-to-2.0 migration guide.
 - Treat v1.6.0 as the final planned 1.x API-consolidation and deprecation
   release. Later 1.x milestones improve learning, internal maintainability,
-  and release confidence without removing deprecated APIs or reopening the
-  preferred surface by default.
+  and release confidence without removing deprecated APIs. The only planned
+  additive exception is the small, contract-first v1.7 workflow set below;
+  it does not introduce aliases or new deprecations.
 
 **Done when:** every deprecation has a tested replacement and actionable
 migration example, existing 1.x callers still compile, the Windows and Linux
@@ -198,13 +202,15 @@ beginner audit. This milestone advances the project using maintainability and
 API coherence as additional evidence, without requiring a waiting period for
 external feedback.
 
-## 1.7.0 — Executable learning path
+## 1.7.0 — Executable learning path and focused API gaps
 
 **Status:** Planned
 
 Make the preferred v1.6 API understandable as a small set of concepts rather
-than a long list of methods. This is a documentation and learning-system
-release; it adds no public runtime API.
+than a long list of methods, and close three concrete workflow gaps before
+the internal refactor and API freeze. This remains primarily a documentation
+and learning-system release; its additive runtime scope is limited to the
+operations explicitly listed below.
 
 - Publish one progressive path covering `TDateTime` dates and system-local
   wall clocks, calendar periods versus exact durations, half-open ranges,
@@ -216,7 +222,27 @@ release; it adds no public runtime API.
   and understanding validation and timezone errors.
 - Repeat the task-oriented beginner audit using only preferred v1.6 APIs and
   record every point where the user must inspect source code or legacy docs.
-  Resolve documentation gaps here; record genuine API gaps for 2.0 review.
+  Resolve documentation gaps here. Use executable tasks to review the
+  contracts below before implementation, and record any other genuine API gap
+  as post-2.0 design input rather than expanding this milestone.
+- Add a direct named-source-to-named-target timezone conversion, provisionally
+  `ConvertBetweenTimeZones(Value, SourceTimeZone, TargetTimeZone)`. Its
+  contract must state that the input is a wall clock in the source zone, the
+  output is the target-zone wall clock for the same instant, the returned
+  `TDateTime` retains no zone identity, and ambiguous or nonexistent source
+  clocks raise the established timezone error.
+- Add `StartOfQuarter(Value)` and `EndOfQuarter(Value)` boundary operations,
+  while retaining `StartOfQuarter(Year, Quarter)`. Define them consistently
+  with the existing start/end boundary conventions and cover leap years,
+  year transitions, fractional input times, and the fourth quarter.
+- Add `BusinessDaysBetween(StartDate, EndDate)` and its custom-calendar
+  overload. Specify signed direction, endpoint inclusion, same-day behaviour,
+  preservation or rejection of time components, holidays, alternative work
+  weeks, and invalid calendars before implementation.
+- Add focused Windows and Linux tests, declaration comments, searchable
+  reference entries, and copyable examples for each new operation. Do not add
+  convenience aliases, unrelated RTL wrappers, recurrence APIs, or new
+  instant/zoned value types in this release.
 - Generate a searchable API reference from public declaration comments and
   fail its documentation check when a preferred declaration lacks a useful
   contract, error rule, or example link.
@@ -225,8 +251,11 @@ release; it adds no public runtime API.
 
 **Done when:** a developer starting from the README can choose the correct
 value type, complete the common date, duration, range, business-calendar, and
-timezone workflows without using a deprecated name, and run every example they
-were taught on either supported platform.
+timezone workflows without using a deprecated name; direct named-zone
+conversion, quarter boundaries, and business-day counting each have one
+reviewed and tested path; and every taught example runs on either supported
+platform. The preferred public surface is then closed to further additions
+through v1.9.
 
 ## 1.8.0 — Maintainable internals
 
