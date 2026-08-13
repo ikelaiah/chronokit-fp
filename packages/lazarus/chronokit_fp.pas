@@ -10,7 +10,7 @@ interface
 uses
   ChronoKit, ChronoKitTimeZones, ChronoKitInternalTypes, ChronoKitDurations,
   ChronoKitRanges, ChronoKitBusinessCalendars, ChronoKitCalendar,
-  ChronoKitParsing;
+  ChronoKitParsing, ChronoKitLegacy;
 
 implementation
 

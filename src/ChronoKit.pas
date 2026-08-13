@@ -3092,7 +3092,7 @@ implementation
 uses
   ChronoKitInternalTypes, ChronoKitDurations, ChronoKitRanges,
   ChronoKitBusinessCalendars, ChronoKitCalendar, ChronoKitParsing,
-  ChronoKitTimeZones;
+  ChronoKitLegacy, ChronoKitTimeZones;
 
 procedure AssignTimeZoneInfo(const AEngineInfo: TChronoKitZoneInfo;
   out APublicInfo: TTimeZoneInfo);
@@ -3189,6 +3189,44 @@ begin
   SetLength(Result.Holidays, Length(AValue.Holidays));
   for I := Low(AValue.Holidays) to High(AValue.Holidays) do
     Result.Holidays[I] := AValue.Holidays[I];
+end;
+
+function ToInternalLegacySpan(const AValue: TDateSpan): TCKLegacySpan;
+begin
+  Result.Kind := TCKLegacySpanKind(Ord(AValue.Kind));
+  Result.Years := AValue.Years;
+  Result.Months := AValue.Months;
+  Result.Days := AValue.Days;
+  Result.Hours := AValue.Hours;
+  Result.Minutes := AValue.Minutes;
+  Result.Seconds := AValue.Seconds;
+  Result.Milliseconds := AValue.Milliseconds;
+end;
+
+function FromInternalLegacySpan(const AValue: TCKLegacySpan): TDateSpan;
+begin
+  Result.Kind := TDateSpanKind(Ord(AValue.Kind));
+  Result.Years := AValue.Years;
+  Result.Months := AValue.Months;
+  Result.Days := AValue.Days;
+  Result.Hours := AValue.Hours;
+  Result.Minutes := AValue.Minutes;
+  Result.Seconds := AValue.Seconds;
+  Result.Milliseconds := AValue.Milliseconds;
+end;
+
+function ToInternalLegacyInterval(
+  const AValue: TInterval): TCKLegacyInterval;
+begin
+  Result.StartDate := AValue.StartDate;
+  Result.EndDate := AValue.EndDate;
+end;
+
+function FromInternalLegacyInterval(
+  const AValue: TCKLegacyInterval): TInterval;
+begin
+  Result.StartDate := AValue.StartDate;
+  Result.EndDate := AValue.EndDate;
 end;
 
 { TChronoKit }
@@ -3716,303 +3754,78 @@ class function TChronoKit.CreatePeriod(const AYears: Integer = 0; const AMonths:
   const ADays: Integer = 0; const AHours: Integer = 0; const AMinutes: Integer = 0;
   const ASeconds: Integer = 0; const AMilliseconds: Integer = 0): TDateSpan;
 begin
-  Result.Kind := dskPeriod;
-  Result.Years := AYears;
-  Result.Months := AMonths;
-  Result.Days := ADays;
-  Result.Hours := AHours;
-  Result.Minutes := AMinutes;
-  Result.Seconds := ASeconds;
-  Result.Milliseconds := AMilliseconds;
+  Result := FromInternalLegacySpan(CKLegacyCreatePeriod(AYears, AMonths,
+    ADays, AHours, AMinutes, ASeconds, AMilliseconds));
 end;
 
 class function TChronoKit.CreateDuration(const AYears: Integer = 0; const AMonths: Integer = 0;
   const ADays: Integer = 0; const AHours: Integer = 0; const AMinutes: Integer = 0;
   const ASeconds: Integer = 0; const AMilliseconds: Integer = 0): TDateSpan;
 begin
-  Result.Kind := dskDuration;
-  // Convert everything to a consistent unit (milliseconds)
-  Result.Years := 0;
-  Result.Months := 0;
-  Result.Days := 0;
-  Result.Hours := 0;
-  Result.Minutes := 0;
-  Result.Seconds := ASeconds + 
-                   AMinutes * 60 + 
-                   AHours * 3600 + 
-                   ADays * 86400 +
-                   AMonths * 2592000 +  // Approximate - 30 days
-                   AYears * 31536000;   // Approximate - 365 days
-  Result.Milliseconds := AMilliseconds;
+  Result := FromInternalLegacySpan(CKLegacyCreateDuration(AYears, AMonths,
+    ADays, AHours, AMinutes, ASeconds, AMilliseconds));
 end;
 
 class function TChronoKit.CreateInterval(const AStart, AEnd: TDateTime): TInterval;
 begin
-  if CompareDateTime(AStart, AEnd) > 0 then
-    raise EArgumentException.Create(
-      'Interval start must not be later than interval end');
-  Result.StartDate := AStart;
-  Result.EndDate := AEnd;
+  Result := FromInternalLegacyInterval(CKLegacyCreateInterval(AStart, AEnd));
 end;
 
 class function TChronoKit.AddSpan(const AValue: TDateTime; const ASpan: TDateSpan): TDateTime;
 begin
-  case ASpan.Kind of
-    dskPeriod:
-      begin
-        // Use RTL functions for date arithmetic
-        Result := AValue;
-        if ASpan.Years <> 0 then
-          Result := IncYear(Result, ASpan.Years);
-        if ASpan.Months <> 0 then
-          Result := IncMonth(Result, ASpan.Months);
-        if ASpan.Days <> 0 then
-          Result := IncDay(Result, ASpan.Days);
-        if (ASpan.Hours <> 0) or (ASpan.Minutes <> 0) or 
-           (ASpan.Seconds <> 0) or (ASpan.Milliseconds <> 0) then
-          Result := Result + EncodeTime(ASpan.Hours, ASpan.Minutes,
-                                      ASpan.Seconds, ASpan.Milliseconds);
-      end;
-      
-    dskDuration:
-      begin
-        // Add exact number of seconds
-        Result := AValue + 
-                 (ASpan.Seconds / SecsPerDay) +
-                 (ASpan.Milliseconds / (SecsPerDay * 1000));
-      end;
-      
-    else
-      Result := AValue; // Unknown kind
-  end;
+  Result := CKLegacyAddSpan(AValue, ToInternalLegacySpan(ASpan));
 end;
 
 class function TChronoKit.SubtractSpan(const AValue: TDateTime; const ASpan: TDateSpan): TDateTime;
-var
-  NegativeSpan: TDateSpan;
 begin
-  // Create negative version of span
-  NegativeSpan := ASpan;
-  NegativeSpan.Years := -ASpan.Years;
-  NegativeSpan.Months := -ASpan.Months;
-  NegativeSpan.Days := -ASpan.Days;
-  NegativeSpan.Hours := -ASpan.Hours;
-  NegativeSpan.Minutes := -ASpan.Minutes;
-  NegativeSpan.Seconds := -ASpan.Seconds;
-  NegativeSpan.Milliseconds := -ASpan.Milliseconds;
-  
-  Result := AddSpan(AValue, NegativeSpan);
+  Result := CKLegacySubtractSpan(AValue, ToInternalLegacySpan(ASpan));
 end;
 
 class function TChronoKit.SpanBetween(const AStart, AEnd: TDateTime;
                                         const AKind: TDateSpanKind): TDateSpan;
-var
-  Y1, M1, D1, Y2, M2, D2: Word;
-  H1, N1, S1, MS1, H2, N2, S2, MS2: Word;
-  TempDate: TDateTime;
 begin
-  case AKind of
-    dskPeriod:
-      begin
-        // Extract components from both dates
-        DecodeDate(AStart, Y1, M1, D1);
-        DecodeTime(AStart, H1, N1, S1, MS1);
-        DecodeDate(AEnd, Y2, M2, D2);
-        DecodeTime(AEnd, H2, N2, S2, MS2);
-        
-        // Try exact year first
-        TempDate := IncYear(AStart, Y2 - Y1);
-        if CompareDateTime(TempDate, AEnd) = 0 then
-        begin
-          Result := CreatePeriod(Y2 - Y1);
-          Exit;
-        end;
-        
-        // Try exact month
-        TempDate := IncMonth(AStart, (Y2 - Y1) * 12 + (M2 - M1));
-        if CompareDateTime(TempDate, AEnd) = 0 then
-        begin
-          Result := CreatePeriod(Y2 - Y1, M2 - M1);
-          Exit;
-        end;
-        
-        // Calculate full period
-        Result.Kind := dskPeriod;
-        Result.Years := Y2 - Y1;
-        Result.Months := M2 - M1;
-        Result.Days := D2 - D1;
-        Result.Hours := H2 - H1;
-        Result.Minutes := N2 - N1;
-        Result.Seconds := S2 - S1;
-        Result.Milliseconds := MS2 - MS1;
-        
-        // Normalize using RTL functions
-        if Result.Milliseconds < 0 then begin
-          Dec(Result.Seconds);
-          Inc(Result.Milliseconds, 1000);
-        end;
-        if Result.Seconds < 0 then begin
-          Dec(Result.Minutes);
-          Inc(Result.Seconds, 60);
-        end;
-        if Result.Minutes < 0 then begin
-          Dec(Result.Hours);
-          Inc(Result.Minutes, 60);
-        end;
-        if Result.Hours < 0 then begin
-          Dec(Result.Days);
-          Inc(Result.Hours, 24);
-        end;
-        if Result.Days < 0 then begin
-          Dec(Result.Months);
-          TempDate := EncodeDate(Y1, M1, 1);
-          Inc(Result.Days, DaysInMonth(TempDate));
-        end;
-        if Result.Months < 0 then begin
-          Dec(Result.Years);
-          Inc(Result.Months, 12);
-        end;
-      end;
-      
-    dskDuration:
-      begin
-        // Round once so seconds and milliseconds are disjoint components.
-        Result.Kind := dskDuration;
-        Result.Years := 0;
-        Result.Months := 0;
-        Result.Days := 0;
-        Result.Hours := 0;
-        Result.Minutes := 0;
-        Result.Seconds := Round((AEnd - AStart) * SecsPerDay *
-          MillisecondsPerSecond) div MillisecondsPerSecond;
-        Result.Milliseconds := Round((AEnd - AStart) * SecsPerDay *
-          MillisecondsPerSecond) mod MillisecondsPerSecond;
-      end;
-      
-    else
-      FillChar(Result, SizeOf(Result), 0);
-  end;
+  Result := FromInternalLegacySpan(CKLegacySpanBetween(AStart, AEnd,
+    TCKLegacySpanKind(Ord(AKind))));
 end;
 
 class function TChronoKit.IsWithinInterval(const AValue: TDateTime;
                                              const AInterval: TInterval): Boolean;
 begin
-  Result := (AValue >= AInterval.StartDate) and (AValue <= AInterval.EndDate);
+  Result := CKLegacyIsWithinInterval(AValue,
+    ToInternalLegacyInterval(AInterval));
 end;
 
 class function TChronoKit.IntervalsOverlap(const AInterval1, AInterval2: TInterval): Boolean;
 begin
-  Result := (AInterval1.StartDate <= AInterval2.EndDate) and
-            (AInterval1.EndDate >= AInterval2.StartDate);
+  Result := CKLegacyIntervalsOverlap(ToInternalLegacyInterval(AInterval1),
+    ToInternalLegacyInterval(AInterval2));
 end;
 
 class function TChronoKit.IntervalLength(const AInterval: TInterval;
                                            const AKind: TDateSpanKind): TDateSpan;
 begin
-  Result := SpanBetween(AInterval.StartDate, AInterval.EndDate, AKind);
+  Result := FromInternalLegacySpan(CKLegacyIntervalLength(
+    ToInternalLegacyInterval(AInterval), TCKLegacySpanKind(Ord(AKind))));
 end;
 
 class function TChronoKit.YMD(const AValue: string): TDateTime;
-var
-  FormatSettings: TFormatSettings;
-  Value: TDateTime;
 begin
-  FormatSettings := DefaultFormatSettings;
-  FormatSettings.DateSeparator := '-';
-  FormatSettings.ShortDateFormat := 'yyyy/mm/dd';
-  
-  if TryStrToDate(AValue, Value, FormatSettings) then
-    Result := Value
-  else
-  begin
-    FormatSettings.DateSeparator := '/';
-    if TryStrToDate(AValue, Value, FormatSettings) then
-      Result := Value
-    else
-      raise EConvertError.CreateFmt(
-        'Invalid YMD date "%s". Expected YYYY-MM-DD or YYYY/MM/DD with a valid calendar date',
-        [AValue]);
-  end;
+  Result := CKLegacyYMD(AValue);
 end;
 
 class function TChronoKit.MDY(const AValue: string): TDateTime;
-var
-  FormatSettings: TFormatSettings;
-  Value: TDateTime;
 begin
-  FormatSettings := DefaultFormatSettings;
-  FormatSettings.DateSeparator := '-';
-  FormatSettings.ShortDateFormat := 'mm/dd/yyyy';
-  
-  if TryStrToDate(AValue, Value, FormatSettings) then
-    Result := Value
-  else
-  begin
-    FormatSettings.DateSeparator := '/';
-    if TryStrToDate(AValue, Value, FormatSettings) then
-      Result := Value
-    else
-      raise EConvertError.CreateFmt(
-        'Invalid MDY date "%s". Expected MM-DD-YYYY or MM/DD/YYYY with a ' +
-        'valid calendar date; two-digit years are also accepted',
-        [AValue]);
-  end;
+  Result := CKLegacyMDY(AValue);
 end;
 
 class function TChronoKit.DMY(const AValue: string): TDateTime;
-var
-  FormatSettings: TFormatSettings;
-  Value: TDateTime;
 begin
-  FormatSettings := DefaultFormatSettings;
-  FormatSettings.DateSeparator := '-';
-  FormatSettings.ShortDateFormat := 'dd/mm/yyyy';
-  
-  if TryStrToDate(AValue, Value, FormatSettings) then
-    Result := Value
-  else
-  begin
-    FormatSettings.DateSeparator := '/';
-    if TryStrToDate(AValue, Value, FormatSettings) then
-      Result := Value
-    else
-      raise EConvertError.CreateFmt(
-        'Invalid DMY date "%s". Expected DD-MM-YYYY or DD/MM/YYYY with a ' +
-        'valid calendar date; two-digit years are also accepted',
-        [AValue]);
-  end;
+  Result := CKLegacyDMY(AValue);
 end;
 
 class function TChronoKit.YQ(const AValue: string): TDateTime;
-var
-  Year, Quarter: Integer;
-  Parts: TStringDynArray;
 begin
-  // Try hyphen first
-  Parts := SplitString(AValue, '-');
-  if Length(Parts) <> 2 then
-  begin
-    // If hyphen didn't work, try slash
-    Parts := SplitString(AValue, '/');
-    if Length(Parts) <> 2 then
-      raise EConvertError.CreateFmt(
-        'Invalid YQ value "%s". Expected YYYY-Q or YYYY/Q', [AValue]);
-  end;
-    
-  if not TryStrToInt(Parts[0], Year) or
-     not TryStrToInt(Parts[1], Quarter) then
-    raise EConvertError.CreateFmt(
-      'Invalid YQ value "%s". Year and quarter must be numbers', [AValue]);
-
-  if (Year < 1) or (Year > 9999) then
-    raise EConvertError.CreateFmt(
-      'Invalid YQ value "%s". Year must be between 1 and 9999', [AValue]);
-    
-  if (Quarter < 1) or (Quarter > 4) then
-    raise EConvertError.CreateFmt(
-      'Invalid YQ value "%s". Quarter must be between 1 and 4', [AValue]);
-    
-  Result := StartOfQuarter(Year, Quarter);
+  Result := CKLegacyYQ(AValue);
 end;
 
 class function TChronoKit.DateDecimal(const AValue: Double): TDateTime;
@@ -4043,85 +3856,13 @@ begin
 end;
 
 class function TChronoKit.GetEpiYear(const AValue: TDateTime): Integer;
-var
-  Y, M, D: Word;
-  Dec28, ThisDate: TDateTime;
-  ThisWeekMon, LastWeekMon: TDateTime;
 begin
-  DecodeDate(AValue, Y, M, D);
-  ThisDate := AValue;
-  
-  // For early January, check if we belong to previous year
-  if M = 1 then
-  begin
-    // Get December 28th of previous year (always in last week)
-    Dec28 := EncodeDate(Y - 1, 12, 28);
-    
-    // Get Monday of the week containing our date
-    ThisWeekMon := Trunc(ThisDate) - ((DayOfTheWeek(ThisDate) + 5) mod 7);
-    
-    // Get Monday of the week containing Dec 28
-    LastWeekMon := Trunc(Dec28) - ((DayOfTheWeek(Dec28) + 5) mod 7);
-    
-    // If we're in the same week as Dec 28 of previous year
-    if ThisWeekMon = LastWeekMon then
-      Result := Y - 1
-    else
-      Result := Y;
-  end
-  // For late December, check if we belong to next year
-  else if M = 12 then
-  begin
-    // Get December 28th of current year
-    Dec28 := EncodeDate(Y, 12, 28);
-    
-    // Get Monday of the week containing our date
-    ThisWeekMon := Trunc(ThisDate) - ((DayOfTheWeek(ThisDate) + 5) mod 7);
-    
-    // Get Monday of the week containing Dec 28
-    LastWeekMon := Trunc(Dec28) - ((DayOfTheWeek(Dec28) + 5) mod 7);
-    
-    // If we're in the same week as Dec 28
-    if ThisWeekMon >= LastWeekMon then
-      Result := Y + 1
-    else
-      Result := Y;
-  end
-  else
-    Result := Y;
+  Result := CKLegacyGetEpiYear(AValue);
 end;
 
 class function TChronoKit.GetEpiWeek(const AValue: TDateTime): Integer;
-var
-  Y: Integer;
-  Jan4, ThisDate: TDateTime;
-  ThisWeekMon, FirstWeekMon: TDateTime;
 begin
-  // First get the epi year
-  Y := GetEpiYear(AValue);
-  ThisDate := AValue;
-  
-  // Get January 4th of the epi year (always in week 1)
-  Jan4 := EncodeDate(Y, 1, 4);
-  
-  // Get Monday of the week containing our date
-  ThisWeekMon := Trunc(ThisDate) - ((DayOfTheWeek(ThisDate) + 5) mod 7);
-  
-  // Get Monday of week 1 (the week containing Jan 4)
-  FirstWeekMon := Trunc(Jan4) - ((DayOfTheWeek(Jan4) + 5) mod 7);
-  
-  // Calculate week number
-  Result := ((Trunc(ThisWeekMon) - Trunc(FirstWeekMon)) div 7) + 1;
-  
-  // Handle year-end special case
-  if (GetMonth(AValue) = 12) and (GetDay(AValue) >= 28) then
-  begin
-    // Check if we're in the last week
-    Jan4 := EncodeDate(Y + 1, 1, 4);
-    FirstWeekMon := Trunc(Jan4) - ((DayOfTheWeek(Jan4) + 5) mod 7);
-    if ThisWeekMon < FirstWeekMon then
-      Result := 53;
-  end;
+  Result := CKLegacyGetEpiWeek(AValue);
 end;
 
 class function TChronoKit.GetSemester(const AValue: TDateTime): Integer;
@@ -4290,191 +4031,53 @@ begin
 end;
 
 class function TChronoKit.PeriodToSeconds(const APeriod: TDateSpan): Int64;
-const
-  SecondsPerMinute = 60;
-  SecondsPerHour = 3600;
-  SecondsPerDay = 86400;
-  SecondsPerMonth = 2592000;  // Approximate - 30 days
-  SecondsPerYear = 31536000;  // Approximate - 365 days
 begin
-  // Convert all components to seconds using approximate values
-  Result := APeriod.Milliseconds div 1000 +
-            APeriod.Seconds +
-            APeriod.Minutes * SecondsPerMinute +
-            APeriod.Hours * SecondsPerHour +
-            APeriod.Days * SecondsPerDay +
-            APeriod.Months * SecondsPerMonth +
-            APeriod.Years * SecondsPerYear;
+  Result := CKLegacyPeriodToSeconds(ToInternalLegacySpan(APeriod));
 end;
 
 class function TChronoKit.SecondsToPeriod(const ASeconds: Int64): TDateSpan;
-const
-  SecondsPerMinute = 60;
-  SecondsPerHour = 3600;
-  SecondsPerDay = 86400;
-  SecondsPerMonth = 2592000;  // Approximate - 30 days
-  SecondsPerYear = 31536000;  // Approximate - 365 days
-var
-  Remaining: Int64;
 begin
-  Result.Kind := dskDuration;
-  Result.Years := ASeconds div SecondsPerYear;
-  Remaining := ASeconds mod SecondsPerYear;
-  
-  Result.Months := Remaining div SecondsPerMonth;
-  Remaining := Remaining mod SecondsPerMonth;
-  
-  Result.Days := Remaining div SecondsPerDay;
-  Remaining := Remaining mod SecondsPerDay;
-  
-  Result.Hours := Remaining div SecondsPerHour;
-  Remaining := Remaining mod SecondsPerHour;
-  
-  Result.Minutes := Remaining div SecondsPerMinute;
-  Remaining := Remaining mod SecondsPerMinute;
-  
-  Result.Seconds := Remaining;
-  Result.Milliseconds := 0;
+  Result := FromInternalLegacySpan(CKLegacySecondsToPeriod(ASeconds));
 end;
 
 class function TChronoKit.StandardizePeriod(const AValue: TDateSpan): TDateSpan;
-var
-  TotalHours: Integer;
 begin
-  Result := AValue;
-  
-  // Normalize milliseconds to seconds
-  Inc(Result.Seconds, Result.Milliseconds div MillisecondsPerSecond);
-  Result.Milliseconds := Result.Milliseconds mod MillisecondsPerSecond;
-  
-  // Normalize seconds to minutes
-  Inc(Result.Minutes, Result.Seconds div SecondsPerMinute);
-  Result.Seconds := Result.Seconds mod SecondsPerMinute;
-  
-  // Calculate total hours including minutes
-  TotalHours := Result.Hours + (Result.Minutes div MinutesPerHour);
-  Result.Minutes := Result.Minutes mod MinutesPerHour;
-  
-  // Normalize total hours to days
-  Inc(Result.Days, TotalHours div HoursPerDay);
-  Result.Hours := TotalHours mod HoursPerDay;
-  
-  // Normalize months to years
-  Inc(Result.Years, Result.Months div MonthsPerYear);
-  Result.Months := Result.Months mod MonthsPerYear;
+  Result := FromInternalLegacySpan(
+    CKLegacyStandardizePeriod(ToInternalLegacySpan(AValue)));
 end;
 
 class function TChronoKit.IntervalAlign(const AInterval1, AInterval2: TInterval): Boolean;
 begin
-  // Check if intervals are adjacent (end of one equals start of other)
-  Result := (CompareDateTime(AInterval1.EndDate, AInterval2.StartDate) = 0) or
-            (CompareDateTime(AInterval2.EndDate, AInterval1.StartDate) = 0);
+  Result := CKLegacyIntervalAlign(ToInternalLegacyInterval(AInterval1),
+    ToInternalLegacyInterval(AInterval2));
 end;
 
 class function TChronoKit.IntervalGap(const AInterval1, AInterval2: TInterval): TDateSpan;
 begin
-  // Initialize result to zero duration
-  Result := CreateDuration(0, 0, 0);
-  
-  // Find potential gap boundaries
-  if CompareDateTime(AInterval1.EndDate, AInterval2.StartDate) < 0 then
-  begin
-    // Gap between AInterval1 end and AInterval2 start
-    Result := SpanBetween(AInterval1.EndDate, AInterval2.StartDate,
-      dskDuration);
-  end
-  else if CompareDateTime(AInterval2.EndDate, AInterval1.StartDate) < 0 then
-  begin
-    // Gap between AInterval2 end and AInterval1 start
-    Result := SpanBetween(AInterval2.EndDate, AInterval1.StartDate,
-      dskDuration);
-  end;
-
-  // Preserve the legacy whole-day field while retaining any sub-day remainder.
-  Result.Days := Result.Seconds div SecondsPerDay;
-  Result.Seconds := Result.Seconds mod SecondsPerDay;
+  Result := FromInternalLegacySpan(CKLegacyIntervalGap(
+    ToInternalLegacyInterval(AInterval1),
+    ToInternalLegacyInterval(AInterval2)));
 end;
 
 class function TChronoKit.IntervalSetdiff(const AInterval1, AInterval2: TInterval): TInterval;
 begin
-  if not IntervalsOverlap(AInterval1, AInterval2) then
-  begin
-    // If intervals don't overlap, return AInterval1 unchanged
-    Result := AInterval1;
-  end
-  else if (CompareDateTime(AInterval2.StartDate, AInterval1.StartDate) <= 0) and
-          (CompareDateTime(AInterval2.EndDate, AInterval1.EndDate) >= 0) then
-  begin
-    // AInterval2 completely contains AInterval1
-    Result.StartDate := 0;
-    Result.EndDate := 0;
-  end
-  else if CompareDateTime(AInterval2.StartDate, AInterval1.StartDate) <= 0 then
-  begin
-    // AInterval2 overlaps start of AInterval1
-    Result.StartDate := AInterval2.EndDate;
-    Result.EndDate := AInterval1.EndDate;
-  end
-  else if CompareDateTime(AInterval2.EndDate, AInterval1.EndDate) >= 0 then
-  begin
-    // AInterval2 overlaps end of AInterval1
-    Result.StartDate := AInterval1.StartDate;
-    Result.EndDate := AInterval2.StartDate;
-  end
-  else
-  begin
-    // AInterval2 splits AInterval1
-    // Note: In this case we return only the first part
-    Result.StartDate := AInterval1.StartDate;
-    Result.EndDate := AInterval2.StartDate;
-  end;
+  Result := FromInternalLegacyInterval(CKLegacyIntervalSetdiff(
+    ToInternalLegacyInterval(AInterval1),
+    ToInternalLegacyInterval(AInterval2)));
 end;
 
 class function TChronoKit.IntervalUnion(const AInterval1, AInterval2: TInterval): TInterval;
 begin
-  if not IntervalsOverlap(AInterval1, AInterval2) and 
-     not IntervalAlign(AInterval1, AInterval2) then
-  begin
-    // If intervals don't overlap or align, return empty interval
-    Result.StartDate := 0;
-    Result.EndDate := 0;
-  end
-  else
-  begin
-    // Take earliest start and latest end
-    if CompareDateTime(AInterval1.StartDate, AInterval2.StartDate) <= 0 then
-      Result.StartDate := AInterval1.StartDate
-    else
-      Result.StartDate := AInterval2.StartDate;
-      
-    if CompareDateTime(AInterval1.EndDate, AInterval2.EndDate) >= 0 then
-      Result.EndDate := AInterval1.EndDate
-    else
-      Result.EndDate := AInterval2.EndDate;
-  end;
+  Result := FromInternalLegacyInterval(CKLegacyIntervalUnion(
+    ToInternalLegacyInterval(AInterval1),
+    ToInternalLegacyInterval(AInterval2)));
 end;
 
 class function TChronoKit.IntervalIntersection(const AInterval1, AInterval2: TInterval): TInterval;
 begin
-  if not IntervalsOverlap(AInterval1, AInterval2) then
-  begin
-    // If intervals don't overlap, return empty interval
-    Result.StartDate := 0;
-    Result.EndDate := 0;
-  end
-  else
-  begin
-    // Take latest start and earliest end
-    if CompareDateTime(AInterval1.StartDate, AInterval2.StartDate) >= 0 then
-      Result.StartDate := AInterval1.StartDate
-    else
-      Result.StartDate := AInterval2.StartDate;
-      
-    if CompareDateTime(AInterval1.EndDate, AInterval2.EndDate) <= 0 then
-      Result.EndDate := AInterval1.EndDate
-    else
-      Result.EndDate := AInterval2.EndDate;
-  end;
+  Result := FromInternalLegacyInterval(CKLegacyIntervalIntersection(
+    ToInternalLegacyInterval(AInterval1),
+    ToInternalLegacyInterval(AInterval2)));
 end;
 
 { Private helper functions for timezone validation }

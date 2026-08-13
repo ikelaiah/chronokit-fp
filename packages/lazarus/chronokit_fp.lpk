@@ -73,6 +73,10 @@ SOFTWARE. "/>
         <Filename Value="..\..\src\ChronoKitParsing.pas"/>
         <UnitName Value="ChronoKitParsing"/>
       </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitLegacy.pas"/>
+        <UnitName Value="ChronoKitLegacy"/>
+      </Item>
     </Files>
     <RequiredPkgs>
       <Item>

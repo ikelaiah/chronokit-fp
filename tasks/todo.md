@@ -9,7 +9,7 @@
 - [x] Extract business calendars
 - [x] Extract calendar arithmetic and rounding
 - [x] Extract parsing and formatting
-- [ ] Isolate incompatible legacy implementations
+- [x] Isolate incompatible legacy implementations
 - [ ] Simplify timezone facade duplication
 - [ ] Decide whether platform timezone backends should be split
 - [ ] Run full Windows-oriented local verification

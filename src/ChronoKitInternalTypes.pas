@@ -56,6 +56,23 @@ type
     ckduYear
   );
 
+  TCKLegacySpanKind = (cklskPeriod, cklskDuration);
+  TCKLegacySpan = record
+    Kind: TCKLegacySpanKind;
+    Years: Integer;
+    Months: Integer;
+    Days: Integer;
+    Hours: Integer;
+    Minutes: Integer;
+    Seconds: Integer;
+    Milliseconds: Integer;
+  end;
+
+  TCKLegacyInterval = record
+    StartDate: TDateTime;
+    EndDate: TDateTime;
+  end;
+
 implementation
 
 end.
