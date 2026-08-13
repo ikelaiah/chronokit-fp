@@ -1,75 +1,88 @@
-# Implementation Plan: v1.7.0 executable learning path and focused API gaps
+# Implementation plan: v1.7 maintainability refactor
 
 ## Scope
 
-Deliver only the v1.7.0 roadmap milestone: three reviewed additive workflows,
-an executable progressive learning path, decision guidance and audit records,
-a generated API reference with a coverage check, and clean-consumer checks for
-the documented source and Lazarus installation paths. The preferred v1.7 API
-is frozen by this release; no v1.8, v1.9, or 2.0 work is included.
+Simplify ChronoKit-FP's internals without changing the frozen v1.7 public API,
+runtime behavior, version metadata, or documented user model. Work proceeds in
+small, independently verified slices. This plan does not mark the v1.8 roadmap
+milestone complete.
 
 ## Architecture decisions
 
-- `BusinessDaysBetween` counts both calendar-date endpoints, ignores their
-  time portions, returns a negative count for reverse order, and applies the
-  same calendar validation and holiday/working-week rules as existing helpers.
-- `ConvertBetweenTimeZones` resolves the named source wall clock directly to
-  UTC and then converts UTC to the named target. It does not chain through the
-  system zone, so a system DST overlap cannot change a named-zone conversion.
-- Learning examples are standalone `.lpr` programs. Their source is the
-  canonical documentation listing, and CI compiles and runs them on both
-  supported platforms.
-- The API-reference generator derives Markdown from `TChronoKit` public
-  declaration comments and fails when a non-deprecated declaration has no
-  useful contract, error rule, or example reference.
+- `ChronoKit.pas` remains the only taught public facade.
+- Shared public value types may be implemented in `ChronoKitTypes.pas` only if
+  aliases preserve FPC 3.2.2 source compatibility and compiler diagnostics.
+- Domain units depend on `ChronoKitTypes` and the RTL, never on the facade.
+- Equivalent deprecated aliases remain one-line facade delegates. Historical
+  algorithms with incompatible semantics belong in `ChronoKitLegacy.pas` and
+  are never called by preferred implementations.
+- The existing timezone engine remains intact until every other extraction is
+  complete. Its platform sections are split only if that removes coupling
+  without duplicating shared TZif or conversion logic.
 
 ## Task list
 
-### Phase 1: Contract and API behavior
+### Phase 1: Refactoring guardrails
 
-1. [x] Publish the v1.7 workflow contract, including endpoint, direction,
-       time-component, timezone-error, and boundary behavior.
-2. [x] Add failing focused FPCUnit coverage for named-zone conversion, quarter
-       value boundaries, and business-day counting.
-3. [x] Implement only those three public additions with declaration comments.
+1. Remove unused and stale test scaffolding without changing assertions.
+2. Split the monolithic FPCUnit class into domain suites and retain all 178
+   registered tests.
+3. Add checked Windows and Linux v1.7 API manifests covering public constants,
+   types, methods, directives, visibility, and platform-specific declarations.
+4. Record the internal dependency direction and contributor placement rules.
 
-### Checkpoint: API additions
+### Checkpoint: guardrails
 
-- [x] New focused tests pass.
-- [x] Existing Windows/Linux timezone matrix remains meaningful and green.
+- The same 178 tests pass.
+- Legacy compatibility, examples, package, consumers, and documentation pass.
+- API manifests match on the platform that generated them.
 
-### Phase 2: Learning and discoverability
+### Phase 2: Foundational seams
 
-4. [x] Add five progressive, runnable learning programs for dates/wall clocks,
-       periods/durations, half-open ranges, business calendars, and named
-       timezones; include the new workflows where they belong.
-5. [x] Publish the progressive guide, decision guides, updated task references,
-       and the v1.7 beginner audit. Record out-of-scope observations as
-       post-2.0 design input only.
-6. [x] Generate and check a searchable API reference from public declaration
-       comments, with a committed generated reference and a stale/coverage
-       failure mode.
+5. Introduce `ChronoKitTypes.pas`, re-export compatible aliases from the
+   facade, and verify preferred and legacy consumers compile unchanged.
+6. Extract exact duration and half-open range implementations.
+7. Extract business-calendar implementations.
 
-### Phase 3: Reproducible verification and release records
+### Checkpoint: foundational domains
 
-7. [x] Add clean source and Lazarus consumer fixtures/checks; run the
-       executable examples and documentation/reference checks in CI.
-8. [x] Update version metadata, README, changelog, roadmap, release notes,
-       PR summary, and task checklist for v1.7.0.
+- Public API manifests are unchanged.
+- Domain suites and the full verification matrix pass.
+- Preferred units do not depend on legacy code.
 
-### Checkpoint: complete
+### Phase 3: Calendar and text domains
 
-- [x] FPCUnit, examples, package/consumer checks, generated-reference check,
-       and documentation links pass.
-- [x] Windows and Linux CI execute the same v1.7 behavior and examples.
-- [x] No public addition beyond the three v1.7 workflows is present.
+8. Extract calendar arithmetic, boundaries, comparisons, calendar systems,
+   decimal years, and rounding.
+9. Extract parsing and formatting.
+10. Isolate incompatible deprecated algorithms in `ChronoKitLegacy.pas` while
+    leaving equivalent aliases as direct facade delegates.
+
+### Checkpoint: facade
+
+- `ChronoKit.pas` contains declarations and thin orchestration rather than
+  domain algorithms.
+- API manifests and all behavior checks remain unchanged.
+
+### Phase 4: Timezones and completion
+
+11. Collapse duplicated facade timezone conversion orchestration around one
+    named-source-to-named-target path.
+12. Review Windows and Linux backend cohesion and either split them with full
+    matrix evidence or record why the existing conditional unit is clearer.
+13. Run the complete release verification and conduct final code review.
 
 ## Risks and mitigations
 
 | Risk | Mitigation |
 |---|---|
-| Named conversion crosses a system-zone overlap | Resolve the source directly to UTC before converting to target. |
-| `TDateTime` time components make counts surprising | State and test that counting uses calendar dates only. |
-| Examples drift from prose | Link prose to standalone sources and compile/run them in CI. |
-| Generated docs become stale | Regenerate in check mode and compare with the committed reference. |
-| Lazarus availability differs by platform | Build a clean consumer fixture with the installed Lazarus tool in CI. |
+| Type aliases change compiler-visible identity | Prove aliases with source and Lazarus consumers before extracting domains |
+| Moving tests silently drops registration | Compare the registered test count and test-name inventory before and after |
+| Refactoring changes deprecated behavior | Keep legacy behavior tests and compile fixture separate and green |
+| Unit dependencies become circular | Enforce `facade -> domains -> types/RTL` and check compiler unit order |
+| Platform extraction duplicates timezone logic | Split backends only when shared logic remains single-owned |
+| Large moves hide behavior edits | One domain per commit; review moved bodies against the original |
+
+## Open questions
+
+None. The user approved the complete audit sequence on 2026-08-13.
