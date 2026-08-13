@@ -82,39 +82,77 @@ jobs:
         shell: pwsh
         working-directory: tests
         run: |
-          fpc "-FU." "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" TestRunner.lpr
-          .\TestRunner.exe -a --format=plain
+          $output = "$env:GITHUB_WORKSPACE\build-temp\ci-tests"
+          New-Item -ItemType Directory -Force -Path $output | Out-Null
+          fpc "-FU$output" "-FE$output" "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" TestRunner.lpr
+          & "$output\TestRunner.exe" -a --format=plain
 
       - name: Compile and run tests on Linux
         if: runner.os == 'Linux'
         working-directory: tests
         run: |
-          fpc "-FU." "-Fu$GITHUB_WORKSPACE/src" TestRunner.lpr
-          ./TestRunner -a --format=plain
+          mkdir -p "$GITHUB_WORKSPACE/build-temp/ci-tests"
+          fpc "-FU$GITHUB_WORKSPACE/build-temp/ci-tests" "-FE$GITHUB_WORKSPACE/build-temp/ci-tests" "-Fu$GITHUB_WORKSPACE/src" TestRunner.lpr
+          "$GITHUB_WORKSPACE/build-temp/ci-tests/TestRunner" -a --format=plain
 
       - name: Compile legacy compatibility fixture on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         working-directory: tests
-        run: fpc -B -vw "-FU." "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" LegacyCompatibility.pas
+        run: |
+          $output = "$env:GITHUB_WORKSPACE\build-temp\ci-legacy"
+          New-Item -ItemType Directory -Force -Path $output | Out-Null
+          fpc -B -vw "-FU$output" "-FE$output" "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" LegacyCompatibility.pas
 
       - name: Compile legacy compatibility fixture on Linux
         if: runner.os == 'Linux'
         working-directory: tests
-        run: fpc -B -vw -FU. "-Fu$GITHUB_WORKSPACE/src" LegacyCompatibility.pas
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build-temp/ci-legacy"
+          fpc -B -vw "-FU$GITHUB_WORKSPACE/build-temp/ci-legacy" "-FE$GITHUB_WORKSPACE/build-temp/ci-legacy" "-Fu$GITHUB_WORKSPACE/src" LegacyCompatibility.pas
 
       - name: Compile examples on Windows
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $output = "$env:GITHUB_WORKSPACE\build-temp\ci-examples"
+          New-Item -ItemType Directory -Force -Path $output | Out-Null
           Get-ChildItem examples -Recurse -File -Include *.lpr,*.pas |
             ForEach-Object {
-              fpc "-FU$env:GITHUB_WORKSPACE\tests" "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" $_.FullName
+              fpc "-FU$output" "-FE$output" "-Fu$env:FPC_WINDOWS_UNIT_PATH" "-Fu$env:GITHUB_WORKSPACE\src" $_.FullName
               if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             }
 
       - name: Compile examples on Linux
         if: runner.os == 'Linux'
         run: |
+          mkdir -p "$GITHUB_WORKSPACE/build-temp/ci-examples"
           find examples -type f \( -name '*.lpr' -o -name '*.pas' \) -print0 |
-            xargs -0 -n1 fpc "-FU$GITHUB_WORKSPACE/tests" "-Fu$GITHUB_WORKSPACE/src"
+            xargs -0 -n1 fpc "-FU$GITHUB_WORKSPACE/build-temp/ci-examples" "-FE$GITHUB_WORKSPACE/build-temp/ci-examples" "-Fu$GITHUB_WORKSPACE/src"
+
+      - name: Run executable learning path on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem examples\LearningPath -Filter *.lpr -File |
+            ForEach-Object {
+              & "$env:GITHUB_WORKSPACE\build-temp\ci-examples\$($_.BaseName).exe"
+              if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            }
+
+      - name: Run executable learning path on Linux
+        if: runner.os == 'Linux'
+        run: |
+          find examples/LearningPath -type f -name '*.lpr' -print0 |
+            while IFS= read -r -d '' source; do
+              name="$(basename "${source%.*}")"
+              "$GITHUB_WORKSPACE/build-temp/ci-examples/$name"
+            done
+
+      - name: Check generated reference and executable documentation
+        shell: pwsh
+        run: pwsh -NoProfile -File tools\TestDocumentation.ps1
+
+      - name: Verify clean consumer installation paths
+        shell: pwsh
+        run: pwsh -NoProfile -File tools\TestCleanConsumers.ps1

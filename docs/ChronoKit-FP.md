@@ -1,4 +1,4 @@
-# ChronoKit-FP v1.6.0 task guide
+# ChronoKit-FP v1.7.0 task guide
 
 ChronoKit-FP is a dependency-free date/time toolkit for Free Pascal 3.2.2+ on
 Windows and Linux. This guide is organized by what you need to accomplish. For
@@ -16,9 +16,9 @@ a compact exhaustive index, use the [searchable cheat sheet](Cheat-Sheet.md).
 | Add a multi-part value | `CreateCalendarPeriod` or `DurationFromParts` | Choose calendar meaning or exact elapsed time. |
 | Find a boundary | `StartOf*`, `EndOf*`, or rounding methods | A ceiling is the next boundary, not the end of a unit. |
 | Compare or measure | `IsBefore`, `IsSameDay`, `DurationBetween` | Duration differences are exact milliseconds. |
-| Apply working-day rules | Business-calendar methods | Calls without a calendar use Monday to Friday. |
+| Apply working-day rules | `AddBusinessDays`, `BusinessDaysBetween` | Calls without a calendar use Monday to Friday. |
 | Work with ranges | `CreateRange` and range methods | Ranges are half-open: `[start, end)`. |
-| Convert a timezone | `SystemLocalToTimeZone` or `TimeZoneToSystemLocal` | Decide whether the input is system-local or belongs to a named source zone. |
+| Convert a timezone | `SystemLocalToTimeZone`, `TimeZoneToSystemLocal`, or `ConvertBetweenTimeZones` | Decide whether the input is system-local, named-source-to-system, or named-source-to-named-target. |
 
 ## Understand the value type
 
@@ -178,6 +178,7 @@ begin
   NextWorking := TChronoKit.NextBusinessDay(Value, Calendar);
   PreviousWorking := TChronoKit.PreviousBusinessDay(Value, Calendar);
   DueDate := TChronoKit.AddBusinessDays(StartDate, 5, Calendar);
+  WorkingDates := TChronoKit.BusinessDaysBetween(StartDate, DueDate, Calendar);
 end;
 ```
 
@@ -209,8 +210,10 @@ ISOYear := TChronoKit.GetISOYear(Value);
 ISOWeek := TChronoKit.GetISOWeek(Value);
 ```
 
-`GetQuarter` and `GetSemester` report larger calendar groupings, and
-`StartOfQuarter` constructs a validated quarter boundary.
+`GetQuarter` and `GetSemester` report larger calendar groupings.
+`StartOfQuarter(Value)` and `EndOfQuarter(Value)` return the boundaries of an
+existing date/time's quarter; `StartOfQuarter(Year, Quarter)` constructs a
+validated explicit boundary.
 `DateTimeToDecimalYear` converts a date/time to a decimal year and
 `DecimalYearToDateTime` converts it back to within one millisecond.
 
@@ -224,11 +227,16 @@ ChronoKit's timezone functions operate on unzoned wall clocks:
   preserves its instant, and returns the target-zone wall clock.
 - `TimeZoneToSystemLocal(Value, SourceZone)` interprets `Value` in the named source
   zone and returns the equivalent system-local wall clock.
+- `ConvertBetweenTimeZones(Value, SourceZone, TargetZone)` interprets `Value` in
+  a named source zone and returns the named target-zone wall clock for the same
+  instant.
 
 ```pascal
 LocalValue := TChronoKit.GetNow;
 UTCValue := TChronoKit.SystemLocalToTimeZone(LocalValue, 'UTC');
 SystemValue := TChronoKit.TimeZoneToSystemLocal(UTCValue, 'UTC');
+TargetValue := TChronoKit.ConvertBetweenTimeZones(
+  SourceValue, SourceZone, TargetZone);
 ```
 
 `UTC` is the only portable identifier. Get exact platform-native values from
@@ -243,6 +251,9 @@ defines platform mappings and exact boundary behavior.
 
 ## Continue from here
 
+- [Executable learning path](Learning-Path.md): five runnable concepts in order.
+- [Decision guides](Decision-Guides.md): choose a type, operation, or recovery path.
+- [Generated API reference](API-Reference.md): declarations and public contracts.
 - [Searchable cheat sheet](Cheat-Sheet.md): question index and every public
   method.
 - [Getting Started](Getting-Started.md): installation and first program.

@@ -204,7 +204,7 @@ external feedback.
 
 ## 1.7.0 — Executable learning path and focused API gaps
 
-**Status:** Planned
+**Status:** Completed 2026-08-13
 
 Make the preferred v1.6 API understandable as a small set of concepts rather
 than a long list of methods, and close three concrete workflow gaps before
@@ -256,6 +256,13 @@ conversion, quarter boundaries, and business-day counting each have one
 reviewed and tested path; and every taught example runs on either supported
 platform. The preferred public surface is then closed to further additions
 through v1.9.
+
+The completed release includes the executable [learning path](docs/Learning-Path.md),
+[decision guides](docs/Decision-Guides.md), [beginner audit](docs/API-Audit-v1.7.0.md),
+and generated [API reference](docs/API-Reference.md). `ConvertBetweenTimeZones`,
+value `StartOfQuarter`/`EndOfQuarter`, and `BusinessDaysBetween` are the
+milestone's only runtime additions. Their contracts are recorded in
+[API additions v1.7.0](docs/API-Additions-v1.7.0.md).
 
 ## 1.8.0 — Maintainable internals
 

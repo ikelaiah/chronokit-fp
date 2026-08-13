@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-08-13
+
+### Added
+
+- `ConvertBetweenTimeZones` for direct named-source-to-named-target conversion
+  that resolves the source clock once and preserves its instant.
+- Value-based `StartOfQuarter` and `EndOfQuarter` boundaries.
+- Inclusive, signed `BusinessDaysBetween` overloads, with custom-calendar
+  support and date-only endpoint semantics.
+- Five executable learning programs, decision guides, a repeated beginner
+  audit, and a generated searchable preferred API reference.
+- Clean source and Lazarus-package consumer fixtures plus documentation and
+  executable-example checks in the Windows/Linux workflow.
+
+### Changed
+
+- README and task-oriented guides lead new users through the preferred v1.7
+  concepts before introducing business calendars or named timezones.
+- The preferred public surface is closed to further additions through v1.9.
+
+### Compatibility
+
+- No 1.x declaration was removed, deprecated, or given a new runtime
+  dependency.
+
 ## [1.6.0] - 2026-08-13
 
 ### Added

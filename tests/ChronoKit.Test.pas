@@ -3378,6 +3378,10 @@ begin
   AssertEquals('A Q4 value ends in the same calendar year',
     EncodeDateTime(2024, 12, 31, 23, 59, 59, 999),
     TChronoKit.EndOfQuarter(FourthQuarterValue), OneMillisecond);
+  AssertEquals('The millisecond after Q4 end starts the next calendar year',
+    EncodeDate(2025, 1, 1), TChronoKit.AddDuration(
+      TChronoKit.EndOfQuarter(FourthQuarterValue),
+      TChronoKit.DurationFromParts(0, 0, 0, 0, 1)), OneMillisecond);
 end;
 
 procedure TDateTimeTests.Test168_BusinessDaysBetweenCountsInclusiveDates;

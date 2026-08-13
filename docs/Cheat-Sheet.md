@@ -29,10 +29,12 @@ uses
 | floor, ceiling, or round a value | floor, ceiling, truncate, round | `FloorDate`, `CeilingDate`, `RoundDate` |
 | compare two dates | before, after, same, compare | `IsBefore`, `IsAfter`, `IsSameDay` |
 | calculate weekdays or holidays | business, workday, holiday, deadline | `AddBusinessDays`, `CreateBusinessCalendar` |
+| count working dates in a period | business, count, between, reporting | `BusinessDaysBetween` |
 | test, measure, or combine ranges | range, overlap, gap, union | `CreateRange` and the range methods |
 | get ISO week values | ISO, week | `GetISOYear`, `GetISOWeek` |
 | convert the same instant to another timezone | timezone, convert, target, UTC | `SystemLocalToTimeZone` |
 | interpret a clock from a named timezone | timezone, source, assign | `TimeZoneToSystemLocal` |
+| convert one named timezone directly to another | timezone, source, target, convert | `ConvertBetweenTimeZones` |
 | validate a timezone name or offset | timezone, valid, offset | `ValidateTimeZone`, `ValidateTimeZoneOffset` |
 
 ## Create, parse, and format
@@ -63,6 +65,7 @@ Date1 := TChronoKit.ParseDateTime('2024-08-11', 'yyyy-mm-dd');
 Date2 := TChronoKit.ParseDateTime('08-11-2024', 'mm-dd-yyyy');
 Date3 := TChronoKit.ParseDateTime('11-08-2024', 'dd-mm-yyyy');
 QuarterStart := TChronoKit.StartOfQuarter(2024, 3);
+QuarterEnd := TChronoKit.EndOfQuarter(Value);
 ```
 
 ## Current values and components
@@ -172,12 +175,14 @@ begin
     EncodeDate(2026, 12, 25)
   ]);
   DueDate := TChronoKit.AddBusinessDays(StartDate, 5, Calendar);
+  WorkingDates := TChronoKit.BusinessDaysBetween(StartDate, DueDate, Calendar);
 end;
 ```
 
 See [Business calendars](Business-Calendars.md) for alternative working weeks,
 boundary rules, and deadline recipes. A calendar with no working days raises
-`EBusinessCalendarError`.
+`EBusinessCalendarError`. `BusinessDaysBetween` includes qualifying endpoints,
+ignores input times, and returns a negative count for reversed dates.
 
 ## Half-open ranges
 
@@ -207,7 +212,8 @@ ISOYear := TChronoKit.GetISOYear(Value);
 ISOWeek := TChronoKit.GetISOWeek(Value);
 Quarter := TChronoKit.GetQuarter(Value);
 Semester := TChronoKit.GetSemester(Value);
-QuarterStart := TChronoKit.StartOfQuarter(ISOYear, Quarter);
+QuarterStart := TChronoKit.StartOfQuarter(Value);
+QuarterEnd := TChronoKit.EndOfQuarter(Value);
 
 DecimalValue := TChronoKit.DateTimeToDecimalYear(Value);
 RestoredDate := TChronoKit.DecimalYearToDateTime(DecimalValue);
@@ -227,6 +233,10 @@ UTCValue := TChronoKit.SystemLocalToTimeZone(Value, 'UTC');
 
 // Interpret UTCValue as a UTC wall clock and return a system-local wall clock.
 SystemValue := TChronoKit.TimeZoneToSystemLocal(UTCValue, 'UTC');
+
+// Interpret a named source wall clock and represent the same instant in target.
+TargetValue := TChronoKit.ConvertBetweenTimeZones(
+  SourceValue, SourceTimeZone, TargetTimeZone);
 
 Info := TChronoKit.GetSystemTimeZoneInfo(Value);
 SystemZone := TChronoKit.GetSystemTimeZone;
@@ -252,7 +262,7 @@ rules.
 
 ## Preferred public method index
 
-This index includes the preferred v1.6 `TChronoKit` methods. Deprecated 1.x
+This index includes the preferred v1.7 `TChronoKit` methods. Deprecated 1.x
 methods are indexed in the [migration guide](MIGRATION-v1.6-to-v2.0.md).
 
 | Task group | Methods |
@@ -261,13 +271,13 @@ methods are indexed in the [migration guide](MIGRATION-v1.6-to-v2.0.md).
 | Date/time components | `GetYear`, `GetMonth`, `GetDay`, `GetDayOfWeek`, `GetDayOfYear`, `GetHour`, `GetMinute`, `GetSecond`, `GetMillisecond`, `GetQuarter`, `GetSemester`, `IsAM`, `IsPM` |
 | Replace components | `SetYear`, `SetMonth`, `SetDay`, `SetHour`, `SetMinute`, `SetSecond`, `SetMilliSecond` |
 | Direct arithmetic | `AddYears`, `AddMonths`, `AddDays`, `AddHours`, `AddMinutes`, `AddSeconds` |
-| Boundaries and rounding | `StartOfYear`, `StartOfQuarter`, `StartOfMonth`, `StartOfWeek`, `StartOfDay`, `StartOfHour`, `EndOfYear`, `EndOfMonth`, `EndOfWeek`, `EndOfDay`, `EndOfHour`, `FloorDate`, `CeilingDate`, `RoundDate` |
+| Boundaries and rounding | `StartOfYear`, `StartOfQuarter`, `StartOfMonth`, `StartOfWeek`, `StartOfDay`, `StartOfHour`, `EndOfYear`, `EndOfQuarter`, `EndOfMonth`, `EndOfWeek`, `EndOfDay`, `EndOfHour`, `FloorDate`, `CeilingDate`, `RoundDate` |
 | Comparisons | `IsBefore`, `IsAfter`, `IsSameDay`, `IsSameMonth`, `IsSameYear` |
-| Business calendars | `CreateBusinessCalendar`, `IsBusinessDay`, `NextBusinessDay`, `PreviousBusinessDay`, `AddBusinessDays` |
+| Business calendars | `CreateBusinessCalendar`, `IsBusinessDay`, `NextBusinessDay`, `PreviousBusinessDay`, `AddBusinessDays`, `BusinessDaysBetween` |
 | Calendar periods and durations | `CreateCalendarPeriod`, `NormalizeCalendarPeriod`, `DurationFromParts`, `DurationFromSeconds`, `AddPeriod`, `SubtractPeriod`, `AddDuration`, `SubtractDuration`, `DurationBetween` |
 | Half-open ranges | `CreateRange`, `RangeContains`, `RangesOverlap`, `RangeDuration`, `RangesTouch`, `RangeGap`, `SubtractRange`, `TryMergeRanges`, `TryIntersectRanges` |
 | Calendar reporting | `DecimalYearToDateTime`, `DateTimeToDecimalYear`, `GetISOYear`, `GetISOWeek` |
-| Timezones | `GetSystemTimeZoneInfo`, `GetSystemTimeZone`, `GetTimeZoneNames`, `IsValidTimeZoneName`, `IsValidUTCOffset`, `ValidateTimeZone`, `ValidateTimeZoneOffset`, `SystemLocalToTimeZone`, `TimeZoneToSystemLocal` |
+| Timezones | `GetSystemTimeZoneInfo`, `GetSystemTimeZone`, `GetTimeZoneNames`, `IsValidTimeZoneName`, `IsValidUTCOffset`, `ValidateTimeZone`, `ValidateTimeZoneOffset`, `SystemLocalToTimeZone`, `TimeZoneToSystemLocal`, `ConvertBetweenTimeZones` |
 
 ## Public types and errors
 

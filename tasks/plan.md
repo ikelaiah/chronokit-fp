@@ -40,29 +40,29 @@ is frozen by this release; no v1.8, v1.9, or 2.0 work is included.
 
 ### Phase 2: Learning and discoverability
 
-4. [ ] Add five progressive, runnable learning programs for dates/wall clocks,
+4. [x] Add five progressive, runnable learning programs for dates/wall clocks,
        periods/durations, half-open ranges, business calendars, and named
        timezones; include the new workflows where they belong.
-5. [ ] Publish the progressive guide, decision guides, updated task references,
+5. [x] Publish the progressive guide, decision guides, updated task references,
        and the v1.7 beginner audit. Record out-of-scope observations as
        post-2.0 design input only.
-6. [ ] Generate and check a searchable API reference from public declaration
+6. [x] Generate and check a searchable API reference from public declaration
        comments, with a committed generated reference and a stale/coverage
        failure mode.
 
 ### Phase 3: Reproducible verification and release records
 
-7. [ ] Add clean source and Lazarus consumer fixtures/checks; run the
+7. [x] Add clean source and Lazarus consumer fixtures/checks; run the
        executable examples and documentation/reference checks in CI.
-8. [ ] Update version metadata, README, changelog, roadmap, release notes,
+8. [x] Update version metadata, README, changelog, roadmap, release notes,
        PR summary, and task checklist for v1.7.0.
 
 ### Checkpoint: complete
 
-- [ ] FPCUnit, examples, package/consumer checks, generated-reference check,
+- [x] FPCUnit, examples, package/consumer checks, generated-reference check,
        and documentation links pass.
-- [ ] Windows and Linux CI execute the same v1.7 behavior and examples.
-- [ ] No public addition beyond the three v1.7 workflows is present.
+- [x] Windows and Linux CI execute the same v1.7 behavior and examples.
+- [x] No public addition beyond the three v1.7 workflows is present.
 
 ## Risks and mitigations
 

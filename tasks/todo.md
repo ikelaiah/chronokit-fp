@@ -8,11 +8,11 @@
 - [x] Direct named-zone conversion implemented and tested
 - [x] Quarter value-boundary overloads implemented and tested
 - [x] Business-day counting overloads implemented and tested
-- [ ] Progressive executable learning path added
-- [ ] Decision guides and beginner audit published
-- [ ] Generated searchable reference and declaration-coverage check added
-- [ ] Clean source and Lazarus consumer checks added
-- [ ] Examples compile and run on Windows and Linux
-- [ ] Version and release records updated for v1.7.0
+- [x] Progressive executable learning path added
+- [x] Decision guides and beginner audit published
+- [x] Generated searchable reference and declaration-coverage check added
+- [x] Clean source and Lazarus consumer checks added
+- [x] Examples compile and run on Windows and Linux
+- [x] Version and release records updated for v1.7.0
 - [ ] Full test suite, package, consumers, documentation, and generated-reference checks pass
 - [ ] Diff check and final code review pass
