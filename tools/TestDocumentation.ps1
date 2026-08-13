@@ -4,6 +4,9 @@ param()
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
+$manifestTestPath = Join-Path $PSScriptRoot 'TestApiManifest.ps1'
+& $manifestTestPath
+
 $generatorPath = Join-Path $PSScriptRoot 'GenerateApiReference.ps1'
 & $generatorPath -Check
 

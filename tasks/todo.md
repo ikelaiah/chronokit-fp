@@ -2,7 +2,7 @@
 
 - [x] Remove dead test scaffolding
 - [x] Split 178 tests into domain suites without assertion changes
-- [ ] Add and check Windows/Linux v1.7 API manifests
+- [x] Add and check Windows/Linux v1.7 API manifests
 - [ ] Record internal architecture and contributor placement rules
 - [ ] Introduce and verify the shared-types seam
 - [ ] Extract durations and ranges

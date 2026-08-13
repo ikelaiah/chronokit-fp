@@ -1,0 +1,327 @@
+# ChronoKit-FP v1.7.0 public API manifest
+platform=windows
+
+const
+MillisecondsPerSecond = 1000;
+SecondsPerMinute = 60;
+MinutesPerHour = 60;
+HoursPerDay = 24;
+DaysPerWeek = 7;
+MonthsPerYear = 12;
+SecondsPerHour = SecondsPerMinute * MinutesPerHour;
+SecondsPerDay = SecondsPerHour * HoursPerDay;
+MinutesPerDay = MinutesPerHour * HoursPerDay;
+OneMillisecond = 1 / (SecondsPerDay * MillisecondsPerSecond);
+TIME_ZONE_ID_INVALID = DWORD($FFFFFFFF);
+TIME_ZONE_ID_UNKNOWN = 0;
+TIME_ZONE_ID_STANDARD = 1;
+TIME_ZONE_ID_DAYLIGHT = 2;
+function TzSpecificLocalTimeToSystemTime(lpTimeZoneInformation: PTimeZoneInformation;
+lpLocalTime: PSystemTime; lpUniversalTime: PSystemTime): BOOL; stdcall; external 'kernel32.dll' name 'TzSpecificLocalTimeToSystemTime';
+type
+ETimeZoneError = class(Exception);
+EBusinessCalendarError = class(Exception);
+TBusinessWeekday = (
+bwdSunday,
+bwdMonday,
+bwdTuesday,
+bwdWednesday,
+bwdThursday,
+bwdFriday,
+bwdSaturday
+);
+TBusinessWeek = set of TBusinessWeekday;
+TBusinessHolidayArray = array of TDateTime;
+TBusinessCalendar = record
+WorkingDays: TBusinessWeek;
+Holidays: TBusinessHolidayArray;
+end;
+TSystemTime = Windows.TSystemTime;
+PSystemTime = Windows.PSystemTime;
+TTimeZoneInformation = Windows.TTimeZoneInformation;
+PTimeZoneInformation = Windows.PTimeZoneInformation;
+TDSTRule = record
+Region: string;
+StartMonth: Integer;
+StartWeek: Integer;
+StartDayOfWeek: Integer;
+StartHour: Integer;
+EndMonth: Integer;
+EndWeek: Integer;
+EndDayOfWeek: Integer;
+EndHour: Integer;
+Offset: Integer;
+end;
+TDateSpanKind = (
+dskPeriod,
+dskDuration
+) deprecated 'Use TCalendarPeriod or TDuration; no tag is required';
+{$WARN SYMBOL_DEPRECATED OFF}
+TDateUnit = (
+duSecond,
+duMinute,
+duHour,
+duDay,
+duWeek,
+duMonth,
+duBiMonth,
+duQuarter,
+duSeason,
+duHalfYear,
+duYear
+);
+TTimeZoneInfo = record
+Name: string;
+Offset: Integer;
+IsDST: Boolean;
+end;
+TDateSpan = record
+Kind: TDateSpanKind;
+Years: Integer;
+Months: Integer;
+Days: Integer;
+Hours: Integer;
+Minutes: Integer;
+Seconds: Integer;
+Milliseconds: Integer;
+end deprecated 'Use TCalendarPeriod or TDuration';
+TCalendarPeriod = record
+Years: Integer;
+Months: Integer;
+Days: Integer;
+Hours: Integer;
+Minutes: Integer;
+Seconds: Integer;
+Milliseconds: Integer;
+end;
+TDuration = record
+Milliseconds: Int64;
+end;
+TDateTimeRange = record
+StartValue: TDateTime;
+EndValue: TDateTime;
+end;
+TDateTimeRangeArray = array of TDateTimeRange;
+TInterval = record
+StartDate: TDateTime;
+EndDate: TDateTime;
+end deprecated 'Use TDateTimeRange with half-open boundaries';
+TChronoKit = class
+private
+class function DefaultBusinessCalendar: TBusinessCalendar; static;
+class procedure ValidateBusinessCalendar(
+const ACalendar: TBusinessCalendar); static;
+class function IsHoliday(const AValue: TDateTime;
+const ACalendar: TBusinessCalendar): Boolean; static;
+class function IsBusinessDayUnchecked(const AValue: TDateTime;
+const ACalendar: TBusinessCalendar): Boolean; static;
+public
+class function GetNow: TDateTime; static;
+class function GetToday: TDateTime; static;
+class function GetDateTime(const AValue: TDateTime): TDateTime; static;
+deprecated 'Use the input TDateTime value directly';
+class function GetAsString(const AValue: TDateTime; const AFormat: string = ''): string; static;
+deprecated 'Use FormatDateTime';
+class function FormatDateTime(const AValue: TDateTime;
+const AFormat: string = ''): string; static;
+class function FromString(const AValue: string; const AFormat: string = ''): TDateTime; static;
+deprecated 'Use ParseDateTime';
+class function ParseDateTime(const AValue: string;
+const AFormat: string = ''): TDateTime; static;
+class function GetYear(const AValue: TDateTime): Integer; static;
+class function GetMonth(const AValue: TDateTime): Integer; static;
+class function GetDay(const AValue: TDateTime): Integer; static;
+class function GetDayOfWeek(const AValue: TDateTime): Integer; static;
+class function GetDayOfYear(const AValue: TDateTime): Integer; static;
+class function GetHour(const AValue: TDateTime): Integer; static;
+class function GetMinute(const AValue: TDateTime): Integer; static;
+class function GetSecond(const AValue: TDateTime): Integer; static;
+class function GetMillisecond(const AValue: TDateTime): Integer; static;
+class function SetYear(const AValue: TDateTime; const AYear: Integer): TDateTime; static;
+class function SetMonth(const AValue: TDateTime; const AMonth: Integer): TDateTime; static;
+class function SetDay(const AValue: TDateTime; const ADay: Integer): TDateTime; static;
+class function SetHour(const AValue: TDateTime; const AHour: Integer): TDateTime; static;
+class function SetMinute(const AValue: TDateTime; const AMinute: Integer): TDateTime; static;
+class function SetSecond(const AValue: TDateTime; const ASecond: Integer): TDateTime; static;
+class function SetMilliSecond(const AValue: TDateTime; const AMilliSecond: Integer): TDateTime; static;
+class function AddYears(const AValue: TDateTime; const AYears: Integer): TDateTime; static;
+class function AddMonths(const AValue: TDateTime; const AMonths: Integer): TDateTime; static;
+class function AddDays(const AValue: TDateTime; const ADays: Integer): TDateTime; static;
+class function AddHours(const AValue: TDateTime; const AHours: Integer): TDateTime; static;
+class function AddMinutes(const AValue: TDateTime; const AMinutes: Integer): TDateTime; static;
+class function AddSeconds(const AValue: TDateTime; const ASeconds: Integer): TDateTime; static;
+class function StartOfYear(const AValue: TDateTime): TDateTime; static;
+class function StartOfMonth(const AValue: TDateTime): TDateTime; static;
+class function StartOfWeek(const AValue: TDateTime): TDateTime; static;
+class function StartOfDay(const AValue: TDateTime): TDateTime; static;
+class function StartOfHour(const AValue: TDateTime): TDateTime; static;
+class function EndOfYear(const AValue: TDateTime): TDateTime; static;
+class function EndOfMonth(const AValue: TDateTime): TDateTime; static;
+class function EndOfWeek(const AValue: TDateTime): TDateTime; static;
+class function EndOfDay(const AValue: TDateTime): TDateTime; static;
+class function EndOfHour(const AValue: TDateTime): TDateTime; static;
+class function IsBefore(const AValue, ADateTime: TDateTime): Boolean; static;
+class function IsAfter(const AValue, ADateTime: TDateTime): Boolean; static;
+class function IsSameDay(const AValue, ADateTime: TDateTime): Boolean; static;
+class function IsSameMonth(const AValue, ADateTime: TDateTime): Boolean; static;
+class function IsSameYear(const AValue, ADateTime: TDateTime): Boolean; static;
+class function CreateBusinessCalendar(
+const AHolidays: array of TDateTime): TBusinessCalendar; overload; static;
+class function CreateBusinessCalendar(const AWorkingDays: TBusinessWeek;
+const AHolidays: array of TDateTime): TBusinessCalendar; overload; static;
+class function IsBusinessDay(const AValue: TDateTime): Boolean; overload; static;
+class function IsBusinessDay(const AValue: TDateTime;
+const ACalendar: TBusinessCalendar): Boolean; overload; static;
+class function NextBusinessDay(const AValue: TDateTime): TDateTime; overload; static;
+class function NextBusinessDay(const AValue: TDateTime;
+const ACalendar: TBusinessCalendar): TDateTime; overload; static;
+class function PreviousBusinessDay(const AValue: TDateTime): TDateTime; overload; static;
+class function PreviousBusinessDay(const AValue: TDateTime;
+const ACalendar: TBusinessCalendar): TDateTime; overload; static;
+class function AddBusinessDays(const AValue: TDateTime;
+const ADays: Integer): TDateTime; overload; static;
+class function AddBusinessDays(const AValue: TDateTime; const ADays: Integer;
+const ACalendar: TBusinessCalendar): TDateTime; overload; static;
+class function BusinessDaysBetween(const AStartDate,
+AEndDate: TDateTime): Integer; overload; static;
+class function BusinessDaysBetween(const AStartDate, AEndDate: TDateTime;
+const ACalendar: TBusinessCalendar): Integer; overload; static;
+class function GetQuarter(const AValue: TDateTime): Integer; static;
+class function StartOfQuarter(const AYear,
+AQuarter: Integer): TDateTime; overload; static;
+class function StartOfQuarter(const AValue: TDateTime): TDateTime;
+overload; static;
+class function EndOfQuarter(const AValue: TDateTime): TDateTime; static;
+class function IsAM(const AValue: TDateTime): Boolean; static;
+class function IsPM(const AValue: TDateTime): Boolean; static;
+class function FloorDate(const AValue: TDateTime; const AUnit: TDateUnit): TDateTime; static;
+class function CeilingDate(const AValue: TDateTime; const AUnit: TDateUnit): TDateTime; static;
+class function CreateCalendarPeriod(const AYears: Integer = 0;
+const AMonths: Integer = 0; const ADays: Integer = 0;
+const AHours: Integer = 0; const AMinutes: Integer = 0;
+const ASeconds: Integer = 0;
+const AMilliseconds: Integer = 0): TCalendarPeriod; static;
+class function NormalizeCalendarPeriod(
+const AValue: TCalendarPeriod): TCalendarPeriod; static;
+class function DurationFromParts(const ADays: Int64 = 0;
+const AHours: Int64 = 0; const AMinutes: Int64 = 0;
+const ASeconds: Int64 = 0;
+const AMilliseconds: Int64 = 0): TDuration; static;
+class function DurationFromSeconds(
+const ASeconds: Int64): TDuration; static;
+class function AddPeriod(const AValue: TDateTime;
+const APeriod: TCalendarPeriod): TDateTime; static;
+class function SubtractPeriod(const AValue: TDateTime;
+const APeriod: TCalendarPeriod): TDateTime; static;
+class function AddDuration(const AValue: TDateTime;
+const ADuration: TDuration): TDateTime; static;
+class function SubtractDuration(const AValue: TDateTime;
+const ADuration: TDuration): TDateTime; static;
+class function DurationBetween(const AStart,
+AEnd: TDateTime): TDuration; static;
+class function CreateRange(const AStart,
+AEnd: TDateTime): TDateTimeRange; static;
+class function RangeContains(const ARange: TDateTimeRange;
+const AValue: TDateTime): Boolean; static;
+class function RangesOverlap(const AFirst,
+ASecond: TDateTimeRange): Boolean; static;
+class function RangeDuration(
+const ARange: TDateTimeRange): TDuration; static;
+class function RangesTouch(const AFirst,
+ASecond: TDateTimeRange): Boolean; static;
+class function RangeGap(const AFirst,
+ASecond: TDateTimeRange): TDuration; static;
+class function SubtractRange(const AValue,
+ARemove: TDateTimeRange): TDateTimeRangeArray; static;
+class function TryMergeRanges(const AFirst, ASecond: TDateTimeRange;
+out AMerged: TDateTimeRange): Boolean; static;
+class function TryIntersectRanges(const AFirst, ASecond: TDateTimeRange;
+out AIntersection: TDateTimeRange): Boolean; static;
+class function CreatePeriod(const AYears: Integer = 0; const AMonths: Integer = 0;
+const ADays: Integer = 0; const AHours: Integer = 0; const AMinutes: Integer = 0;
+const ASeconds: Integer = 0; const AMilliseconds: Integer = 0): TDateSpan; static;
+deprecated 'Use CreateCalendarPeriod';
+class function CreateDuration(const AYears: Integer = 0; const AMonths: Integer = 0;
+const ADays: Integer = 0; const AHours: Integer = 0; const AMinutes: Integer = 0;
+const ASeconds: Integer = 0; const AMilliseconds: Integer = 0): TDateSpan; static;
+deprecated 'Use DurationFromParts; months and years are not exact durations';
+class function CreateInterval(const AStart, AEnd: TDateTime): TInterval; static;
+deprecated 'Use CreateRange for validated half-open boundaries';
+class function AddSpan(const AValue: TDateTime; const ASpan: TDateSpan): TDateTime; static;
+deprecated 'Use AddPeriod or AddDuration';
+class function SubtractSpan(const AValue: TDateTime; const ASpan: TDateSpan): TDateTime; static;
+deprecated 'Use SubtractPeriod or SubtractDuration';
+class function SpanBetween(const AStart, AEnd: TDateTime;
+const AKind: TDateSpanKind = dskPeriod): TDateSpan; static;
+deprecated 'Use DurationBetween or construct a domain-specific TCalendarPeriod';
+class function IsWithinInterval(const AValue: TDateTime; const AInterval: TInterval): Boolean; static;
+deprecated 'Use RangeContains with half-open boundaries';
+class function IntervalsOverlap(const AInterval1, AInterval2: TInterval): Boolean; static;
+deprecated 'Use RangesOverlap with half-open boundaries';
+class function IntervalLength(const AInterval: TInterval; const AKind: TDateSpanKind): TDateSpan; static;
+deprecated 'Use RangeDuration';
+class function YMD(const AValue: string): TDateTime; static;
+deprecated 'Use ParseDateTime with yyyy-mm-dd or yyyy/mm/dd';
+class function MDY(const AValue: string): TDateTime; static;
+deprecated 'Use ParseDateTime with mm-dd-yyyy or mm/dd/yyyy';
+class function DMY(const AValue: string): TDateTime; static;
+deprecated 'Use ParseDateTime with dd-mm-yyyy or dd/mm/yyyy';
+class function YQ(const AValue: string): TDateTime; static;
+deprecated 'Parse year and quarter, then use StartOfQuarter';
+class function DateDecimal(const AValue: Double): TDateTime; static;
+deprecated 'Use DecimalYearToDateTime';
+class function DecimalYearToDateTime(
+const AValue: Double): TDateTime; static;
+class function DateTimeToDecimalYear(
+const AValue: TDateTime): Double; static;
+class function GetISOYear(const AValue: TDateTime): Integer; static;
+class function GetISOWeek(const AValue: TDateTime): Integer; static;
+class function GetEpiYear(const AValue: TDateTime): Integer; static;
+deprecated 'Use GetISOYear for ISO weeks or a domain-specific calendar';
+class function GetEpiWeek(const AValue: TDateTime): Integer; static;
+deprecated 'Use GetISOWeek for ISO weeks or a domain-specific calendar';
+class function GetSemester(const AValue: TDateTime): Integer; static;
+class function RoundDate(const AValue: TDateTime; const AUnit: TDateUnit): TDateTime; static;
+class function GetTimeZone(const AValue: TDateTime): TTimeZoneInfo; static;
+deprecated 'Use GetSystemTimeZoneInfo';
+class function GetSystemTimeZoneInfo(
+const AValue: TDateTime): TTimeZoneInfo; static;
+class function GetSystemTimeZone: string; static;
+class function GetTimeZoneNames: TStringArray; static;
+class function RollbackMonth(const AValue: TDateTime): TDateTime; static;
+deprecated 'Use AddMonths(Value, -1)';
+class function RollForwardMonth(const AValue: TDateTime): TDateTime; static;
+deprecated 'Use AddMonths(Value, 1)';
+class function GetDecimalDate(const AValue: TDateTime): Double; static;
+deprecated 'Use DateTimeToDecimalYear';
+class function PeriodToSeconds(const APeriod: TDateSpan): Int64; static;
+deprecated 'Use an exact TDuration and Milliseconds div 1000';
+class function SecondsToPeriod(const ASeconds: Int64): TDateSpan; static;
+deprecated 'Use DurationFromSeconds';
+class function StandardizePeriod(const AValue: TDateSpan): TDateSpan; static;
+deprecated 'Use NormalizeCalendarPeriod; TDuration needs no normalization';
+class function IntervalAlign(const AInterval1, AInterval2: TInterval): Boolean; static;
+deprecated 'Use RangesTouch';
+class function IntervalGap(const AInterval1, AInterval2: TInterval): TDateSpan; static;
+deprecated 'Use RangeGap';
+class function IntervalSetdiff(const AInterval1, AInterval2: TInterval): TInterval; static;
+deprecated 'Use SubtractRange to preserve both remainders';
+class function IntervalUnion(const AInterval1, AInterval2: TInterval): TInterval; static;
+deprecated 'Use TryMergeRanges';
+class function IntervalIntersection(const AInterval1, AInterval2: TInterval): TInterval; static;
+deprecated 'Use TryIntersectRanges';
+class function IsValidTimeZoneName(const ATimeZone: string): Boolean; static;
+class function IsValidUTCOffset(const AOffset: Integer): Boolean; static;
+class function ValidateTimeZone(const ATimeZone: string): string; static;
+class function ValidateTimeZoneOffset(const AOffset: Integer): Integer; static;
+class function WithTimeZone(const AValue: TDateTime; const ATimeZone: string): TDateTime; static;
+deprecated 'Use SystemLocalToTimeZone';
+class function SystemLocalToTimeZone(const AValue: TDateTime;
+const ATimeZone: string): TDateTime; static;
+class function ForceTimeZone(const AValue: TDateTime; const ATimeZone: string): TDateTime; static;
+deprecated 'Use TimeZoneToSystemLocal';
+class function TimeZoneToSystemLocal(const AValue: TDateTime;
+const ATimeZone: string): TDateTime; static;
+class function ConvertBetweenTimeZones(const AValue: TDateTime;
+const ASourceTimeZone, ATargetTimeZone: string): TDateTime; static;
+end;
