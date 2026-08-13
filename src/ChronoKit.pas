@@ -3091,7 +3091,8 @@ implementation
 
 uses
   ChronoKitInternalTypes, ChronoKitDurations, ChronoKitRanges,
-  ChronoKitBusinessCalendars, ChronoKitCalendar, ChronoKitTimeZones;
+  ChronoKitBusinessCalendars, ChronoKitCalendar, ChronoKitParsing,
+  ChronoKitTimeZones;
 
 procedure AssignTimeZoneInfo(const AEngineInfo: TChronoKitZoneInfo;
   out APublicInfo: TTimeZoneInfo);
@@ -3219,10 +3220,7 @@ end;
 class function TChronoKit.FormatDateTime(const AValue: TDateTime;
   const AFormat: string): string;
 begin
-  if AFormat = '' then
-    Result := DateTimeToStr(AValue)  // Use system default format
-  else
-    Result := SysUtils.FormatDateTime(AFormat, AValue);  // Use specified format
+  Result := CKFormatDateTime(AValue, AFormat);
 end;
 
 class function TChronoKit.FromString(const AValue: string;
@@ -3233,50 +3231,8 @@ end;
 
 class function TChronoKit.ParseDateTime(const AValue: string;
   const AFormat: string): TDateTime;
-var
-  FormatSettings: TFormatSettings;
-  Value: TDateTime;
 begin
-  // Get system default format settings
-  FormatSettings := DefaultFormatSettings;
-  
-  // If no format specified, try with different separators
-  if AFormat = '' then
-  begin
-    // First try with dash separator
-    FormatSettings.DateSeparator := '-';
-    if TryStrToDateTime(AValue, Value, FormatSettings) then
-    begin
-      Result := Value;
-      Exit;
-    end;
-    
-    // Then try with slash separator
-    FormatSettings.DateSeparator := '/';
-    if TryStrToDateTime(AValue, Value, FormatSettings) then
-    begin
-      Result := Value;
-      Exit;
-    end;
-    
-    // If both failed, raise an exception
-    raise EConvertError.CreateFmt(
-      'Invalid date/time input "%s". Expected a valid value in the system ' +
-      'date/time format using "-" or "/" as the date separator',
-      [AValue]);
-  end
-  else
-  begin
-    try
-      // Parse using FormatDateTime's format string
-      Result := ScanDateTime(AFormat, AValue);
-    except
-      on E: Exception do
-        raise EConvertError.CreateFmt(
-          'Invalid date/time input "%s". Expected format "%s" with valid calendar values',
-          [AValue, AFormat]);
-    end;
-  end;
+  Result := CKParseDateTime(AValue, AFormat);
 end;
 
 class function TChronoKit.GetYear(const AValue: TDateTime): Integer;

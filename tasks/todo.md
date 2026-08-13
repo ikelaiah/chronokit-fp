@@ -8,7 +8,7 @@
 - [x] Extract durations and ranges
 - [x] Extract business calendars
 - [x] Extract calendar arithmetic and rounding
-- [ ] Extract parsing and formatting
+- [x] Extract parsing and formatting
 - [ ] Isolate incompatible legacy implementations
 - [ ] Simplify timezone facade duplication
 - [ ] Decide whether platform timezone backends should be split
