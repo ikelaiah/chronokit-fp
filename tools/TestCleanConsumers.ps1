@@ -21,6 +21,18 @@ function Invoke-CheckedCommand {
   }
 }
 
+function Invoke-CheckedFpc {
+  param([string[]]$Arguments)
+
+  $platformArguments = @()
+  if ($IsWindows -and
+    -not [string]::IsNullOrWhiteSpace($env:FPC_WINDOWS_UNIT_PATH)) {
+    $platformArguments += "-Fu$env:FPC_WINDOWS_UNIT_PATH"
+  }
+
+  Invoke-CheckedCommand $fpc ($platformArguments + $Arguments)
+}
+
 function Invoke-ConsumerProgram {
   param([string]$ProgramPath)
 
@@ -39,7 +51,7 @@ $sourceOutput = Join-Path $sourceStaging 'out'
 New-Item -ItemType Directory -Path $sourceLibrary, $sourceOutput | Out-Null
 Copy-Item -LiteralPath (Join-Path $repositoryRoot 'src') -Destination $sourceLibrary -Recurse
 Copy-Item -LiteralPath $sourceFixture -Destination $sourceStaging
-Invoke-CheckedCommand $fpc @(
+Invoke-CheckedFpc @(
   "-FU$sourceOutput",
   "-FE$sourceOutput",
   "-Fu$(Join-Path $sourceLibrary 'src')",
@@ -63,7 +75,7 @@ Copy-Item -LiteralPath $lazarusFixture -Destination $lazarusStaging
 Copy-Item -LiteralPath $lazarusProjectFixture -Destination $lazarusStaging
 $packageOutput = Join-Path $lazarusLibrary 'packages\lazarus\lib\consumer'
 New-Item -ItemType Directory -Path $packageOutput | Out-Null
-Invoke-CheckedCommand $fpc @(
+Invoke-CheckedFpc @(
   "-FU$packageOutput",
   "-Fu$(Join-Path $lazarusLibrary 'src')",
   (Join-Path $lazarusLibrary 'packages\lazarus\chronokit_fp.pas')
@@ -73,7 +85,7 @@ if (Get-Command lazbuild -ErrorAction SilentlyContinue) {
     (Join-Path $lazarusStaging 'LazarusConsumer.lpi'))
 }
 else {
-  Invoke-CheckedCommand $fpc @(
+  Invoke-CheckedFpc @(
     "-FU$lazarusOutput",
     "-FE$lazarusOutput",
     "-Fu$packageOutput",
