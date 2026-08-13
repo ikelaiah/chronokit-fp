@@ -3226,7 +3226,10 @@ end;
 
 function ToInternalLegacySpan(const AValue: TDateSpan): TCKLegacySpan;
 begin
-  Result.Kind := TCKLegacySpanKind(Ord(AValue.Kind));
+  if AValue.Kind = dskPeriod then
+    Result.Kind := cklskPeriod
+  else
+    Result.Kind := cklskDuration;
   Result.Years := AValue.Years;
   Result.Months := AValue.Months;
   Result.Days := AValue.Days;
@@ -3238,7 +3241,10 @@ end;
 
 function FromInternalLegacySpan(const AValue: TCKLegacySpan): TDateSpan;
 begin
-  Result.Kind := TDateSpanKind(Ord(AValue.Kind));
+  if AValue.Kind = cklskPeriod then
+    Result.Kind := dskPeriod
+  else
+    Result.Kind := dskDuration;
   Result.Years := AValue.Years;
   Result.Months := AValue.Months;
   Result.Days := AValue.Days;

@@ -144,7 +144,7 @@ var
   TempDate: TDateTime;
   TotalMilliseconds: Int64;
 begin
-  FillChar(Result, SizeOf(Result), 0);
+  Result := CKLegacyCreatePeriod(0, 0, 0, 0, 0, 0, 0);
   case AKind of
     cklskPeriod:
       begin

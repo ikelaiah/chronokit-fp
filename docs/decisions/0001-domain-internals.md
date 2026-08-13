@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Date
 
@@ -28,13 +28,15 @@ Dependency direction is:
 
 ```text
 ChronoKit facade
-  -> calendar -> rounding, business calendars
-  -> durations -> ranges
+  -> calendar (including rounding)
+  -> business calendars
+  -> durations <- ranges
   -> parsing
   -> timezone engine
   -> legacy compatibility
 
 domain units -> ChronoKitInternalTypes + Free Pascal RTL
+legacy compatibility -> calendar + ChronoKitInternalTypes + RTL
 preferred domain units -X-> legacy compatibility
 ```
 
@@ -78,6 +80,16 @@ than the original API.
 Rejected because one-line RTL and compatibility delegates are clearer in the
 facade than behind an additional pass-through abstraction.
 
+### Split the Windows and Linux timezone backends now
+
+Deferred. The timezone engine is already an internal boundary with one small,
+platform-neutral interface. Its Windows and Unix implementations are selected
+at compile time, share UTC normalization and façade dispatch, and cannot be
+loaded together. Splitting the conditional implementation would add two more
+units and a backend protocol without reducing runtime coupling or the public
+surface. Revisit this only when a backend needs independent reuse or when a
+change can be verified on both platforms in the same delivery.
+
 ## Consequences
 
 - Consumers continue to use `ChronoKit` and existing names.
@@ -85,3 +97,5 @@ facade than behind an additional pass-through abstraction.
 - The package contains additional internal units.
 - Facade mapping is deliberate boundary code and must remain small and direct.
 - Large moves must be delivered one domain at a time.
+- The timezone engine remains one conditional unit; this is an explicit
+  cohesion decision rather than unfinished extraction work.
