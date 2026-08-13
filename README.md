@@ -7,7 +7,7 @@
 [![Lazarus](https://img.shields.io/badge/Lazarus-4.0+-60A5FA.svg)](https://www.lazarus-ide.org/)
 ![Supports Windows](https://img.shields.io/badge/support-Windows-F59E0B?logo=Windows)
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
-[![Version](https://img.shields.io/badge/version-1.6.0-8B5CF6.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.7.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
 [![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
@@ -37,7 +37,7 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
 - ⏰ **50+ DateTime Functions** - Everything you need for date/time work
 - 💼 **Business Calendars** - Configure holidays and alternative working weeks
 - 🎯 **Simple API** - Clean, easy-to-use function names
-- 🧪 **Well Tested** - 150+ tests ensure everything works
+- 🧪 **Well Tested** - 178 tests cover the supported behavior by domain
 - 📚 **Good Documentation** - Complete API reference with examples
 
 ## 📑 Table of Contents 
@@ -141,12 +141,17 @@ One week later: 2026-08-17
 | How do I add or subtract a unit? | `TChronoKit.AddDays` and the other `Add*` methods; use a negative amount to subtract |
 | How do I measure exact elapsed time? | `TChronoKit.DurationBetween` |
 | How do I calculate a working-day deadline? | `TChronoKit.AddBusinessDays` |
+| How do I count working dates in a period? | `TChronoKit.BusinessDaysBetween` |
 | How do I check whether ranges overlap? | `TChronoKit.RangesOverlap` |
 | How do I convert local time to UTC? | `TChronoKit.SystemLocalToTimeZone(Value, 'UTC')` |
 | How do I interpret a named-zone clock? | `TChronoKit.TimeZoneToSystemLocal` |
+| How do I convert directly between named zones? | `TChronoKit.ConvertBetweenTimeZones` |
 
-Use the [searchable cheat sheet](docs/Cheat-Sheet.md) for synonyms, copyable
-recipes, and the complete preferred-method index. The
+Continue with the [executable learning path](docs/Learning-Path.md) for the
+preferred concepts in order, or use the [decision guides](docs/Decision-Guides.md)
+when choosing a type, operation, or error response. The [searchable API
+reference](docs/API-Reference.md) and [cheat sheet](docs/Cheat-Sheet.md) provide
+the complete preferred-method index. The
 [v1.6-to-2.0 migration guide](docs/MIGRATION-v1.6-to-v2.0.md) covers every
 deprecated 1.x name; all remain source-compatible until 2.0.
 
@@ -183,7 +188,8 @@ weeks and recipes for deadlines, reporting periods, and date ranges.
 
 Convert a system-local value to UTC with `SystemLocalToTimeZone`. Use
 `TimeZoneToSystemLocal` when the input clock belongs to the named zone and the
-result should be in the computer's system timezone:
+result should be in the computer's system timezone. Use
+`ConvertBetweenTimeZones` when both the source and target zones are named:
 
 ```pascal
 var
@@ -200,6 +206,9 @@ begin
   SourceTimeZone := 'America/New_York';
   {$ENDIF}
 
+  UTCValue := TChronoKit.ConvertBetweenTimeZones(
+    EncodeDateTime(2024, 1, 15, 9, 30, 0, 0), SourceTimeZone, 'UTC'
+  );
   try
     SystemValue := TChronoKit.TimeZoneToSystemLocal(
       EncodeDateTime(2024, 3, 10, 2, 30, 0, 0),
@@ -274,14 +283,19 @@ end.
 For detailed documentation, check out:
 
 - 🚀 [Getting Started](docs/Getting-Started.md) - First installation and date operations
+- 🎓 [Learning Path](docs/Learning-Path.md) - Five executable concepts from dates through DST
+- 🧭 [Decision Guides](docs/Decision-Guides.md) - Choose types, operations, and error responses
+- 🔎 [Generated API Reference](docs/API-Reference.md) - Public preferred declarations and contracts
 - 🛠️ [Troubleshooting](docs/Troubleshooting.md) - Search paths, formats, and platforms
 - 💼 [Business Calendars](docs/Business-Calendars.md) - Holidays, working weeks, and recipes
 - 🌐 [Timezone Contract](docs/Timezone-Contract.md) - Identifiers, conversion semantics, and DST failures
 - 📋 [Searchable API Cheat Sheet](docs/Cheat-Sheet.md) - Find operations by question, synonym, or method
 - 📖 [Task Guide](docs/ChronoKit-FP.md) - Behavior, choices, and examples grouped by task
-- 🔎 [v1.5.0 API Audit](docs/API-Audit-v1.5.0.md) - Reproducible discovery findings and actions
+- 🔎 [v1.7.0 API Audit](docs/API-Audit-v1.7.0.md) - Reproducible beginner discovery findings and actions
 - 🧭 [2.0 Decision](docs/V2-DECISION.md) - Evidence and criteria for a future major version
 - 🔁 [v1.6-to-2.0 Migration](docs/MIGRATION-v1.6-to-v2.0.md) - Every deprecated name and its replacement
+- 🏗️ [Internal Architecture Decision](docs/decisions/0001-domain-internals.md) - Domain ownership, dependency direction, and timezone-backend rationale
+- 🤝 [Contributor Guide](CONTRIBUTING.md) - Where implementation, tests, contracts, and examples belong
 
 ## 🗺️ Roadmap
 
@@ -327,7 +341,24 @@ fpc "-FU." "-Fu$(pwd)/../src" TestRunner.lpr
 ./TestRunner -a --format=plain
 ```
 
-Pull requests run this suite automatically on Windows and Linux.
+The runner registers 178 tests across nine domain suites for date basics,
+parsing, business calendars, periods and durations, ranges, rounding, calendar
+systems, timezones, and legacy behavior. Pull requests compile and run the same
+suite automatically on Windows and Linux.
+
+Release documentation and both frozen platform API manifests can be checked
+from PowerShell:
+
+```powershell
+pwsh -NoProfile -File tools/TestDocumentation.ps1
+```
+
+Source-based and Lazarus-package consumers can be verified without relying on
+compiled units from the working checkout:
+
+```powershell
+pwsh -NoProfile -File tools/TestCleanConsumers.ps1
+```
 
 ## 🤝 Contributing
 

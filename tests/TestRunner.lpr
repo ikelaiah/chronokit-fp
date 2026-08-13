@@ -5,7 +5,15 @@ program TestRunner;
 uses
   Classes
   , consoletestrunner
-  , ChronoKit.Test;
+  , ChronoKit.DateBasics.Tests
+  , ChronoKit.Parsing.Tests
+  , ChronoKit.BusinessCalendars.Tests
+  , ChronoKit.PeriodsDurations.Tests
+  , ChronoKit.Ranges.Tests
+  , ChronoKit.Rounding.Tests
+  , ChronoKit.CalendarSystems.Tests
+  , ChronoKit.TimeZones.Tests
+  , ChronoKit.LegacyBehavior.Tests;
 
 type
 

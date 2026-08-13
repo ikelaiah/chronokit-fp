@@ -39,7 +39,7 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. "/>
-    <Version Major="1" Minor="6"/>
+    <Version Major="1" Minor="7"/>
     <Files>
       <Item>
         <Filename Value="..\..\src\ChronoKit.pas"/>
@@ -48,6 +48,34 @@ SOFTWARE. "/>
       <Item>
         <Filename Value="..\..\src\ChronoKitTimeZones.pas"/>
         <UnitName Value="ChronoKitTimeZones"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitInternalTypes.pas"/>
+        <UnitName Value="ChronoKitInternalTypes"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitDurations.pas"/>
+        <UnitName Value="ChronoKitDurations"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitRanges.pas"/>
+        <UnitName Value="ChronoKitRanges"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitBusinessCalendars.pas"/>
+        <UnitName Value="ChronoKitBusinessCalendars"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitCalendar.pas"/>
+        <UnitName Value="ChronoKitCalendar"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitParsing.pas"/>
+        <UnitName Value="ChronoKitParsing"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitLegacy.pas"/>
+        <UnitName Value="ChronoKitLegacy"/>
       </Item>
     </Files>
     <RequiredPkgs>

@@ -62,8 +62,10 @@ One week later: 2026-08-17
 | A date/time entered as text | `TChronoKit.ParseDateTime` with an explicit format |
 | Text formatted for display or output | `TChronoKit.FormatDateTime` with an explicit format |
 | A date a fixed number of days away | `TChronoKit.AddDays` |
+| Workdays in an inclusive date period | `TChronoKit.BusinessDaysBetween` |
 | The same instant represented in a named timezone | `TChronoKit.SystemLocalToTimeZone` |
 | A wall clock that should be interpreted in a named timezone | `TChronoKit.TimeZoneToSystemLocal` |
+| A named source clock shown in another named timezone | `TChronoKit.ConvertBetweenTimeZones` |
 
 ChronoKit uses Free Pascal's `TDateTime` type. A **date** is conventionally a
 `TDateTime` at midnight. A **local date/time** is a wall-clock value such as
@@ -95,6 +97,11 @@ end;
 It returns the equivalent clock in the computer's system zone. Names are
 platform-native: use `America/New_York` on Linux or `Eastern Standard Time` on
 Windows for New York.
+
+When both zones are named, use `ConvertBetweenTimeZones` instead of routing
+through the computer's system timezone. The source wall clock is resolved once
+and the result is the target-zone wall clock for the same instant. See the
+[named-timezone learning program](../examples/LearningPath/05-NamedTimeZones.lpr).
 
 Both operations raise `ETimeZoneError` when a source wall clock falls in a DST
 gap or overlap. Catch the exception rather than letting the library select an
@@ -133,10 +140,13 @@ the same behavior and errors. See the [v1.6 migration guide](MIGRATION-v1.6-to-v
 
 - [Business calendars](Business-Calendars.md) for holidays, alternative working
   weeks, deadlines, reporting periods, and date ranges.
+- [Executable learning path](Learning-Path.md) for the preferred concepts in order.
+- [Decision guides](Decision-Guides.md) for choosing types, operations, and errors.
 - [Troubleshooting](Troubleshooting.md) for search-path, format, and platform
   issues.
 - [Timezone contract](Timezone-Contract.md) for identifier, conversion, and
   DST rules.
 - [Searchable API cheat sheet](Cheat-Sheet.md) to find an operation by question
   or keyword.
+- [Generated API reference](API-Reference.md) for declarations and contracts.
 - [Task guide](ChronoKit-FP.md) for the wider API.

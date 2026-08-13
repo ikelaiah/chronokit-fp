@@ -1,11 +1,11 @@
-# Timezone contract implemented by v1.4.0
+# Timezone contract
 
 ## Status and scope
 
 This document is the normative contract for ChronoKit-FP's timezone API. The
-contract was established in v1.3.0 and is implemented across Windows and Linux
-in v1.4.0 without adding a new public type, overload, or function. It separates
-three ideas that a
+base contract was established in v1.3.0 and implemented across Windows and
+Linux in v1.4.0. v1.7.0 adds one direct named-source-to-named-target operation
+without adding a timezone value type. It separates three ideas that a
 plain Free Pascal `TDateTime` cannot carry by itself:
 
 - a **wall-clock value**, such as `2026-08-11 09:30`;
@@ -69,6 +69,7 @@ associated timezone separately whenever later code needs to know it.
 | `GetTimeZoneNames` | No date input | Exact identifiers accepted on this platform, including `UTC` | Query only |
 | `SystemLocalToTimeZone(AValue, ATimeZone)` | `AValue` is a wall-clock value in the system timezone; `ATimeZone` is the destination | The destination-zone wall-clock representation of the same instant | Preserves the instant |
 | `TimeZoneToSystemLocal(AValue, ATimeZone)` | `AValue` is a wall-clock value that should be interpreted in `ATimeZone` | The system-zone wall-clock representation of that instant | Preserves the input clock fields while assigning their source-zone meaning; the returned clock fields may differ |
+| `ConvertBetweenTimeZones(AValue, ASourceTimeZone, ATargetTimeZone)` | `AValue` is a wall-clock value in the named source zone | The target-zone wall-clock representation of the same instant | Resolves source directly to UTC, then represents UTC in target; never routes through the system zone |
 
 Offsets use `local = UTC + offset`. For example, Sydney standard time has
 offset `+600` minutes. Therefore a system-local Sydney value of
@@ -94,6 +95,9 @@ ChronoKit therefore does not guess:
   maps to one offset and occurrence.
 - `TimeZoneToSystemLocal` raises `ETimeZoneError` when the wall-clock input is
   ambiguous or nonexistent in `ATimeZone`.
+- `ConvertBetweenTimeZones` raises `ETimeZoneError` when its source wall clock
+  is ambiguous or nonexistent. Its target is derived from one instant and is
+  not rejected merely because target clock fields fall in an overlap.
 
 The exception message identifies the rejected local value, timezone, and
 whether the value is ambiguous or nonexistent. Applications that need to

@@ -8,7 +8,9 @@ unit chronokit_fp;
 interface
 
 uses
-  ChronoKit, ChronoKitTimeZones;
+  ChronoKit, ChronoKitTimeZones, ChronoKitInternalTypes, ChronoKitDurations,
+  ChronoKitRanges, ChronoKitBusinessCalendars, ChronoKitCalendar,
+  ChronoKitParsing, ChronoKitLegacy;
 
 implementation
 

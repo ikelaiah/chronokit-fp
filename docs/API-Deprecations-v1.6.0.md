@@ -353,8 +353,9 @@ would not eliminate a conflicting representation or implementation path.
 
 - Public types and methods remain in `src/ChronoKit.pas` for v1.6 source
   compatibility.
-- Tests remain in `tests/ChronoKit.Test.pas` and must be added before each
-  implementation slice.
+- Tests remain behavior-focused and must be added before each implementation
+  slice. Since v1.7, they live in the matching `tests/ChronoKit.*.Tests.pas`
+  domain suite.
 - User migration documentation belongs in `docs/` and must use the preferred
   APIs in every new example.
 - No new runtime dependency is allowed.

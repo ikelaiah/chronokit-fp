@@ -204,13 +204,13 @@ external feedback.
 
 ## 1.7.0 — Executable learning path and focused API gaps
 
-**Status:** Planned
+**Status:** Released 2026-08-14
 
 Make the preferred v1.6 API understandable as a small set of concepts rather
-than a long list of methods, and close three concrete workflow gaps before
-the internal refactor and API freeze. This remains primarily a documentation
-and learning-system release; its additive runtime scope is limited to the
-operations explicitly listed below.
+than a long list of methods, close three concrete workflow gaps, and complete
+the internal refactor and API freeze. Its additive runtime scope is limited to
+the operations explicitly listed below; the maintainability work changes
+structure without expanding the user-facing model.
 
 - Publish one progressive path covering `TDateTime` dates and system-local
   wall clocks, calendar periods versus exact durations, half-open ranges,
@@ -248,6 +248,14 @@ operations explicitly listed below.
   contract, error rule, or example link.
 - Verify both documented installation paths from clean consumer projects, not
   from a checkout that already contains compiled units.
+- Split the 178-test monolith into domain suites without changing assertions,
+  then move non-trivial implementations into focused internal units behind the
+  unchanged `ChronoKit` facade.
+- Freeze complete Windows and Linux API manifests and check them with the
+  generated reference and documentation workflow.
+- Isolate incompatible deprecated algorithms from preferred code paths,
+  centralise timezone facade conversion orchestration, and publish contributor
+  placement rules plus the internal architecture decision.
 
 **Done when:** a developer starting from the README can choose the correct
 value type, complete the common date, duration, range, business-calendar, and
@@ -255,15 +263,27 @@ timezone workflows without using a deprecated name; direct named-zone
 conversion, quarter boundaries, and business-day counting each have one
 reviewed and tested path; and every taught example runs on either supported
 platform. The preferred public surface is then closed to further additions
-through v1.9.
+through v1.9. A contributor can change one domain without navigating unrelated
+implementations, and both platform manifests prove that the refactor preserves
+the complete v1.7 facade.
+
+The completed release includes the executable [learning path](docs/Learning-Path.md),
+[decision guides](docs/Decision-Guides.md), [beginner audit](docs/API-Audit-v1.7.0.md),
+and generated [API reference](docs/API-Reference.md). `ConvertBetweenTimeZones`,
+value `StartOfQuarter`/`EndOfQuarter`, and `BusinessDaysBetween` are the
+milestone's only runtime additions. Their contracts are recorded in
+[API additions v1.7.0](docs/API-Additions-v1.7.0.md). The accepted
+[domain-internals ADR](docs/decisions/0001-domain-internals.md), nine domain
+test suites, and checked files in `api/` record the completed structural work.
 
 ## 1.8.0 — Maintainable internals
 
-**Status:** Planned
+**Status:** Folded into 1.7.0 on 2026-08-14
 
-Make changes safer by separating domain logic while preserving the complete
-1.7 public and behavioural contract. This milestone changes structure, not
-the user-facing model.
+This work shipped early as part of v1.7.0 rather than as a separate release.
+It made changes safer by separating domain logic while preserving the complete
+v1.7 public and behavioural contract. It changed structure, not the
+user-facing model.
 
 - Publish a short internal architecture design that defines ownership and
   dependency direction for calendar arithmetic, duration and range algebra,
@@ -287,6 +307,11 @@ the user-facing model.
 without editing unrelated domain implementations, the public API manifest is
 unchanged, and the full Windows/Linux behaviour matrix passes before and after
 the refactor.
+
+Completed evidence is recorded in the
+[domain-internals ADR](docs/decisions/0001-domain-internals.md), the contributor
+architecture table in [CONTRIBUTING.md](CONTRIBUTING.md), the nine domain test
+suites under `tests/`, and the checked Windows/Linux manifests under `api/`.
 
 ## 1.9.0 — Reproducible release and 2.0 freeze
 

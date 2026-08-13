@@ -25,7 +25,8 @@ Calendar := TChronoKit.CreateBusinessCalendar(
 ```
 
 Pass the calendar as the final argument to `IsBusinessDay`,
-`NextBusinessDay`, `PreviousBusinessDay`, or `AddBusinessDays`.
+`NextBusinessDay`, `PreviousBusinessDay`, `AddBusinessDays`, or
+`BusinessDaysBetween`.
 
 ## Deadline recipe
 
@@ -59,33 +60,19 @@ The result is `2026-08-17`. The starting date is not counted.
 
 ## Reporting-period recipe
 
-Count the working days in a calendar month by checking each date in the
-inclusive reporting range:
+Count the working dates in a calendar month with the inclusive counting
+operation:
 
 ```pascal
-function CountBusinessDays(const AStartDate, AEndDate: TDateTime;
-  const ACalendar: TBusinessCalendar): Integer;
-var
-  CurrentDate: TDateTime;
-begin
-  Result := 0;
-  CurrentDate := DateOf(AStartDate);
-  while CurrentDate <= DateOf(AEndDate) do
-  begin
-    if TChronoKit.IsBusinessDay(CurrentDate, ACalendar) then
-      Inc(Result);
-    CurrentDate := TChronoKit.AddDays(CurrentDate, 1);
-  end;
-end;
-
-WorkingDaysInAugust := CountBusinessDays(
+WorkingDaysInAugust := TChronoKit.BusinessDaysBetween(
   EncodeDate(2026, 8, 1),
   TChronoKit.EndOfMonth(EncodeDate(2026, 8, 1)),
   Calendar
 );
 ```
 
-Add `SysUtils`, `DateUtils`, and `ChronoKit` to the program's `uses` clause.
+Both qualifying endpoints are counted. Reverse the dates to receive the
+negative of the forward count. Time portions are accepted and ignored.
 
 ## Date-range recipe
 
@@ -115,6 +102,9 @@ booking availability, and working-date exports.
   starting date.
 - `AddBusinessDays` does not count the starting date. Zero returns the exact
   input, including when it falls on a non-working day.
+- `BusinessDaysBetween` counts qualifying start and end dates inclusively. A
+  same-day business date returns `1`; a same-day non-business date returns `0`.
+  Reverse endpoint order reverses the result sign.
 - Leap days, month ends, and year ends follow normal calendar arithmetic.
 - An empty working week raises `EBusinessCalendarError`; select at least one
   `TBusinessWeekday`.

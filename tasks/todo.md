@@ -1,21 +1,17 @@
-# v1.6.0 checklist
+# v1.7 maintainability checklist
 
-- [x] Roadmap and binding API transition specification reviewed
-- [x] Scope bounded to v1.6.0; no 2.0 removals included
-- [x] Clean baseline worktree and Free Pascal 3.2.2 toolchain confirmed
-- [x] Deprecation syntax probe completed
-- [x] Seven correctness regressions added and observed failing
-- [x] Seven specified defects corrected
-- [x] Calendar-period and exact-duration replacements tested and implemented
-- [x] Half-open range replacements tested and implemented
-- [x] Quarter, decimal-year, and timezone replacements tested and implemented
-- [x] Complete deprecation matrix annotated or explicitly documented
-- [x] Free Pascal 3.2.2 legacy compatibility fixture compiles
-- [x] Preferred v1.6 paths documented with complete migration examples
-- [x] Version metadata, changelog, roadmap, release notes, and PR notes updated
-- [x] Full fixture-backed FPCUnit suite passes
-- [x] Every shipped example compiles
-- [x] Lazarus package builds
-- [x] Documentation links and public-method coverage verified
-- [x] `git diff --check` passes
-- [x] Final multi-axis code review passes
+- [x] Remove dead test scaffolding
+- [x] Split 178 tests into domain suites without assertion changes
+- [x] Add and check Windows/Linux v1.7 API manifests
+- [x] Record internal architecture and contributor placement rules
+- [x] Introduce and verify the shared-types seam
+- [x] Extract durations and ranges
+- [x] Extract business calendars
+- [x] Extract calendar arithmetic and rounding
+- [x] Extract parsing and formatting
+- [x] Isolate incompatible legacy implementations
+- [x] Simplify timezone facade duplication
+- [x] Decide whether platform timezone backends should be split
+- [x] Run full Windows-oriented local verification
+- [x] Run documentation, package, example, and consumer checks
+- [x] Complete final code review

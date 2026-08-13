@@ -61,6 +61,35 @@ contributing to this project as easy and transparent as possible.
 - Local variables at the beginning of methods
 - Keep methods focused and small (ideally < 50 lines)
 
+### Internal Architecture
+
+Users learn one unit: `ChronoKit`. Keep its public declarations stable and its
+implementations as thin delegates or orchestration. Put non-trivial logic in
+the internal unit that owns the domain:
+
+| Change | Implementation unit | Test suite |
+|---|---|---|
+| Components, arithmetic, boundaries, rounding, quarters, ISO dates | `ChronoKitCalendar` | `ChronoKit.DateBasics.Tests`, `ChronoKit.Rounding.Tests`, `ChronoKit.CalendarSystems.Tests` |
+| Exact durations and calendar periods | `ChronoKitDurations` | `ChronoKit.PeriodsDurations.Tests` |
+| Half-open ranges | `ChronoKitRanges` | `ChronoKit.Ranges.Tests` |
+| Working weeks and holidays | `ChronoKitBusinessCalendars` | `ChronoKit.BusinessCalendars.Tests` |
+| Preferred parsing and formatting | `ChronoKitParsing` | `ChronoKit.Parsing.Tests` |
+| Incompatible deprecated behavior | `ChronoKitLegacy` | `ChronoKit.LegacyBehavior.Tests` |
+| Named timezones and platform rules | `ChronoKitTimeZones` | `ChronoKit.TimeZones.Tests` |
+
+Shared internal records belong in `ChronoKitInternalTypes`. Public records and
+enum values stay declared in `ChronoKit`; map them explicitly at the façade
+boundary. Preferred domain units must never depend on `ChronoKitLegacy`.
+
+When a public declaration intentionally changes, regenerate both manifests:
+
+```powershell
+pwsh -NoProfile -File tools/GenerateApiManifest.ps1 -Write
+```
+
+Review both files in `api/` as part of the same change. For internal-only work,
+`tools/TestApiManifest.ps1` must remain green without regeneration.
+
 #### Error Handling
 - Use exceptions for error conditions
 - Clean up resources in `finally` blocks
@@ -88,6 +117,12 @@ Fixes #123
 - Add unit tests for new functionality
 - Ensure all tests pass before submitting PR
 - Ensure the Windows and Linux pull-request checks pass
+- Keep tests in the domain suite that owns the behavior; do not rebuild a
+  monolithic test fixture
+- Run `pwsh -NoProfile -File tools/TestDocumentation.ps1` to check both API
+  manifests and generated reference documentation
+- Run `pwsh -NoProfile -File tools/TestCleanConsumers.ps1` after adding or
+  moving an internal unit
 
 ### Documentation
 
