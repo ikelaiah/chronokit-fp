@@ -3128,6 +3128,39 @@ begin
   Result.Milliseconds := AValue.Milliseconds;
 end;
 
+function GetEngineSystemTimeZone: string;
+begin
+  try
+    Result := CKGetSystemTimeZone;
+  except
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
+  end;
+end;
+
+function ConvertValidatedWallClock(const AValue: TDateTime;
+  const ASourceTimeZone, ATargetTimeZone: string): TDateTime;
+var
+  EngineInfo: TChronoKitZoneInfo;
+  Status: TChronoKitLocalTimeStatus;
+  UTCValue: TDateTime;
+begin
+  try
+    Status := CKResolveLocalTime(AValue, ASourceTimeZone,
+      UTCValue, EngineInfo);
+    if Status <> ckLocalTimeValid then
+      RaiseInvalidLocalTime(Status, AValue, ASourceTimeZone);
+    TChronoKit.ValidateTimeZoneOffset(EngineInfo.Offset);
+    CKConvertUTCToLocal(UTCValue, ATargetTimeZone, Result, EngineInfo);
+    TChronoKit.ValidateTimeZoneOffset(EngineInfo.Offset);
+  except
+    on E: ETimeZoneError do
+      raise;
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
+  end;
+end;
+
 function FromInternalPeriod(const AValue: TCKCalendarPeriod): TCalendarPeriod;
 begin
   Result.Years := AValue.Years;
@@ -3907,27 +3940,11 @@ end;
 class function TChronoKit.SystemLocalToTimeZone(const AValue: TDateTime;
   const ATimeZone: string): TDateTime;
 var
-  EngineInfo: TChronoKitZoneInfo;
   SourceTimeZone, TargetTimeZone: string;
-  Status: TChronoKitLocalTimeStatus;
-  UTCValue: TDateTime;
 begin
   TargetTimeZone := ValidateTimeZone(ATimeZone);
-  try
-    SourceTimeZone := CKGetSystemTimeZone;
-    Status := CKResolveLocalTime(AValue, SourceTimeZone,
-      UTCValue, EngineInfo);
-    if Status <> ckLocalTimeValid then
-      RaiseInvalidLocalTime(Status, AValue, SourceTimeZone);
-    ValidateTimeZoneOffset(EngineInfo.Offset);
-    CKConvertUTCToLocal(UTCValue, TargetTimeZone, Result, EngineInfo);
-    ValidateTimeZoneOffset(EngineInfo.Offset);
-  except
-    on E: ETimeZoneError do
-      raise;
-    on E: EChronoKitTimeZoneEngine do
-      raise ETimeZoneError.Create(E.Message);
-  end;
+  SourceTimeZone := GetEngineSystemTimeZone;
+  Result := ConvertValidatedWallClock(AValue, SourceTimeZone, TargetTimeZone);
 end;
 
 class function TChronoKit.ForceTimeZone(const AValue: TDateTime;
@@ -3939,63 +3956,26 @@ end;
 class function TChronoKit.TimeZoneToSystemLocal(const AValue: TDateTime;
   const ATimeZone: string): TDateTime;
 var
-  EngineInfo: TChronoKitZoneInfo;
   SourceTimeZone, SystemTimeZone: string;
-  Status: TChronoKitLocalTimeStatus;
-  UTCValue: TDateTime;
 begin
   SourceTimeZone := ValidateTimeZone(ATimeZone);
-  try
-    Status := CKResolveLocalTime(AValue, SourceTimeZone,
-      UTCValue, EngineInfo);
-    if Status <> ckLocalTimeValid then
-      RaiseInvalidLocalTime(Status, AValue, SourceTimeZone);
-    ValidateTimeZoneOffset(EngineInfo.Offset);
-    SystemTimeZone := CKGetSystemTimeZone;
-    CKConvertUTCToLocal(UTCValue, SystemTimeZone, Result, EngineInfo);
-    ValidateTimeZoneOffset(EngineInfo.Offset);
-  except
-    on E: ETimeZoneError do
-      raise;
-    on E: EChronoKitTimeZoneEngine do
-      raise ETimeZoneError.Create(E.Message);
-  end;
+  SystemTimeZone := GetEngineSystemTimeZone;
+  Result := ConvertValidatedWallClock(AValue, SourceTimeZone, SystemTimeZone);
 end;
 
 class function TChronoKit.ConvertBetweenTimeZones(const AValue: TDateTime;
   const ASourceTimeZone, ATargetTimeZone: string): TDateTime;
 var
-  EngineInfo: TChronoKitZoneInfo;
   SourceTimeZone, TargetTimeZone: string;
-  Status: TChronoKitLocalTimeStatus;
-  UTCValue: TDateTime;
 begin
   SourceTimeZone := ValidateTimeZone(ASourceTimeZone);
   TargetTimeZone := ValidateTimeZone(ATargetTimeZone);
-  try
-    Status := CKResolveLocalTime(AValue, SourceTimeZone,
-      UTCValue, EngineInfo);
-    if Status <> ckLocalTimeValid then
-      RaiseInvalidLocalTime(Status, AValue, SourceTimeZone);
-    ValidateTimeZoneOffset(EngineInfo.Offset);
-    CKConvertUTCToLocal(UTCValue, TargetTimeZone, Result, EngineInfo);
-    ValidateTimeZoneOffset(EngineInfo.Offset);
-  except
-    on E: ETimeZoneError do
-      raise;
-    on E: EChronoKitTimeZoneEngine do
-      raise ETimeZoneError.Create(E.Message);
-  end;
+  Result := ConvertValidatedWallClock(AValue, SourceTimeZone, TargetTimeZone);
 end;
 
 class function TChronoKit.GetSystemTimeZone: string;
 begin
-  try
-    Result := CKGetSystemTimeZone;
-  except
-    on E: EChronoKitTimeZoneEngine do
-      raise ETimeZoneError.Create(E.Message);
-  end;
+  Result := GetEngineSystemTimeZone;
 end;
 
 class function TChronoKit.GetTimeZoneNames: TStringArray;

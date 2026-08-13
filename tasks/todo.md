@@ -10,7 +10,7 @@
 - [x] Extract calendar arithmetic and rounding
 - [x] Extract parsing and formatting
 - [x] Isolate incompatible legacy implementations
-- [ ] Simplify timezone facade duplication
+- [x] Simplify timezone facade duplication
 - [ ] Decide whether platform timezone backends should be split
 - [ ] Run full Windows-oriented local verification
 - [ ] Run documentation, package, example, and consumer checks
