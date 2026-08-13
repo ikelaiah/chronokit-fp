@@ -4,11 +4,27 @@ param()
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-& (Join-Path $PSScriptRoot 'GenerateApiReference.ps1') -Check
+$generatorPath = Join-Path $PSScriptRoot 'GenerateApiReference.ps1'
+& $generatorPath -Check
+
+$chronokitPath = Join-Path $repositoryRoot 'src\ChronoKit.pas'
+$lineEndingTestPath = Join-Path $repositoryRoot (
+  'build-temp\documentation-line-endings-{0}' -f
+    [guid]::NewGuid().ToString('N'))
+$windowsSourcePath = Join-Path $lineEndingTestPath 'ChronoKit.pas'
+New-Item -ItemType Directory -Path $lineEndingTestPath -Force | Out-Null
+try {
+  $source = Get-Content -LiteralPath $chronokitPath -Raw
+  $windowsSource = [regex]::Replace($source, '\r?\n', "`r`n")
+  [IO.File]::WriteAllText($windowsSourcePath, $windowsSource,
+    [Text.UTF8Encoding]::new($false))
+  & $generatorPath -Check -SourceFile $windowsSourcePath
+} finally {
+  Remove-Item -LiteralPath $lineEndingTestPath -Recurse -Force
+}
 
 $learningPathPath = Join-Path $repositoryRoot 'docs\Learning-Path.md'
 $examplesPath = Join-Path $repositoryRoot 'examples\LearningPath'
-$chronokitPath = Join-Path $repositoryRoot 'src\ChronoKit.pas'
 $learningPath = Get-Content -LiteralPath $learningPathPath -Raw
 $examples = Get-ChildItem -LiteralPath $examplesPath -Filter '*.lpr' -File
 foreach ($example in $examples) {

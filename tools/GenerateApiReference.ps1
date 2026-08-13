@@ -1,14 +1,21 @@
 [CmdletBinding()]
 param(
-  [switch]$Check
+  [switch]$Check,
+  [string]$SourceFile
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$sourcePath = Join-Path $repositoryRoot 'src\ChronoKit.pas'
+$sourcePath = if ([string]::IsNullOrWhiteSpace($SourceFile)) {
+  Join-Path $repositoryRoot 'src\ChronoKit.pas'
+} else {
+  $SourceFile
+}
 $referencePath = Join-Path $repositoryRoot 'docs\API-Reference.md'
 $source = Get-Content -LiteralPath $sourcePath -Raw
+# Keep multiline regex anchors independent of the checkout's line endings.
+$source = $source -replace '\r\n?', "`n"
 $interfaceEnd = $source.IndexOf("`nimplementation")
 if ($interfaceEnd -lt 0) {
   throw 'Could not locate ChronoKit interface declarations.'
