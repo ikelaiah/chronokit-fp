@@ -10,9 +10,10 @@ milestone complete.
 ## Architecture decisions
 
 - `ChronoKit.pas` remains the only taught public facade.
-- Shared public value types may be implemented in `ChronoKitTypes.pas` only if
-  aliases preserve FPC 3.2.2 source compatibility and compiler diagnostics.
-- Domain units depend on `ChronoKitTypes` and the RTL, never on the facade.
+- Shared domain values use `ChronoKitInternalTypes.pas`; the facade maps them
+  to unchanged public records because FPC 3.2.2 enum aliases do not re-export
+  enum identifiers.
+- Domain units depend on `ChronoKitInternalTypes` and the RTL, never on the facade.
 - Equivalent deprecated aliases remain one-line facade delegates. Historical
   algorithms with incompatible semantics belong in `ChronoKitLegacy.pas` and
   are never called by preferred implementations.
@@ -39,8 +40,8 @@ milestone complete.
 
 ### Phase 2: Foundational seams
 
-5. Introduce `ChronoKitTypes.pas`, re-export compatible aliases from the
-   facade, and verify preferred and legacy consumers compile unchanged.
+5. Introduce `ChronoKitInternalTypes.pas`, add explicit facade mappings, and
+   verify preferred and legacy consumers compile unchanged.
 6. Extract exact duration and half-open range implementations.
 7. Extract business-calendar implementations.
 
@@ -76,7 +77,7 @@ milestone complete.
 
 | Risk | Mitigation |
 |---|---|
-| Type aliases change compiler-visible identity | Prove aliases with source and Lazarus consumers before extracting domains |
+| Shared types change compiler-visible identity | Keep public declarations in the facade and map internal records explicitly |
 | Moving tests silently drops registration | Compare the registered test count and test-name inventory before and after |
 | Refactoring changes deprecated behavior | Keep legacy behavior tests and compile fixture separate and green |
 | Unit dependencies become circular | Enforce `facade -> domains -> types/RTL` and check compiler unit order |

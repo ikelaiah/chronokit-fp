@@ -4,8 +4,8 @@
 - [x] Split 178 tests into domain suites without assertion changes
 - [x] Add and check Windows/Linux v1.7 API manifests
 - [ ] Record internal architecture and contributor placement rules
-- [ ] Introduce and verify the shared-types seam
-- [ ] Extract durations and ranges
+- [x] Introduce and verify the shared-types seam
+- [x] Extract durations and ranges
 - [ ] Extract business calendars
 - [ ] Extract calendar arithmetic and rounding
 - [ ] Extract parsing and formatting

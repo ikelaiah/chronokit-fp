@@ -22,9 +22,9 @@ not require consumers to learn new units or change existing source.
 ## Decision
 
 Keep `ChronoKit.pas` as the public facade and move non-trivial implementations
-to domain-focused units. Shared records and exceptions live in a dependency-
-free types unit and are re-exported by compatible facade aliases. Dependency
-direction is:
+to domain-focused units. Shared internal records live in a dependency-free
+types unit and the facade maps them explicitly to the unchanged public records.
+Dependency direction is:
 
 ```text
 ChronoKit facade
@@ -34,13 +34,19 @@ ChronoKit facade
   -> timezone engine
   -> legacy compatibility
 
-domain units -> ChronoKitTypes + Free Pascal RTL
+domain units -> ChronoKitInternalTypes + Free Pascal RTL
 preferred domain units -X-> legacy compatibility
 ```
 
 Equivalent deprecated names stay as small delegates to preferred operations.
 Only incompatible historical algorithms move to the legacy unit. Every move is
 preceded by domain test separation and guarded by platform API manifests.
+
+FPC 3.2.2 does not re-export enumeration identifiers through a type alias. A
+probe using an aliased enum compiled the record alias but rejected an existing
+consumer expression using the enum value. Public type aliases were therefore
+rejected: they would make names such as `duDay`, `bwdMonday`, and `dskPeriod`
+unavailable to consumers that correctly use only `ChronoKit`.
 
 ## Alternatives considered
 
@@ -59,6 +65,14 @@ learning burden.
 Rejected because include files reduce file length but do not establish compiler
 dependency boundaries or independently testable ownership.
 
+### Move public records to a types unit and re-export aliases
+
+Rejected after an FPC 3.2.2 compiler probe. Record aliases remain compatible,
+but enumeration values are not re-exported with their aliased type. Repeating
+every enum value as a facade constant would change the frozen declaration
+surface and make the manifest describe an implementation workaround rather
+than the original API.
+
 ### Move every facade wrapper into a domain unit
 
 Rejected because one-line RTL and compatibility delegates are clearer in the
@@ -69,5 +83,5 @@ facade than behind an additional pass-through abstraction.
 - Consumers continue to use `ChronoKit` and existing names.
 - Contributors can locate tests and implementations by domain.
 - The package contains additional internal units.
-- Type aliases and package integration require explicit FPC 3.2.2 verification.
+- Facade mapping is deliberate boundary code and must remain small and direct.
 - Large moves must be delivered one domain at a time.

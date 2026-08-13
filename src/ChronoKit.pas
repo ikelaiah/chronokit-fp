@@ -3090,6 +3090,7 @@ type
 implementation
 
 uses
+  ChronoKitInternalTypes, ChronoKitDurations, ChronoKitRanges,
   ChronoKitTimeZones;
 
 procedure AssignTimeZoneInfo(const AEngineInfo: TChronoKitZoneInfo;
@@ -3115,49 +3116,48 @@ begin
     ATimeZone]);
 end;
 
-function CheckedDurationAdd(const ALeft, ARight: Int64): Int64;
+function ToInternalPeriod(const AValue: TCalendarPeriod): TCKCalendarPeriod;
 begin
-  if ((ARight > 0) and (ALeft > High(Int64) - ARight)) or
-     ((ARight < 0) and (ALeft < Low(Int64) - ARight)) then
-    raise ERangeError.Create('Duration exceeds the Int64 millisecond range');
-  Result := ALeft + ARight;
+  Result.Years := AValue.Years;
+  Result.Months := AValue.Months;
+  Result.Days := AValue.Days;
+  Result.Hours := AValue.Hours;
+  Result.Minutes := AValue.Minutes;
+  Result.Seconds := AValue.Seconds;
+  Result.Milliseconds := AValue.Milliseconds;
 end;
 
-function CheckedDurationMultiply(const AValue, AFactor: Int64): Int64;
+function FromInternalPeriod(const AValue: TCKCalendarPeriod): TCalendarPeriod;
 begin
-  if AFactor <= 0 then
-    raise EArgumentException.Create('Duration factor must be positive');
-  if (AValue > High(Int64) div AFactor) or
-     (AValue < Low(Int64) div AFactor) then
-    raise ERangeError.Create('Duration exceeds the Int64 millisecond range');
-  Result := AValue * AFactor;
+  Result.Years := AValue.Years;
+  Result.Months := AValue.Months;
+  Result.Days := AValue.Days;
+  Result.Hours := AValue.Hours;
+  Result.Minutes := AValue.Minutes;
+  Result.Seconds := AValue.Seconds;
+  Result.Milliseconds := AValue.Milliseconds;
 end;
 
-procedure CheckCalendarComponent(const AValue: Int64);
+function ToInternalDuration(const AValue: TDuration): TCKDuration;
 begin
-  if (AValue < Low(Integer)) or (AValue > High(Integer)) then
-    raise ERangeError.Create(
-      'Normalized calendar component exceeds Integer range');
+  Result.Milliseconds := AValue.Milliseconds;
 end;
 
-function NegateCalendarComponent(const AValue: Integer): Integer;
+function FromInternalDuration(const AValue: TCKDuration): TDuration;
 begin
-  if AValue = Low(Integer) then
-    raise ERangeError.Create(
-      'Calendar component cannot be negated within the Integer range');
-  Result := -AValue;
+  Result.Milliseconds := AValue.Milliseconds;
 end;
 
-procedure ValidateRange(const ARange: TDateTimeRange);
+function ToInternalRange(const AValue: TDateTimeRange): TCKDateTimeRange;
 begin
-  if CompareDateTime(ARange.StartValue, ARange.EndValue) > 0 then
-    raise EArgumentException.Create(
-      'Range start must not be later than range end');
+  Result.StartValue := AValue.StartValue;
+  Result.EndValue := AValue.EndValue;
 end;
 
-function RangeIsEmpty(const ARange: TDateTimeRange): Boolean;
+function FromInternalRange(const AValue: TCKDateTimeRange): TDateTimeRange;
 begin
-  Result := CompareDateTime(ARange.StartValue, ARange.EndValue) = 0;
+  Result.StartValue := AValue.StartValue;
+  Result.EndValue := AValue.EndValue;
 end;
 
 { TChronoKit }
@@ -3910,283 +3910,133 @@ class function TChronoKit.CreateCalendarPeriod(const AYears: Integer;
   const AMinutes: Integer; const ASeconds: Integer;
   const AMilliseconds: Integer): TCalendarPeriod;
 begin
-  Result.Years := AYears;
-  Result.Months := AMonths;
-  Result.Days := ADays;
-  Result.Hours := AHours;
-  Result.Minutes := AMinutes;
-  Result.Seconds := ASeconds;
-  Result.Milliseconds := AMilliseconds;
+  Result := FromInternalPeriod(CKCreateCalendarPeriod(AYears, AMonths,
+    ADays, AHours, AMinutes, ASeconds, AMilliseconds));
 end;
 
 class function TChronoKit.NormalizeCalendarPeriod(
   const AValue: TCalendarPeriod): TCalendarPeriod;
-var
-  Years, Months, Days, Hours, Minutes, Seconds, Milliseconds: Int64;
 begin
-  Years := AValue.Years;
-  Months := AValue.Months;
-  Days := AValue.Days;
-  Hours := AValue.Hours;
-  Minutes := AValue.Minutes;
-  Seconds := AValue.Seconds;
-  Milliseconds := AValue.Milliseconds;
-
-  Seconds := Seconds + Milliseconds div MillisecondsPerSecond;
-  Milliseconds := Milliseconds mod MillisecondsPerSecond;
-  Minutes := Minutes + Seconds div SecondsPerMinute;
-  Seconds := Seconds mod SecondsPerMinute;
-  Hours := Hours + Minutes div MinutesPerHour;
-  Minutes := Minutes mod MinutesPerHour;
-  Days := Days + Hours div HoursPerDay;
-  Hours := Hours mod HoursPerDay;
-  Years := Years + Months div MonthsPerYear;
-  Months := Months mod MonthsPerYear;
-
-  CheckCalendarComponent(Years);
-  CheckCalendarComponent(Months);
-  CheckCalendarComponent(Days);
-  CheckCalendarComponent(Hours);
-  CheckCalendarComponent(Minutes);
-  CheckCalendarComponent(Seconds);
-  CheckCalendarComponent(Milliseconds);
-  Result.Years := Years;
-  Result.Months := Months;
-  Result.Days := Days;
-  Result.Hours := Hours;
-  Result.Minutes := Minutes;
-  Result.Seconds := Seconds;
-  Result.Milliseconds := Milliseconds;
+  Result := FromInternalPeriod(
+    CKNormalizeCalendarPeriod(ToInternalPeriod(AValue)));
 end;
 
 class function TChronoKit.DurationFromParts(const ADays: Int64;
   const AHours: Int64; const AMinutes: Int64; const ASeconds: Int64;
   const AMilliseconds: Int64): TDuration;
-var
-  Total: Int64;
 begin
-  Total := CheckedDurationMultiply(ADays,
-    Int64(SecondsPerDay) * MillisecondsPerSecond);
-  Total := CheckedDurationAdd(Total, CheckedDurationMultiply(AHours,
-    Int64(SecondsPerHour) * MillisecondsPerSecond));
-  Total := CheckedDurationAdd(Total, CheckedDurationMultiply(AMinutes,
-    Int64(SecondsPerMinute) * MillisecondsPerSecond));
-  Total := CheckedDurationAdd(Total, CheckedDurationMultiply(ASeconds,
-    MillisecondsPerSecond));
-  Result.Milliseconds := CheckedDurationAdd(Total, AMilliseconds);
+  Result := FromInternalDuration(CKDurationFromParts(ADays, AHours,
+    AMinutes, ASeconds, AMilliseconds));
 end;
 
 class function TChronoKit.DurationFromSeconds(
   const ASeconds: Int64): TDuration;
 begin
-  Result.Milliseconds := CheckedDurationMultiply(ASeconds,
-    MillisecondsPerSecond);
+  Result := FromInternalDuration(CKDurationFromSeconds(ASeconds));
 end;
 
 class function TChronoKit.AddPeriod(const AValue: TDateTime;
   const APeriod: TCalendarPeriod): TDateTime;
 begin
-  Result := AValue;
-  if APeriod.Years <> 0 then
-    Result := IncYear(Result, APeriod.Years);
-  if APeriod.Months <> 0 then
-    Result := IncMonth(Result, APeriod.Months);
-  if APeriod.Days <> 0 then
-    Result := IncDay(Result, APeriod.Days);
-  if APeriod.Hours <> 0 then
-    Result := IncHour(Result, APeriod.Hours);
-  if APeriod.Minutes <> 0 then
-    Result := IncMinute(Result, APeriod.Minutes);
-  if APeriod.Seconds <> 0 then
-    Result := IncSecond(Result, APeriod.Seconds);
-  if APeriod.Milliseconds <> 0 then
-    Result := IncMilliSecond(Result, APeriod.Milliseconds);
+  Result := CKAddPeriod(AValue, ToInternalPeriod(APeriod));
 end;
 
 class function TChronoKit.SubtractPeriod(const AValue: TDateTime;
   const APeriod: TCalendarPeriod): TDateTime;
 begin
-  Result := AValue;
-  if APeriod.Years <> 0 then
-    Result := IncYear(Result, NegateCalendarComponent(APeriod.Years));
-  if APeriod.Months <> 0 then
-    Result := IncMonth(Result, NegateCalendarComponent(APeriod.Months));
-  if APeriod.Days <> 0 then
-    Result := IncDay(Result, NegateCalendarComponent(APeriod.Days));
-  if APeriod.Hours <> 0 then
-    Result := IncHour(Result, NegateCalendarComponent(APeriod.Hours));
-  if APeriod.Minutes <> 0 then
-    Result := IncMinute(Result, NegateCalendarComponent(APeriod.Minutes));
-  if APeriod.Seconds <> 0 then
-    Result := IncSecond(Result, NegateCalendarComponent(APeriod.Seconds));
-  if APeriod.Milliseconds <> 0 then
-    Result := IncMilliSecond(Result,
-      NegateCalendarComponent(APeriod.Milliseconds));
+  Result := CKSubtractPeriod(AValue, ToInternalPeriod(APeriod));
 end;
 
 class function TChronoKit.AddDuration(const AValue: TDateTime;
   const ADuration: TDuration): TDateTime;
 begin
-  Result := AValue + ADuration.Milliseconds /
-    (Int64(SecondsPerDay) * MillisecondsPerSecond);
+  Result := CKAddDuration(AValue, ToInternalDuration(ADuration));
 end;
 
 class function TChronoKit.SubtractDuration(const AValue: TDateTime;
   const ADuration: TDuration): TDateTime;
 begin
-  Result := AValue - ADuration.Milliseconds /
-    (Int64(SecondsPerDay) * MillisecondsPerSecond);
+  Result := CKSubtractDuration(AValue, ToInternalDuration(ADuration));
 end;
 
 class function TChronoKit.DurationBetween(const AStart,
   AEnd: TDateTime): TDuration;
 begin
-  Result.Milliseconds := Round((AEnd - AStart) * SecondsPerDay *
-    MillisecondsPerSecond);
+  Result := FromInternalDuration(CKDurationBetween(AStart, AEnd));
 end;
 
 class function TChronoKit.CreateRange(const AStart,
   AEnd: TDateTime): TDateTimeRange;
 begin
-  Result.StartValue := AStart;
-  Result.EndValue := AEnd;
-  ValidateRange(Result);
+  Result := FromInternalRange(CKCreateRange(AStart, AEnd));
 end;
 
 class function TChronoKit.RangeContains(const ARange: TDateTimeRange;
   const AValue: TDateTime): Boolean;
 begin
-  ValidateRange(ARange);
-  Result := (CompareDateTime(AValue, ARange.StartValue) >= 0) and
-    (CompareDateTime(AValue, ARange.EndValue) < 0);
+  Result := CKRangeContains(ToInternalRange(ARange), AValue);
 end;
 
 class function TChronoKit.RangesOverlap(const AFirst,
   ASecond: TDateTimeRange): Boolean;
 begin
-  ValidateRange(AFirst);
-  ValidateRange(ASecond);
-  Result := not RangeIsEmpty(AFirst) and not RangeIsEmpty(ASecond) and
-    (CompareDateTime(AFirst.StartValue, ASecond.EndValue) < 0) and
-    (CompareDateTime(ASecond.StartValue, AFirst.EndValue) < 0);
+  Result := CKRangesOverlap(ToInternalRange(AFirst),
+    ToInternalRange(ASecond));
 end;
 
 class function TChronoKit.RangeDuration(
   const ARange: TDateTimeRange): TDuration;
 begin
-  ValidateRange(ARange);
-  Result := DurationBetween(ARange.StartValue, ARange.EndValue);
+  Result := FromInternalDuration(CKRangeDuration(ToInternalRange(ARange)));
 end;
 
 class function TChronoKit.RangesTouch(const AFirst,
   ASecond: TDateTimeRange): Boolean;
 begin
-  ValidateRange(AFirst);
-  ValidateRange(ASecond);
-  Result := not RangeIsEmpty(AFirst) and not RangeIsEmpty(ASecond) and
-    ((CompareDateTime(AFirst.EndValue, ASecond.StartValue) = 0) or
-     (CompareDateTime(ASecond.EndValue, AFirst.StartValue) = 0));
+  Result := CKRangesTouch(ToInternalRange(AFirst), ToInternalRange(ASecond));
 end;
 
 class function TChronoKit.RangeGap(const AFirst,
   ASecond: TDateTimeRange): TDuration;
 begin
-  ValidateRange(AFirst);
-  ValidateRange(ASecond);
-  Result.Milliseconds := 0;
-  if CompareDateTime(AFirst.EndValue, ASecond.StartValue) < 0 then
-    Result := DurationBetween(AFirst.EndValue, ASecond.StartValue)
-  else if CompareDateTime(ASecond.EndValue, AFirst.StartValue) < 0 then
-    Result := DurationBetween(ASecond.EndValue, AFirst.StartValue);
+  Result := FromInternalDuration(CKRangeGap(ToInternalRange(AFirst),
+    ToInternalRange(ASecond)));
 end;
 
 class function TChronoKit.SubtractRange(const AValue,
   ARemove: TDateTimeRange): TDateTimeRangeArray;
+var
+  I: Integer;
+  InternalResult: TCKDateTimeRangeArray;
 begin
-  ValidateRange(AValue);
-  ValidateRange(ARemove);
+  InternalResult := CKSubtractRange(ToInternalRange(AValue),
+    ToInternalRange(ARemove));
   Result := nil;
-  if RangeIsEmpty(AValue) then
-    Exit;
-
-  if RangeIsEmpty(ARemove) or not RangesOverlap(AValue, ARemove) then
-  begin
-    SetLength(Result, 1);
-    Result[0] := AValue;
-    Exit;
-  end;
-
-  if (CompareDateTime(ARemove.StartValue, AValue.StartValue) <= 0) and
-     (CompareDateTime(ARemove.EndValue, AValue.EndValue) >= 0) then
-    Exit;
-
-  if CompareDateTime(ARemove.StartValue, AValue.StartValue) <= 0 then
-  begin
-    SetLength(Result, 1);
-    Result[0] := CreateRange(ARemove.EndValue, AValue.EndValue);
-    Exit;
-  end;
-
-  if CompareDateTime(ARemove.EndValue, AValue.EndValue) >= 0 then
-  begin
-    SetLength(Result, 1);
-    Result[0] := CreateRange(AValue.StartValue, ARemove.StartValue);
-    Exit;
-  end;
-
-  SetLength(Result, 2);
-  Result[0] := CreateRange(AValue.StartValue, ARemove.StartValue);
-  Result[1] := CreateRange(ARemove.EndValue, AValue.EndValue);
+  SetLength(Result, Length(InternalResult));
+  for I := Low(InternalResult) to High(InternalResult) do
+    Result[I] := FromInternalRange(InternalResult[I]);
 end;
 
 class function TChronoKit.TryMergeRanges(const AFirst,
   ASecond: TDateTimeRange; out AMerged: TDateTimeRange): Boolean;
+var
+  InternalMerged: TCKDateTimeRange;
 begin
-  ValidateRange(AFirst);
-  ValidateRange(ASecond);
-
-  if RangeIsEmpty(AFirst) then
-  begin
-    AMerged := ASecond;
-    Exit(True);
-  end;
-  if RangeIsEmpty(ASecond) then
-  begin
-    AMerged := AFirst;
-    Exit(True);
-  end;
-  if not RangesOverlap(AFirst, ASecond) and
-     not RangesTouch(AFirst, ASecond) then
-    Exit(False);
-
-  if CompareDateTime(AFirst.StartValue, ASecond.StartValue) <= 0 then
-    AMerged.StartValue := AFirst.StartValue
-  else
-    AMerged.StartValue := ASecond.StartValue;
-  if CompareDateTime(AFirst.EndValue, ASecond.EndValue) >= 0 then
-    AMerged.EndValue := AFirst.EndValue
-  else
-    AMerged.EndValue := ASecond.EndValue;
-  Result := True;
+  Result := CKTryMergeRanges(ToInternalRange(AFirst),
+    ToInternalRange(ASecond), InternalMerged);
+  if Result then
+    AMerged := FromInternalRange(InternalMerged);
 end;
 
 class function TChronoKit.TryIntersectRanges(const AFirst,
   ASecond: TDateTimeRange; out AIntersection: TDateTimeRange): Boolean;
+var
+  InternalIntersection: TCKDateTimeRange;
 begin
-  ValidateRange(AFirst);
-  ValidateRange(ASecond);
-  if not RangesOverlap(AFirst, ASecond) then
-    Exit(False);
-
-  if CompareDateTime(AFirst.StartValue, ASecond.StartValue) >= 0 then
-    AIntersection.StartValue := AFirst.StartValue
-  else
-    AIntersection.StartValue := ASecond.StartValue;
-  if CompareDateTime(AFirst.EndValue, ASecond.EndValue) <= 0 then
-    AIntersection.EndValue := AFirst.EndValue
-  else
-    AIntersection.EndValue := ASecond.EndValue;
-  Result := True;
+  Result := CKTryIntersectRanges(ToInternalRange(AFirst),
+    ToInternalRange(ASecond), InternalIntersection);
+  if Result then
+    AIntersection := FromInternalRange(InternalIntersection);
 end;
 
 class function TChronoKit.CreatePeriod(const AYears: Integer = 0; const AMonths: Integer = 0;

@@ -49,6 +49,18 @@ SOFTWARE. "/>
         <Filename Value="..\..\src\ChronoKitTimeZones.pas"/>
         <UnitName Value="ChronoKitTimeZones"/>
       </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitInternalTypes.pas"/>
+        <UnitName Value="ChronoKitInternalTypes"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitDurations.pas"/>
+        <UnitName Value="ChronoKitDurations"/>
+      </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitRanges.pas"/>
+        <UnitName Value="ChronoKitRanges"/>
+      </Item>
     </Files>
     <RequiredPkgs>
       <Item>
