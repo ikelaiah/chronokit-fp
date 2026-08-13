@@ -14,5 +14,5 @@
 - [x] Clean source and Lazarus consumer checks added
 - [x] Examples compile and run on Windows and Linux
 - [x] Version and release records updated for v1.7.0
-- [ ] Full test suite, package, consumers, documentation, and generated-reference checks pass
-- [ ] Diff check and final code review pass
+- [x] Full test suite, package, consumers, documentation, and generated-reference checks pass
+- [x] Diff check and final code review pass
