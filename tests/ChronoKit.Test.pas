@@ -233,6 +233,9 @@ type
     procedure Test164_RangeTryOperationsAvoidSentinels;
     procedure Test165_StartOfQuarterValidatesInputs;
     procedure Test166_ExplicitTimezoneNamesPreserveSemantics;
+    procedure Test167_QuarterValueBoundaries;
+    procedure Test168_BusinessDaysBetweenCountsInclusiveDates;
+    procedure Test169_ConvertBetweenTimeZonesPreservesInstant;
   end;
 
 implementation
@@ -3356,6 +3359,100 @@ begin
     LegacyInfo.Offset, ExplicitInfo.Offset);
   AssertEquals('Explicit timezone info preserves DST state',
     LegacyInfo.IsDST, ExplicitInfo.IsDST);
+end;
+
+procedure TDateTimeTests.Test167_QuarterValueBoundaries;
+var
+  LeapDay, FourthQuarterValue: TDateTime;
+begin
+  LeapDay := EncodeDateTime(2024, 2, 29, 12, 34, 56, 789);
+  AssertEquals('A value in Q1 starts at the first day of the year',
+    EncodeDate(2024, 1, 1), TChronoKit.StartOfQuarter(LeapDay));
+  AssertEquals('A leap-year Q1 ends at its last millisecond',
+    EncodeDateTime(2024, 3, 31, 23, 59, 59, 999),
+    TChronoKit.EndOfQuarter(LeapDay), OneMillisecond);
+
+  FourthQuarterValue := EncodeDateTime(2024, 12, 31, 0, 0, 0, 1);
+  AssertEquals('A Q4 value starts on October 1', EncodeDate(2024, 10, 1),
+    TChronoKit.StartOfQuarter(FourthQuarterValue));
+  AssertEquals('A Q4 value ends in the same calendar year',
+    EncodeDateTime(2024, 12, 31, 23, 59, 59, 999),
+    TChronoKit.EndOfQuarter(FourthQuarterValue), OneMillisecond);
+end;
+
+procedure TDateTimeTests.Test168_BusinessDaysBetweenCountsInclusiveDates;
+var
+  Calendar: TBusinessCalendar;
+  InvalidCalendar: TBusinessCalendar;
+  Raised: Boolean;
+begin
+  AssertEquals('The default calendar counts both business-date endpoints', 5,
+    TChronoKit.BusinessDaysBetween(
+      EncodeDateTime(2024, 7, 1, 20, 0, 0, 0),
+      EncodeDateTime(2024, 7, 7, 1, 0, 0, 0)));
+  AssertEquals('Reverse input order reverses the signed count', -5,
+    TChronoKit.BusinessDaysBetween(EncodeDate(2024, 7, 7),
+      EncodeDate(2024, 7, 1)));
+  AssertEquals('A same-day weekend range has no business dates', 0,
+    TChronoKit.BusinessDaysBetween(EncodeDate(2024, 7, 7),
+      EncodeDate(2024, 7, 7)));
+
+  Calendar := TChronoKit.CreateBusinessCalendar(
+    [bwdSunday, bwdMonday, bwdTuesday, bwdWednesday, bwdThursday],
+    [EncodeDateTime(2024, 7, 4, 15, 0, 0, 0)]);
+  AssertEquals('Custom weeks and date-only holidays affect the count', 4,
+    TChronoKit.BusinessDaysBetween(EncodeDate(2024, 7, 1),
+      EncodeDate(2024, 7, 7), Calendar));
+
+  InvalidCalendar.WorkingDays := [];
+  SetLength(InvalidCalendar.Holidays, 0);
+  Raised := False;
+  try
+    TChronoKit.BusinessDaysBetween(EncodeDate(2024, 7, 1),
+      EncodeDate(2024, 7, 2), InvalidCalendar);
+  except
+    on E: EBusinessCalendarError do
+      Raised := Pos('working day', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('Business-day counting validates custom calendars', Raised);
+end;
+
+procedure TDateTimeTests.Test169_ConvertBetweenTimeZonesPreservesInstant;
+var
+  Converted, SourceValue: TDateTime;
+  NewYork, London: string;
+  Raised: Boolean;
+begin
+  NewYork := FixtureName('CHRONOKIT_TEST_NEW_YORK');
+  London := FixtureName('CHRONOKIT_TEST_LONDON');
+  SourceValue := EncodeDateTime(2024, 1, 15, 8, 30, 0, 0);
+  Converted := TChronoKit.ConvertBetweenTimeZones(SourceValue, NewYork,
+    London);
+  AssertEquals('Named conversion represents the same instant in the target',
+    EncodeDateTime(2024, 1, 15, 13, 30, 0, 0), Converted, OneMillisecond);
+  AssertEquals('A named zone is an identity target for the same source',
+    SourceValue, TChronoKit.ConvertBetweenTimeZones(SourceValue, NewYork,
+      NewYork), OneMillisecond);
+
+  Raised := False;
+  try
+    TChronoKit.ConvertBetweenTimeZones(
+      EncodeDateTime(2024, 3, 10, 2, 30, 0, 0), NewYork, 'UTC');
+  except
+    on E: ETimeZoneError do
+      Raised := Pos('nonexistent', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('A nonexistent source wall clock must be rejected', Raised);
+
+  Raised := False;
+  try
+    TChronoKit.ConvertBetweenTimeZones(
+      EncodeDateTime(2024, 11, 3, 1, 30, 0, 0), NewYork, 'UTC');
+  except
+    on E: ETimeZoneError do
+      Raised := Pos('ambiguous', LowerCase(E.Message)) > 0;
+  end;
+  AssertTrue('An ambiguous source wall clock must be rejected', Raised);
 end;
 
 initialization

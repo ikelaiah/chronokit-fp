@@ -1623,6 +1623,28 @@ type
       const ADays: Integer): TDateTime; overload; static;
     class function AddBusinessDays(const AValue: TDateTime; const ADays: Integer;
       const ACalendar: TBusinessCalendar): TDateTime; overload; static;
+
+    {
+      @description Counts business calendar dates in the inclusive interval.
+                   Time portions are ignored. Reversed calendar-date endpoints
+                   return the negative of the forward count.
+
+      @param AStartDate First endpoint of the inclusive calendar-date interval.
+      @param AEndDate Second endpoint of the inclusive calendar-date interval.
+      @param ACalendar Optional working-week and holiday rules.
+
+      @returns The signed number of business dates, including each qualifying
+               endpoint. A same-day business date returns 1.
+
+      @raises EBusinessCalendarError when ACalendar has no working days.
+
+      @see docs/API-Additions-v1.7.0.md
+      @see examples/LearningPath/04-BusinessCalendars.lpr
+    }
+    class function BusinessDaysBetween(const AStartDate,
+      AEndDate: TDateTime): Integer; overload; static;
+    class function BusinessDaysBetween(const AStartDate, AEndDate: TDateTime;
+      const ACalendar: TBusinessCalendar): Integer; overload; static;
     
     {
       @description Returns the calendar quarter (1-4) for the given date.
@@ -1649,9 +1671,33 @@ type
     }
     class function GetQuarter(const AValue: TDateTime): Integer; static;
     { Returns the first day of a validated calendar quarter.
-      Raises EArgumentException unless AYear is 1..9999 and AQuarter is 1..4. }
+      Raises EArgumentException unless AYear is 1..9999 and AQuarter is 1..4.
+      See docs/API-Additions-v1.7.0.md and
+      examples/LearningPath/01-DatesAndWallClocks.lpr. }
     class function StartOfQuarter(const AYear,
-      AQuarter: Integer): TDateTime; static;
+      AQuarter: Integer): TDateTime; overload; static;
+    {
+      @description Returns midnight on the first date of AValue's quarter.
+                   The input time portion is ignored.
+
+      @param AValue Any date/time within the required calendar quarter.
+      @returns 1 January, 1 April, 1 July, or 1 October in AValue's year.
+      @see docs/API-Additions-v1.7.0.md
+      @see examples/LearningPath/01-DatesAndWallClocks.lpr
+    }
+    class function StartOfQuarter(const AValue: TDateTime): TDateTime;
+      overload; static;
+    {
+      @description Returns the final millisecond of AValue's calendar quarter.
+                   The input time portion is ignored.
+
+      @param AValue Any date/time within the required calendar quarter.
+      @returns 31 March, 30 June, 30 September, or 31 December at
+               23:59:59.999 in AValue's year.
+      @see docs/API-Additions-v1.7.0.md
+      @see examples/LearningPath/01-DatesAndWallClocks.lpr
+    }
+    class function EndOfQuarter(const AValue: TDateTime): TDateTime; static;
     
     {
       @description Checks if the time portion of a TDateTime value is in the AM (before 12:00:00 noon).
@@ -3023,6 +3069,22 @@ type
     { Interprets AValue in the named source zone and converts it to system local. }
     class function TimeZoneToSystemLocal(const AValue: TDateTime;
       const ATimeZone: string): TDateTime; static;
+    {
+      @description Interprets AValue as a wall clock in ASourceTimeZone and
+                   returns the target-zone wall clock for the same instant.
+                   The returned TDateTime has no stored timezone identity.
+
+      @param AValue Source-zone wall-clock value.
+      @param ASourceTimeZone Platform-native timezone that gives AValue meaning.
+      @param ATargetTimeZone Platform-native timezone for the returned clock.
+      @returns The target-zone representation of the source instant.
+      @raises ETimeZoneError for unsupported names, missing rule data, or an
+              ambiguous or nonexistent source wall clock.
+      @see docs/API-Additions-v1.7.0.md
+      @see examples/LearningPath/05-NamedTimeZones.lpr
+    }
+    class function ConvertBetweenTimeZones(const AValue: TDateTime;
+      const ASourceTimeZone, ATargetTimeZone: string): TDateTime; static;
   end;
 
 implementation
@@ -3612,6 +3674,34 @@ begin
   end;
 end;
 
+class function TChronoKit.BusinessDaysBetween(const AStartDate,
+  AEndDate: TDateTime): Integer;
+begin
+  Result := BusinessDaysBetween(AStartDate, AEndDate, DefaultBusinessCalendar);
+end;
+
+class function TChronoKit.BusinessDaysBetween(const AStartDate,
+  AEndDate: TDateTime; const ACalendar: TBusinessCalendar): Integer;
+var
+  CurrentDate, EndDate, StartDate: TDateTime;
+begin
+  ValidateBusinessCalendar(ACalendar);
+  StartDate := DateOf(AStartDate);
+  EndDate := DateOf(AEndDate);
+  if StartDate > EndDate then
+    Exit(-BusinessDaysBetween(EndDate, StartDate, ACalendar));
+
+  Result := 0;
+  CurrentDate := StartDate;
+  repeat
+    if IsBusinessDayUnchecked(CurrentDate, ACalendar) then
+      Inc(Result);
+    if CurrentDate = EndDate then
+      Exit;
+    CurrentDate := AddDays(CurrentDate, 1);
+  until False;
+end;
+
 class function TChronoKit.GetQuarter(const AValue: TDateTime): Integer;
 begin
   Result := ((GetMonth(AValue) - 1) div 3) + 1;
@@ -3625,6 +3715,21 @@ begin
   if (AQuarter < 1) or (AQuarter > 4) then
     raise EArgumentException.Create('Quarter must be between 1 and 4');
   Result := EncodeDate(AYear, 1 + (AQuarter - 1) * 3, 1);
+end;
+
+class function TChronoKit.StartOfQuarter(const AValue: TDateTime): TDateTime;
+begin
+  Result := StartOfQuarter(GetYear(AValue), GetQuarter(AValue));
+end;
+
+class function TChronoKit.EndOfQuarter(const AValue: TDateTime): TDateTime;
+var
+  Month, Year: Word;
+begin
+  Year := GetYear(AValue);
+  Month := GetQuarter(AValue) * 3;
+  Result := EncodeDateTime(Year, Month, DaysInAMonth(Year, Month),
+    23, 59, 59, 999);
 end;
 
 class function TChronoKit.IsAM(const AValue: TDateTime): Boolean;
@@ -4664,6 +4769,32 @@ begin
     ValidateTimeZoneOffset(EngineInfo.Offset);
     SystemTimeZone := CKGetSystemTimeZone;
     CKConvertUTCToLocal(UTCValue, SystemTimeZone, Result, EngineInfo);
+    ValidateTimeZoneOffset(EngineInfo.Offset);
+  except
+    on E: ETimeZoneError do
+      raise;
+    on E: EChronoKitTimeZoneEngine do
+      raise ETimeZoneError.Create(E.Message);
+  end;
+end;
+
+class function TChronoKit.ConvertBetweenTimeZones(const AValue: TDateTime;
+  const ASourceTimeZone, ATargetTimeZone: string): TDateTime;
+var
+  EngineInfo: TChronoKitZoneInfo;
+  SourceTimeZone, TargetTimeZone: string;
+  Status: TChronoKitLocalTimeStatus;
+  UTCValue: TDateTime;
+begin
+  SourceTimeZone := ValidateTimeZone(ASourceTimeZone);
+  TargetTimeZone := ValidateTimeZone(ATargetTimeZone);
+  try
+    Status := CKResolveLocalTime(AValue, SourceTimeZone,
+      UTCValue, EngineInfo);
+    if Status <> ckLocalTimeValid then
+      RaiseInvalidLocalTime(Status, AValue, SourceTimeZone);
+    ValidateTimeZoneOffset(EngineInfo.Offset);
+    CKConvertUTCToLocal(UTCValue, TargetTimeZone, Result, EngineInfo);
     ValidateTimeZoneOffset(EngineInfo.Offset);
   except
     on E: ETimeZoneError do

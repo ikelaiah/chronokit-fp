@@ -1,21 +1,18 @@
-# v1.6.0 checklist
+# v1.7.0 checklist
 
-- [x] Roadmap and binding API transition specification reviewed
-- [x] Scope bounded to v1.6.0; no 2.0 removals included
-- [x] Clean baseline worktree and Free Pascal 3.2.2 toolchain confirmed
-- [x] Deprecation syntax probe completed
-- [x] Seven correctness regressions added and observed failing
-- [x] Seven specified defects corrected
-- [x] Calendar-period and exact-duration replacements tested and implemented
-- [x] Half-open range replacements tested and implemented
-- [x] Quarter, decimal-year, and timezone replacements tested and implemented
-- [x] Complete deprecation matrix annotated or explicitly documented
-- [x] Free Pascal 3.2.2 legacy compatibility fixture compiles
-- [x] Preferred v1.6 paths documented with complete migration examples
-- [x] Version metadata, changelog, roadmap, release notes, and PR notes updated
-- [x] Full fixture-backed FPCUnit suite passes
-- [x] Every shipped example compiles
-- [x] Lazarus package builds
-- [x] Documentation links and public-method coverage verified
-- [x] `git diff --check` passes
-- [x] Final multi-axis code review passes
+- [x] Roadmap reviewed and scope bounded to v1.7.0
+- [x] `release/v1.7.0` branch created from a clean worktree
+- [x] Existing API, timezone, business-calendar, test, example, and CI patterns reviewed
+- [x] v1.7 workflow contract published
+- [x] Failing tests added for the three additive workflows
+- [x] Direct named-zone conversion implemented and tested
+- [x] Quarter value-boundary overloads implemented and tested
+- [x] Business-day counting overloads implemented and tested
+- [ ] Progressive executable learning path added
+- [ ] Decision guides and beginner audit published
+- [ ] Generated searchable reference and declaration-coverage check added
+- [ ] Clean source and Lazarus consumer checks added
+- [ ] Examples compile and run on Windows and Linux
+- [ ] Version and release records updated for v1.7.0
+- [ ] Full test suite, package, consumers, documentation, and generated-reference checks pass
+- [ ] Diff check and final code review pass
