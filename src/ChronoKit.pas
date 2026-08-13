@@ -3091,7 +3091,7 @@ implementation
 
 uses
   ChronoKitInternalTypes, ChronoKitDurations, ChronoKitRanges,
-  ChronoKitTimeZones;
+  ChronoKitBusinessCalendars, ChronoKitTimeZones;
 
 procedure AssignTimeZoneInfo(const AEngineInfo: TChronoKitZoneInfo;
   out APublicInfo: TTimeZoneInfo);
@@ -3158,6 +3158,36 @@ function FromInternalRange(const AValue: TCKDateTimeRange): TDateTimeRange;
 begin
   Result.StartValue := AValue.StartValue;
   Result.EndValue := AValue.EndValue;
+end;
+
+function ToInternalBusinessCalendar(
+  const AValue: TBusinessCalendar): TCKBusinessCalendar;
+var
+  Day: TBusinessWeekday;
+  I: Integer;
+begin
+  Result.WorkingDays := [];
+  for Day := Low(TBusinessWeekday) to High(TBusinessWeekday) do
+    if Day in AValue.WorkingDays then
+      Include(Result.WorkingDays, TCKBusinessWeekday(Ord(Day)));
+  SetLength(Result.Holidays, Length(AValue.Holidays));
+  for I := Low(AValue.Holidays) to High(AValue.Holidays) do
+    Result.Holidays[I] := AValue.Holidays[I];
+end;
+
+function FromInternalBusinessCalendar(
+  const AValue: TCKBusinessCalendar): TBusinessCalendar;
+var
+  Day: TCKBusinessWeekday;
+  I: Integer;
+begin
+  Result.WorkingDays := [];
+  for Day := Low(TCKBusinessWeekday) to High(TCKBusinessWeekday) do
+    if Day in AValue.WorkingDays then
+      Include(Result.WorkingDays, TBusinessWeekday(Ord(Day)));
+  SetLength(Result.Holidays, Length(AValue.Holidays));
+  for I := Low(AValue.Holidays) to High(AValue.Holidays) do
+    Result.Holidays[I] := AValue.Holidays[I];
 end;
 
 { TChronoKit }
@@ -3546,9 +3576,7 @@ end;
 
 class function TChronoKit.DefaultBusinessCalendar: TBusinessCalendar;
 begin
-  Result.WorkingDays := [bwdMonday, bwdTuesday, bwdWednesday, bwdThursday,
-    bwdFriday];
-  Result.Holidays := nil;
+  Result := FromInternalBusinessCalendar(CKDefaultBusinessCalendar);
 end;
 
 class procedure TChronoKit.ValidateBusinessCalendar(
@@ -3561,23 +3589,14 @@ end;
 
 class function TChronoKit.IsHoliday(const AValue: TDateTime;
   const ACalendar: TBusinessCalendar): Boolean;
-var
-  I: Integer;
 begin
-  for I := Low(ACalendar.Holidays) to High(ACalendar.Holidays) do
-    if SameDate(AValue, ACalendar.Holidays[I]) then
-      Exit(True);
-  Result := False;
+  Result := CKIsHoliday(AValue, ToInternalBusinessCalendar(ACalendar));
 end;
 
 class function TChronoKit.IsBusinessDayUnchecked(const AValue: TDateTime;
   const ACalendar: TBusinessCalendar): Boolean;
-var
-  Weekday: TBusinessWeekday;
 begin
-  Weekday := TBusinessWeekday(GetDayOfWeek(AValue) - 1);
-  Result := (Weekday in ACalendar.WorkingDays) and
-    not IsHoliday(AValue, ACalendar);
+  Result := CKIsBusinessDay(AValue, ToInternalBusinessCalendar(ACalendar));
 end;
 
 class function TChronoKit.CreateBusinessCalendar(
@@ -3590,14 +3609,12 @@ end;
 class function TChronoKit.CreateBusinessCalendar(
   const AWorkingDays: TBusinessWeek;
   const AHolidays: array of TDateTime): TBusinessCalendar;
-var
-  I: Integer;
 begin
   Result.WorkingDays := AWorkingDays;
-  SetLength(Result.Holidays, Length(AHolidays));
-  for I := Low(AHolidays) to High(AHolidays) do
-    Result.Holidays[I] := AHolidays[I];
+  Result.Holidays := nil;
   ValidateBusinessCalendar(Result);
+  Result := FromInternalBusinessCalendar(CKCreateBusinessCalendar(
+    ToInternalBusinessCalendar(Result).WorkingDays, AHolidays));
 end;
 
 class function TChronoKit.IsBusinessDay(const AValue: TDateTime): Boolean;
@@ -3621,10 +3638,7 @@ class function TChronoKit.NextBusinessDay(const AValue: TDateTime;
   const ACalendar: TBusinessCalendar): TDateTime;
 begin
   ValidateBusinessCalendar(ACalendar);
-  Result := AValue;
-  repeat
-    Result := AddDays(Result, 1);
-  until IsBusinessDayUnchecked(Result, ACalendar);
+  Result := CKNextBusinessDay(AValue, ToInternalBusinessCalendar(ACalendar));
 end;
 
 class function TChronoKit.PreviousBusinessDay(
@@ -3637,10 +3651,8 @@ class function TChronoKit.PreviousBusinessDay(const AValue: TDateTime;
   const ACalendar: TBusinessCalendar): TDateTime;
 begin
   ValidateBusinessCalendar(ACalendar);
-  Result := AValue;
-  repeat
-    Result := AddDays(Result, -1);
-  until IsBusinessDayUnchecked(Result, ACalendar);
+  Result := CKPreviousBusinessDay(AValue,
+    ToInternalBusinessCalendar(ACalendar));
 end;
 
 class function TChronoKit.AddBusinessDays(const AValue: TDateTime;
@@ -3651,27 +3663,10 @@ end;
 
 class function TChronoKit.AddBusinessDays(const AValue: TDateTime;
   const ADays: Integer; const ACalendar: TBusinessCalendar): TDateTime;
-var
-  Step: Integer;
-  RemainingDays: Int64;
 begin
   ValidateBusinessCalendar(ACalendar);
-  Result := AValue;
-  if ADays = 0 then
-    Exit;
-
-  if ADays < 0 then
-    Step := -1
-  else
-    Step := 1;
-  RemainingDays := Abs(Int64(ADays));
-
-  while RemainingDays > 0 do
-  begin
-    Result := AddDays(Result, Step);
-    if IsBusinessDayUnchecked(Result, ACalendar) then
-      Dec(RemainingDays);
-  end;
+  Result := CKAddBusinessDays(AValue, ADays,
+    ToInternalBusinessCalendar(ACalendar));
 end;
 
 class function TChronoKit.BusinessDaysBetween(const AStartDate,
@@ -3682,24 +3677,10 @@ end;
 
 class function TChronoKit.BusinessDaysBetween(const AStartDate,
   AEndDate: TDateTime; const ACalendar: TBusinessCalendar): Integer;
-var
-  CurrentDate, EndDate, StartDate: TDateTime;
 begin
   ValidateBusinessCalendar(ACalendar);
-  StartDate := DateOf(AStartDate);
-  EndDate := DateOf(AEndDate);
-  if StartDate > EndDate then
-    Exit(-BusinessDaysBetween(EndDate, StartDate, ACalendar));
-
-  Result := 0;
-  CurrentDate := StartDate;
-  repeat
-    if IsBusinessDayUnchecked(CurrentDate, ACalendar) then
-      Inc(Result);
-    if CurrentDate = EndDate then
-      Exit;
-    CurrentDate := AddDays(CurrentDate, 1);
-  until False;
+  Result := CKBusinessDaysBetween(AStartDate, AEndDate,
+    ToInternalBusinessCalendar(ACalendar));
 end;
 
 class function TChronoKit.GetQuarter(const AValue: TDateTime): Integer;

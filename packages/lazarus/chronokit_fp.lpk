@@ -61,6 +61,10 @@ SOFTWARE. "/>
         <Filename Value="..\..\src\ChronoKitRanges.pas"/>
         <UnitName Value="ChronoKitRanges"/>
       </Item>
+      <Item>
+        <Filename Value="..\..\src\ChronoKitBusinessCalendars.pas"/>
+        <UnitName Value="ChronoKitBusinessCalendars"/>
+      </Item>
     </Files>
     <RequiredPkgs>
       <Item>
