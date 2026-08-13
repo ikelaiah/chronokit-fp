@@ -1,7 +1,10 @@
 # ChronoKit-FP 1.7.0 release notes
 
+Released 2026-08-14
+
 ChronoKit-FP 1.7.0 turns the preferred v1.6 API into a small, executable
-learning path and makes three focused workflows direct.
+learning path, makes three focused workflows direct, and gives contributors
+domain-focused internals without changing what users import or call.
 
 ## Highlights
 
@@ -28,9 +31,25 @@ learning path and makes three focused workflows direct.
   preferred declaration lacks useful contract documentation.
 - Clean consumer fixtures exercise both documented installation paths, and CI
   compiles and runs every learning program on Windows and Linux.
+- All 178 tests are organized into nine domain suites, so a regression can be
+  found and run without navigating one monolithic fixture.
+- Calendar and rounding, durations and ranges, business calendars, and parsing
+  now have focused internal units behind the public `ChronoKit` façade.
+- Historical algorithms whose semantics differ from the preferred API are
+  isolated in `ChronoKitLegacy`; preferred implementations never call them.
+- Complete Windows and Linux API manifests mechanically protect the frozen
+  v1.7 declarations, visibility, directives, and platform-specific surface.
+- Timezone façade methods share one source-to-target conversion flow. The
+  Windows and Unix implementations remain in one conditional engine because
+  splitting them would add a backend protocol without reducing coupling.
+
+The accepted [domain-internals ADR](decisions/0001-domain-internals.md)
+records the dependency direction, shared-type boundary, legacy isolation, and
+timezone-backend decision. [CONTRIBUTING.md](../CONTRIBUTING.md) maps each kind
+of change to its implementation unit and test suite.
 
 ## Compatibility
 
 This is an additive 1.x release. No existing declaration is removed or newly
 deprecated, and no runtime dependency is introduced. The preferred v1.7 public
-surface is now frozen through v1.9.
+surface is now frozen through v1.9 and matches both checked platform manifests.

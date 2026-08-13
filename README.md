@@ -37,7 +37,7 @@ ChronoKit-FP is a cross-platform date and time library for Free Pascal developer
 - ⏰ **50+ DateTime Functions** - Everything you need for date/time work
 - 💼 **Business Calendars** - Configure holidays and alternative working weeks
 - 🎯 **Simple API** - Clean, easy-to-use function names
-- 🧪 **Well Tested** - 150+ tests ensure everything works
+- 🧪 **Well Tested** - 178 tests cover the supported behavior by domain
 - 📚 **Good Documentation** - Complete API reference with examples
 
 ## 📑 Table of Contents 
@@ -294,6 +294,8 @@ For detailed documentation, check out:
 - 🔎 [v1.7.0 API Audit](docs/API-Audit-v1.7.0.md) - Reproducible beginner discovery findings and actions
 - 🧭 [2.0 Decision](docs/V2-DECISION.md) - Evidence and criteria for a future major version
 - 🔁 [v1.6-to-2.0 Migration](docs/MIGRATION-v1.6-to-v2.0.md) - Every deprecated name and its replacement
+- 🏗️ [Internal Architecture Decision](docs/decisions/0001-domain-internals.md) - Domain ownership, dependency direction, and timezone-backend rationale
+- 🤝 [Contributor Guide](CONTRIBUTING.md) - Where implementation, tests, contracts, and examples belong
 
 ## 🗺️ Roadmap
 
@@ -339,7 +341,24 @@ fpc "-FU." "-Fu$(pwd)/../src" TestRunner.lpr
 ./TestRunner -a --format=plain
 ```
 
-Pull requests run this suite automatically on Windows and Linux.
+The runner registers 178 tests across nine domain suites for date basics,
+parsing, business calendars, periods and durations, ranges, rounding, calendar
+systems, timezones, and legacy behavior. Pull requests compile and run the same
+suite automatically on Windows and Linux.
+
+Release documentation and both frozen platform API manifests can be checked
+from PowerShell:
+
+```powershell
+pwsh -NoProfile -File tools/TestDocumentation.ps1
+```
+
+Source-based and Lazarus-package consumers can be verified without relying on
+compiled units from the working checkout:
+
+```powershell
+pwsh -NoProfile -File tools/TestCleanConsumers.ps1
+```
 
 ## 🤝 Contributing
 

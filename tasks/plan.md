@@ -3,9 +3,10 @@
 ## Scope
 
 Simplify ChronoKit-FP's internals without changing the frozen v1.7 public API,
-runtime behavior, version metadata, or documented user model. Work proceeds in
-small, independently verified slices. This plan does not mark the v1.8 roadmap
-milestone complete.
+runtime behavior, version metadata, or documented user model. Work proceeded
+in small, independently verified slices. The maintainability work originally
+listed under v1.8 was folded into the v1.7.0 release rather than shipped as a
+separate milestone.
 
 ## Architecture decisions
 
