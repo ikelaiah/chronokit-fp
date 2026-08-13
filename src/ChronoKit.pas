@@ -3091,7 +3091,7 @@ implementation
 
 uses
   ChronoKitInternalTypes, ChronoKitDurations, ChronoKitRanges,
-  ChronoKitBusinessCalendars, ChronoKitTimeZones;
+  ChronoKitBusinessCalendars, ChronoKitCalendar, ChronoKitTimeZones;
 
 procedure AssignTimeZoneInfo(const AEngineInfo: TChronoKitZoneInfo;
   out APublicInfo: TTimeZoneInfo);
@@ -3280,298 +3280,188 @@ begin
 end;
 
 class function TChronoKit.GetYear(const AValue: TDateTime): Integer;
-var
-  Y, M, D: Word;
 begin
-  // Extract date components and return just the year
-  DecodeDate(AValue, Y, M, D);
-  Result := Y;
+  Result := CKGetYear(AValue);
 end;
 
 class function TChronoKit.GetMonth(const AValue: TDateTime): Integer;
-var
-  Y, M, D: Word;
 begin
-  // Extract date components and return just the month
-  DecodeDate(AValue, Y, M, D);
-  Result := M;
+  Result := CKGetMonth(AValue);
 end;
 
 class function TChronoKit.GetDay(const AValue: TDateTime): Integer;
-var
-  Y, M, D: Word;
 begin
-  // Extract date components and return just the day
-  DecodeDate(AValue, Y, M, D);
-  Result := D;
+  Result := CKGetDay(AValue);
 end;
 
 class function TChronoKit.GetDayOfWeek(const AValue: TDateTime): Integer;
 begin
-  // Returns day of week where 1=Sunday, 2=Monday, ..., 7=Saturday
-  Result := SysUtils.DayOfWeek(AValue);
+  Result := CKGetDayOfWeek(AValue);
 end;
 
 class function TChronoKit.GetDayOfYear(const AValue: TDateTime): Integer;
 begin
-  // Returns day of year (1-366)
-  Result := DateUtils.DayOfTheYear(AValue);
+  Result := CKGetDayOfYear(AValue);
 end;
 
 class function TChronoKit.GetHour(const AValue: TDateTime): Integer;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract time components and return just the hour
-  DecodeTime(AValue, H, M, S, MS);
-  Result := H;
+  Result := CKGetHour(AValue);
 end;
 
 class function TChronoKit.GetMinute(const AValue: TDateTime): Integer;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract time components and return just the minute
-  DecodeTime(AValue, H, M, S, MS);
-  Result := M;
+  Result := CKGetMinute(AValue);
 end;
 
 class function TChronoKit.GetSecond(const AValue: TDateTime): Integer;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract time components and return just the second
-  DecodeTime(AValue, H, M, S, MS);
-  Result := S;
+  Result := CKGetSecond(AValue);
 end;
 
 class function TChronoKit.GetMillisecond(const AValue: TDateTime): Integer;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract time components and return just the millisecond
-  DecodeTime(AValue, H, M, S, MS);
-  Result := MS;
+  Result := CKGetMillisecond(AValue);
 end;
 
 class function TChronoKit.SetYear(const AValue: TDateTime; const AYear: Integer): TDateTime;
-var
-  Y, M, D: Word;
-  NewD: Word;
 begin
-  // Extract current date components
-  DecodeDate(AValue, Y, M, D);
-  
-  // Handle Feb 29 corner case
-  if (M = 2) and (D = 29) and (not IsLeapYear(AYear)) then
-    NewD := 28
-  else
-    NewD := D;
-    
-  // Create new date with updated year, preserving time portion
-  Result := EncodeDate(AYear, M, NewD) + Frac(AValue);
+  Result := CKSetYear(AValue, AYear);
 end;
 
 class function TChronoKit.SetMonth(const AValue: TDateTime; const AMonth: Integer): TDateTime;
-var
-  Y, M, D: Word;
-  LastDay: Word;
-  NewD: Word;
-  TempDate: TDateTime;
 begin
-  // Extract current date components
-  DecodeDate(AValue, Y, M, D);
-  
-  // Create a temporary date with the target month
-  TempDate := EncodeDate(Y, AMonth, 1);
-  
-  // Get last day of target month using RTL function
-  LastDay := DaysInMonth(TempDate);
-  
-  // Adjust day if it exceeds the last day of target month
-  if D > LastDay then
-    NewD := LastDay
-  else
-    NewD := D;
-    
-  // Create new date with updated month, preserving time portion
-  Result := EncodeDate(Y, AMonth, NewD) + Frac(AValue);
+  Result := CKSetMonth(AValue, AMonth);
 end;
 
 class function TChronoKit.SetDay(const AValue: TDateTime; const ADay: Integer): TDateTime;
-var
-  Y, M, D: Word;
 begin
-  // Extract current date components
-  DecodeDate(AValue, Y, M, D);
-  // Create new date with updated day, preserving time portion
-  Result := EncodeDate(Y, M, ADay) + Frac(AValue);
+  Result := CKSetDay(AValue, ADay);
 end;
 
 class function TChronoKit.SetHour(const AValue: TDateTime; const AHour: Integer): TDateTime;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract current time components
-  DecodeTime(AValue, H, M, S, MS);
-  // Create new time with updated hour, preserving date portion
-  Result := Trunc(AValue) + EncodeTime(AHour, M, S, MS);
+  Result := CKSetHour(AValue, AHour);
 end;
 
 class function TChronoKit.SetMinute(const AValue: TDateTime; const AMinute: Integer): TDateTime;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract current time components
-  DecodeTime(AValue, H, M, S, MS);
-  // Create new time with updated minute, preserving date portion
-  Result := Trunc(AValue) + EncodeTime(H, AMinute, S, MS);
+  Result := CKSetMinute(AValue, AMinute);
 end;
 
 class function TChronoKit.SetSecond(const AValue: TDateTime; const ASecond: Integer): TDateTime;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract current time components
-  DecodeTime(AValue, H, M, S, MS);
-  // Create new time with updated second, preserving date portion
-  Result := Trunc(AValue) + EncodeTime(H, M, ASecond, MS);
+  Result := CKSetSecond(AValue, ASecond);
 end;
 
 class function TChronoKit.SetMilliSecond(const AValue: TDateTime; const AMilliSecond: Integer): TDateTime;
-var
-  H, M, S, MS: Word;
 begin
-  // Extract current time components
-  DecodeTime(AValue, H, M, S, MS);
-  // Create new time with updated millisecond, preserving date portion
-  Result := Trunc(AValue) + EncodeTime(H, M, S, AMilliSecond);
+  Result := CKSetMillisecond(AValue, AMilliSecond);
 end;
 
 class function TChronoKit.AddYears(const AValue: TDateTime; const AYears: Integer): TDateTime;
 begin
-  // Add/subtract years using DateUtils function
-  Result := IncYear(AValue, AYears);
+  Result := CKAddYears(AValue, AYears);
 end;
 
 class function TChronoKit.AddMonths(const AValue: TDateTime; const AMonths: Integer): TDateTime;
 begin
-  // Add/subtract months using DateUtils function
-  Result := IncMonth(AValue, AMonths);
+  Result := CKAddMonths(AValue, AMonths);
 end;
 
 class function TChronoKit.AddDays(const AValue: TDateTime; const ADays: Integer): TDateTime;
 begin
-  // Add/subtract days using DateUtils function
-  Result := IncDay(AValue, ADays);
+  Result := CKAddDays(AValue, ADays);
 end;
 
 class function TChronoKit.AddHours(const AValue: TDateTime; const AHours: Integer): TDateTime;
 begin
-  // Add/subtract hours using DateUtils function
-  Result := IncHour(AValue, AHours);
+  Result := CKAddHours(AValue, AHours);
 end;
 
 class function TChronoKit.AddMinutes(const AValue: TDateTime; const AMinutes: Integer): TDateTime;
 begin
-  // Add/subtract minutes using DateUtils function
-  Result := IncMinute(AValue, AMinutes);
+  Result := CKAddMinutes(AValue, AMinutes);
 end;
 
 class function TChronoKit.AddSeconds(const AValue: TDateTime; const ASeconds: Integer): TDateTime;
 begin
-  // Add/subtract seconds using DateUtils function
-  Result := IncSecond(AValue, ASeconds);
+  Result := CKAddSeconds(AValue, ASeconds);
 end;
 
 class function TChronoKit.StartOfYear(const AValue: TDateTime): TDateTime;
 begin
-  Result := FloorDate(AValue, duYear);
+  Result := CKStartOfYear(AValue);
 end;
 
 class function TChronoKit.StartOfMonth(const AValue: TDateTime): TDateTime;
 begin
-  Result := FloorDate(AValue, duMonth);
+  Result := CKStartOfMonth(AValue);
 end;
 
 class function TChronoKit.StartOfWeek(const AValue: TDateTime): TDateTime;
 begin
-  Result := FloorDate(AValue, duWeek);
+  Result := CKStartOfWeek(AValue);
 end;
 
 class function TChronoKit.StartOfDay(const AValue: TDateTime): TDateTime;
 begin
-  Result := FloorDate(AValue, duDay);
+  Result := CKStartOfDay(AValue);
 end;
 
 class function TChronoKit.StartOfHour(const AValue: TDateTime): TDateTime;
 begin
-  Result := FloorDate(AValue, duHour);
+  Result := CKStartOfHour(AValue);
 end;
 
 class function TChronoKit.EndOfYear(const AValue: TDateTime): TDateTime;
 begin
-  Result := IncYear(StartOfYear(AValue), 1) - OneMillisecond;
+  Result := CKEndOfYear(AValue);
 end;
 
 class function TChronoKit.EndOfMonth(const AValue: TDateTime): TDateTime;
 begin
-  Result := CeilingDate(AValue, duMonth) - OneMillisecond;
+  Result := CKEndOfMonth(AValue);
 end;
 
 class function TChronoKit.EndOfWeek(const AValue: TDateTime): TDateTime;
 begin
-  Result := AddDays(StartOfWeek(AValue), DaysPerWeek) - OneMillisecond;
+  Result := CKEndOfWeek(AValue);
 end;
 
 class function TChronoKit.EndOfDay(const AValue: TDateTime): TDateTime;
 begin
-  Result := CeilingDate(AValue, duDay) - OneMillisecond;
+  Result := CKEndOfDay(AValue);
 end;
 
 class function TChronoKit.EndOfHour(const AValue: TDateTime): TDateTime;
 begin
-  Result := CeilingDate(AValue, duHour) - OneMillisecond;
+  Result := CKEndOfHour(AValue);
 end;
 
 class function TChronoKit.IsBefore(const AValue, ADateTime: TDateTime): Boolean;
 begin
-  // Compare dates using SysUtils function, returns true if AValue < ADateTime
-  Result := CompareDateTime(AValue, ADateTime) < 0;
+  Result := CKIsBefore(AValue, ADateTime);
 end;
 
 class function TChronoKit.IsAfter(const AValue, ADateTime: TDateTime): Boolean;
 begin
-  // Compare dates using SysUtils function, returns true if AValue > ADateTime
-  Result := CompareDateTime(AValue, ADateTime) > 0;
+  Result := CKIsAfter(AValue, ADateTime);
 end;
 
 class function TChronoKit.IsSameDay(const AValue, ADateTime: TDateTime): Boolean;
 begin
-  // Compare dates ignoring time portion
-  Result := SameDate(AValue, ADateTime);
+  Result := CKIsSameDay(AValue, ADateTime);
 end;
 
 class function TChronoKit.IsSameMonth(const AValue, ADateTime: TDateTime): Boolean;
-var
-  Y1, M1, D1, Y2, M2, D2: Word;
 begin
-  // Extract date components from both dates
-  DecodeDate(AValue, Y1, M1, D1);
-  DecodeDate(ADateTime, Y2, M2, D2);
-  // Compare year and month
-  Result := (Y1 = Y2) and (M1 = M2);
+  Result := CKIsSameMonth(AValue, ADateTime);
 end;
 
 class function TChronoKit.IsSameYear(const AValue, ADateTime: TDateTime): Boolean;
-var
-  Y1, M1, D1, Y2, M2, D2: Word;
 begin
-  // Extract date components from both dates
-  DecodeDate(AValue, Y1, M1, D1);
-  DecodeDate(ADateTime, Y2, M2, D2);
-  // Compare year only
-  Result := Y1 = Y2;
+  Result := CKIsSameYear(AValue, ADateTime);
 end;
 
 class function TChronoKit.DefaultBusinessCalendar: TBusinessCalendar;
@@ -3685,205 +3575,51 @@ end;
 
 class function TChronoKit.GetQuarter(const AValue: TDateTime): Integer;
 begin
-  Result := ((GetMonth(AValue) - 1) div 3) + 1;
+  Result := CKGetQuarter(AValue);
 end;
 
 class function TChronoKit.StartOfQuarter(const AYear,
   AQuarter: Integer): TDateTime;
 begin
-  if (AYear < 1) or (AYear > 9999) then
-    raise EArgumentException.Create('Quarter year must be between 1 and 9999');
-  if (AQuarter < 1) or (AQuarter > 4) then
-    raise EArgumentException.Create('Quarter must be between 1 and 4');
-  Result := EncodeDate(AYear, 1 + (AQuarter - 1) * 3, 1);
+  Result := CKStartOfQuarter(AYear, AQuarter);
 end;
 
 class function TChronoKit.StartOfQuarter(const AValue: TDateTime): TDateTime;
 begin
-  Result := StartOfQuarter(GetYear(AValue), GetQuarter(AValue));
+  Result := CKStartOfQuarter(AValue);
 end;
 
 class function TChronoKit.EndOfQuarter(const AValue: TDateTime): TDateTime;
-var
-  Month, Year: Word;
 begin
-  Year := GetYear(AValue);
-  Month := GetQuarter(AValue) * 3;
-  Result := EncodeDateTime(Year, Month, DaysInAMonth(Year, Month),
-    23, 59, 59, 999);
+  Result := CKEndOfQuarter(AValue);
 end;
 
 class function TChronoKit.IsAM(const AValue: TDateTime): Boolean;
 begin
-  Result := GetHour(AValue) < 12;
+  Result := CKIsAM(AValue);
 end;
 
 class function TChronoKit.IsPM(const AValue: TDateTime): Boolean;
 begin
-  Result := GetHour(AValue) >= 12;
+  Result := CKIsPM(AValue);
 end;
 
-class function TChronoKit.FloorDate(const AValue: TDateTime; const AUnit: TDateUnit): TDateTime;
-var
-  Y, M, D: Word;
-  H, N, S, MS: Word;
-  DayOfWeek: Integer;
+class function TChronoKit.FloorDate(const AValue: TDateTime;
+  const AUnit: TDateUnit): TDateTime;
 begin
-  DecodeDate(AValue, Y, M, D);
-  DecodeTime(AValue, H, N, S, MS);
-  
-  case AUnit of
-    duSeason:
-      raise EArgumentException.Create(
-        'Season rounding requires an explicit hemisphere and season definition');
-    duYear: Result := EncodeDate(Y, 1, 1);
-    duHalfYear: 
-      begin
-        if M > 6 then
-          Result := EncodeDate(Y, 7, 1)
-        else
-          Result := EncodeDate(Y, 1, 1);
-      end;
-    duQuarter:
-      begin
-        M := ((M - 1) div 3) * 3 + 1;
-        Result := EncodeDate(Y, M, 1);
-      end;
-    duBiMonth:
-      begin
-        M := ((M - 1) div 2) * 2 + 1;
-        Result := EncodeDate(Y, M, 1);
-      end;
-    duMonth: Result := EncodeDate(Y, M, 1);
-    duWeek: 
-      begin
-        DayOfWeek := GetDayOfWeek(AValue);  // 1=Sunday
-        Result := AddDays(Trunc(AValue), -(DayOfWeek - 1));
-      end;
-    duDay: Result := Trunc(AValue);
-    duHour: Result := Trunc(AValue) + EncodeTime(H, 0, 0, 0);
-    duMinute: Result := Trunc(AValue) + EncodeTime(H, N, 0, 0);
-    duSecond: Result := Trunc(AValue) + EncodeTime(H, N, S, 0);
-    else
-      Result := AValue;  // Unknown unit, return as is
-  end;
+  Result := CKFloorDate(AValue, TCKDateUnit(Ord(AUnit)));
 end;
 
-class function TChronoKit.CeilingDate(const AValue: TDateTime; const AUnit: TDateUnit): TDateTime;
-var
-  Y, M, D: Word;
-  H, N, S, MS: Word;
-  DayOfWeek: Integer;
+class function TChronoKit.CeilingDate(const AValue: TDateTime;
+  const AUnit: TDateUnit): TDateTime;
 begin
-  DecodeDate(AValue, Y, M, D);
-  DecodeTime(AValue, H, N, S, MS);
-  
-  case AUnit of
-    duSeason:
-      raise EArgumentException.Create(
-        'Season rounding requires an explicit hemisphere and season definition');
-    duYear: 
-      if (M = 1) and (D = 1) and (H = 0) and (N = 0) and (S = 0) and (MS = 0) then
-        Result := AValue
-      else
-        Result := EncodeDate(Y + 1, 1, 1);
-        
-    duHalfYear:
-      if M <= 6 then
-        Result := EncodeDate(Y, 7, 1)
-      else
-        Result := EncodeDate(Y + 1, 1, 1);
-        
-    duQuarter:
-      begin
-        M := ((M - 1) div 3) * 3 + 4;
-        if M > 12 then
-        begin
-          Inc(Y);
-          M := 1;
-        end;
-        Result := EncodeDate(Y, M, 1);
-      end;
-      
-    duBiMonth:
-      begin
-        M := ((M - 1) div 2) * 2 + 3;
-        if M > 12 then
-        begin
-          Inc(Y);
-          M := 1;
-        end;
-        Result := EncodeDate(Y, M, 1);
-      end;
-      
-    duMonth:
-      if M = 12 then
-        Result := EncodeDate(Y + 1, 1, 1)
-      else
-        Result := EncodeDate(Y, M + 1, 1);
-        
-    duWeek:
-      begin
-        DayOfWeek := GetDayOfWeek(AValue);  // 1=Sunday
-        if (DayOfWeek = 1) and (H = 0) and (N = 0) and (S = 0) and (MS = 0) then
-          Result := AValue
-        else
-          Result := AddDays(Trunc(AValue), 8 - DayOfWeek);
-      end;
-      
-    duDay: Result := Trunc(AValue) + 1;
-    duHour: Result := IncHour(FloorDate(AValue, duHour), 1);
-    duMinute: Result := IncMinute(FloorDate(AValue, duMinute), 1);
-    duSecond: Result := IncSecond(FloorDate(AValue, duSecond), 1);
-    else
-      Result := AValue;  // Unknown unit, return as is
-  end;
+  Result := CKCeilingDate(AValue, TCKDateUnit(Ord(AUnit)));
 end;
 
-class function TChronoKit.RoundDate(const AValue: TDateTime; const AUnit: TDateUnit): TDateTime;
-var
-  FloorValue, CeilingValue: TDateTime;
-  FloorDiff, CeilingDiff: Double;
-  Y, M, D: Word;
-  MidPoint: TDateTime;
+class function TChronoKit.RoundDate(const AValue: TDateTime;
+  const AUnit: TDateUnit): TDateTime;
 begin
-  FloorValue := FloorDate(AValue, AUnit);
-  CeilingValue := CeilingDate(AValue, AUnit);
-  
-  case AUnit of
-    duMonth:
-      begin
-        // For months, compare against middle of month (15th)
-        DecodeDate(AValue, Y, M, D);
-        MidPoint := EncodeDate(Y, M, 15);
-        if CompareDateTime(AValue, MidPoint) <= 0 then
-          Result := FloorValue
-        else
-          Result := CeilingValue;
-      end;
-    duHalfYear:
-      begin
-        // For half years, compare against middle of half (March 15 or September 15)
-        DecodeDate(AValue, Y, M, D);
-        if M <= 6 then
-          MidPoint := EncodeDate(Y, 3, 15)
-        else
-          MidPoint := EncodeDate(Y, 9, 15);
-        if CompareDateTime(AValue, MidPoint) <= 0 then
-          Result := FloorValue
-        else
-          Result := CeilingValue;
-      end;
-    else
-      begin
-        FloorDiff := Abs(AValue - FloorValue);
-        CeilingDiff := Abs(CeilingValue - AValue);
-        if FloorDiff <= CeilingDiff then
-          Result := FloorValue
-        else
-          Result := CeilingValue;
-      end;
-  end;
+  Result := CKRoundDate(AValue, TCKDateUnit(Ord(AUnit)));
 end;
 
 class function TChronoKit.CreateCalendarPeriod(const AYears: Integer;
@@ -4330,103 +4066,24 @@ end;
 
 class function TChronoKit.DecimalYearToDateTime(
   const AValue: Double): TDateTime;
-var
-  Year: Integer;
-  Fraction: Double;
-  DaysInYear: Integer;
-  MillisecondsInYear, ElapsedMilliseconds: Int64;
 begin
-  if IsNan(AValue) or IsInfinite(AValue) or
-     (AValue < 1.0) or (AValue >= 10000.0) then
-    raise EArgumentException.Create(
-      'Decimal year must be a finite value with a year between 1 and 9999');
-
-  Year := Trunc(AValue);
-  Fraction := AValue - Year;
-  if IsLeapYear(Year) then
-    DaysInYear := 366
-  else
-    DaysInYear := 365;
-
-  MillisecondsInYear := Int64(DaysInYear) * SecondsPerDay *
-    MillisecondsPerSecond;
-  ElapsedMilliseconds := Round(Fraction * MillisecondsInYear);
-  if ElapsedMilliseconds >= MillisecondsInYear then
-    ElapsedMilliseconds := MillisecondsInYear - 1;
-  Result := EncodeDate(Year, 1, 1) +
-    ElapsedMilliseconds /
-      (Int64(SecondsPerDay) * MillisecondsPerSecond);
+  Result := CKDecimalYearToDateTime(AValue);
 end;
 
 class function TChronoKit.DateTimeToDecimalYear(
   const AValue: TDateTime): Double;
-var
-  Year, Month, Day: Word;
-  DaysInYear: Integer;
 begin
-  DecodeDate(AValue, Year, Month, Day);
-  if IsLeapYear(Year) then
-    DaysInYear := 366
-  else
-    DaysInYear := 365;
-  Result := Year +
-    (AValue - EncodeDate(Year, 1, 1)) / DaysInYear;
+  Result := CKDateTimeToDecimalYear(AValue);
 end;
 
 class function TChronoKit.GetISOYear(const AValue: TDateTime): Integer;
-var
-  Y, M, D: Word;
-  Jan4: TDateTime;
-  ThisWeekMon, LastWeekMon: TDateTime;
 begin
-  DecodeDate(AValue, Y, M, D);
-  
-  // Get January 4th of the current year (always in week 1)
-  Jan4 := EncodeDate(Y, 1, 4);
-  
-  // Get Monday of the week containing our date
-  ThisWeekMon := Trunc(AValue) - ((DayOfTheWeek(AValue) + 5) mod 7);
-  
-  // Get Monday of the week containing Jan 4
-  LastWeekMon := Trunc(Jan4) - ((DayOfTheWeek(Jan4) + 5) mod 7);
-  
-  // If we're before the first week of this year, we belong to previous year
-  if ThisWeekMon < LastWeekMon then
-    Result := Y - 1
-  else
-  begin
-    // Check for next year
-    Jan4 := EncodeDate(Y + 1, 1, 4);
-    LastWeekMon := Trunc(Jan4) - ((DayOfTheWeek(Jan4) + 5) mod 7);
-    
-    // If we're in the first week of next year
-    if ThisWeekMon >= LastWeekMon then
-      Result := Y + 1
-    else
-      Result := Y;
-  end;
+  Result := CKGetISOYear(AValue);
 end;
 
 class function TChronoKit.GetISOWeek(const AValue: TDateTime): Integer;
-var
-  Y: Integer;
-  Jan4: TDateTime;
-  ThisWeekMon, FirstWeekMon: TDateTime;
 begin
-  // First get the ISO year
-  Y := GetISOYear(AValue);
-  
-  // Get January 4th of the ISO year
-  Jan4 := EncodeDate(Y, 1, 4);
-  
-  // Get Monday of the week containing our date
-  ThisWeekMon := Trunc(AValue) - ((DayOfTheWeek(AValue) + 5) mod 7);
-  
-  // Get Monday of the first week
-  FirstWeekMon := Trunc(Jan4) - ((DayOfTheWeek(Jan4) + 5) mod 7);
-  
-  // Calculate week number
-  Result := ((Trunc(ThisWeekMon) - Trunc(FirstWeekMon)) div 7) + 1;
+  Result := CKGetISOWeek(AValue);
 end;
 
 class function TChronoKit.GetEpiYear(const AValue: TDateTime): Integer;
@@ -4513,8 +4170,7 @@ end;
 
 class function TChronoKit.GetSemester(const AValue: TDateTime): Integer;
 begin
-  // Return 1 for months 1-6, 2 for months 7-12
-  Result := ((GetMonth(AValue) - 1) div 6) + 1;
+  Result := CKGetSemester(AValue);
 end;
 
 class function TChronoKit.GetTimeZone(const AValue: TDateTime): TTimeZoneInfo;

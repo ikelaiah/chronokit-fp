@@ -7,7 +7,7 @@
 - [x] Introduce and verify the shared-types seam
 - [x] Extract durations and ranges
 - [x] Extract business calendars
-- [ ] Extract calendar arithmetic and rounding
+- [x] Extract calendar arithmetic and rounding
 - [ ] Extract parsing and formatting
 - [ ] Isolate incompatible legacy implementations
 - [ ] Simplify timezone facade duplication
