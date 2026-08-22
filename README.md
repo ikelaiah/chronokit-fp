@@ -9,7 +9,7 @@
 ![Supports Linux](https://img.shields.io/badge/support-Linux-F59E0B?logo=Linux)
 [![Version](https://img.shields.io/badge/version-1.7.0-8B5CF6.svg)](CHANGELOG.md)
 ![No Dependencies](https://img.shields.io/badge/dependencies-none-10B981.svg)
-[![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](docs/)
+[![Documentation](https://img.shields.io/badge/Docs-Available-brightgreen.svg)](https://ikelaiah.github.io/chronokit-fp/)
 [![Tests](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml/badge.svg)](https://github.com/ikelaiah/chronokit-fp/actions/workflows/test.yml)
 [![Status](https://img.shields.io/badge/Status-Stable-brightgreen.svg)]()
 
@@ -280,7 +280,12 @@ end.
 
 ## 📚 Documentation
 
-For detailed documentation, check out:
+The complete, searchable, versioned documentation is published at
+[ikelaiah.github.io/chronokit-fp](https://ikelaiah.github.io/chronokit-fp/).
+It includes light/dark themes, API search, the learning path, practical guides,
+and a version selector.
+
+The source Markdown remains in this repository. Useful direct links include:
 
 - 🚀 [Getting Started](docs/Getting-Started.md) - First installation and date operations
 - 🎓 [Learning Path](docs/Learning-Path.md) - Five executable concepts from dates through DST

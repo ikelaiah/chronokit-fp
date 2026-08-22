@@ -49,6 +49,12 @@ bin/
 __history/
 debug/
 
+# Generated documentation output
+/site/
+/artifacts/
+/build/docs-site/
+/tools/__pycache__/
+
 # OS files
 .DS_Store
 Thumbs.db

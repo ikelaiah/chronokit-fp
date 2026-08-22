@@ -1,0 +1,127 @@
+{
+  "schema_version": 2,
+  "release": "1.7.0",
+  "site_title": "ChronoKit-FP documentation",
+  "description": "Practical date, time, business-calendar and timezone documentation for Free Pascal and Lazarus.",
+  "required_pages": [
+    "index.md",
+    "Getting-Started.md",
+    "Learning-Path.md",
+    "Decision-Guides.md",
+    "Cheat-Sheet.md",
+    "guides/date-time-arithmetic.md",
+    "guides/parsing-and-formatting.md",
+    "guides/durations-and-ranges.md",
+    "Business-Calendars.md",
+    "guides/timezones-and-dst.md",
+    "guides/recipes.md",
+    "ChronoKit-FP.md",
+    "Troubleshooting.md",
+    "API-Reference.md",
+    "reference/business-calendar-api.md",
+    "Timezone-Contract.md",
+    "MIGRATION-v1.6-to-v2.0.md",
+    "API-Additions-v1.7.0.md",
+    "API-Audit-v1.5.0.md",
+    "API-Audit-v1.7.0.md",
+    "API-Deprecations-v1.6.0.md",
+    "Business-Calendar-API.md",
+    "decisions/0001-domain-internals.md",
+    "decisions/0002-static-documentation-publisher.md",
+    "PR-v1.1.0.md",
+    "PR-v1.2.0.md",
+    "PR-v1.3.0.md",
+    "PR-v1.4.0.md",
+    "PR-v1.5.0.md",
+    "PR-v1.6.0.md",
+    "PR-v1.7.0.md",
+    "RELEASE-NOTES-v1.1.0.md",
+    "RELEASE-NOTES-v1.2.0.md",
+    "RELEASE-NOTES-v1.3.0.md",
+    "RELEASE-NOTES-v1.4.0.md",
+    "RELEASE-NOTES-v1.5.0.md",
+    "RELEASE-NOTES-v1.6.0.md",
+    "RELEASE-NOTES-v1.7.0.md",
+    "V2-DECISION.md"
+  ],
+  "navigation": [
+    {
+      "title": "Getting Started",
+      "pages": [
+        { "path": "index.md", "title": "Introduction" },
+        { "path": "Getting-Started.md", "title": "Installation & Quick Start" },
+        { "path": "Learning-Path.md", "title": "Learning Path" },
+        { "path": "Decision-Guides.md", "title": "Decision Guides" },
+        { "path": "Cheat-Sheet.md", "title": "Cheat Sheet" }
+      ]
+    },
+    {
+      "title": "Guides",
+      "pages": [
+        { "path": "guides/date-time-arithmetic.md", "title": "Date & Time Arithmetic" },
+        { "path": "guides/parsing-and-formatting.md", "title": "Parsing & Formatting" },
+        { "path": "guides/durations-and-ranges.md", "title": "Durations & Ranges" },
+        { "path": "Business-Calendars.md", "title": "Business Calendars" },
+        { "path": "guides/timezones-and-dst.md", "title": "Timezones & DST" },
+        { "path": "guides/recipes.md", "title": "Common Recipes" },
+        { "path": "ChronoKit-FP.md", "title": "Task Guide" },
+        { "path": "Troubleshooting.md", "title": "Troubleshooting" }
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        { "path": "API-Reference.md", "title": "API Reference" },
+        { "path": "reference/business-calendar-api.md", "title": "Business Calendar API" },
+        { "path": "Timezone-Contract.md", "title": "Timezone Contract" },
+        { "path": "MIGRATION-v1.6-to-v2.0.md", "title": "Migration & Deprecated APIs" }
+      ]
+    }
+  ],
+  "hidden_pages": [
+    "API-Additions-v1.7.0.md",
+    "API-Audit-v1.5.0.md",
+    "API-Audit-v1.7.0.md",
+    "API-Deprecations-v1.6.0.md",
+    "Business-Calendar-API.md",
+    "decisions/0001-domain-internals.md",
+    "decisions/0002-static-documentation-publisher.md",
+    "PR-v1.1.0.md",
+    "PR-v1.2.0.md",
+    "PR-v1.3.0.md",
+    "PR-v1.4.0.md",
+    "PR-v1.5.0.md",
+    "PR-v1.6.0.md",
+    "PR-v1.7.0.md",
+    "RELEASE-NOTES-v1.1.0.md",
+    "RELEASE-NOTES-v1.2.0.md",
+    "RELEASE-NOTES-v1.3.0.md",
+    "RELEASE-NOTES-v1.4.0.md",
+    "RELEASE-NOTES-v1.5.0.md",
+    "RELEASE-NOTES-v1.6.0.md",
+    "RELEASE-NOTES-v1.7.0.md",
+    "V2-DECISION.md"
+  ],
+  "project": [
+    { "title": "GitHub repository", "url": "https://github.com/ikelaiah/chronokit-fp" },
+    { "title": "Changelog", "project_path": "CHANGELOG.md" },
+    { "title": "Roadmap", "project_path": "ROADMAP.md" },
+    { "title": "Contributing", "project_path": "CONTRIBUTING.md" }
+  ],
+  "homepage": {
+    "tagline": "Practical date and time tools for Free Pascal and Lazarus.",
+    "actions": [
+      { "label": "Get Started", "path": "Getting-Started.md" },
+      { "label": "Common Tasks", "path": "guides/recipes.md" },
+      { "label": "API Reference", "path": "API-Reference.md" }
+    ],
+    "cards": [
+      { "eyebrow": "Start Here", "title": "Installation & Quick Start", "description": "Install ChronoKit and write your first date/time program.", "path": "Getting-Started.md" },
+      { "eyebrow": "Recipes", "title": "Common Tasks", "description": "Use checked Pascal examples for dates, ranges, deadlines, and conversion.", "path": "guides/recipes.md" },
+      { "eyebrow": "Business Calendars", "title": "Working Days", "description": "Calculate deadlines with holidays and alternative working weeks.", "path": "Business-Calendars.md" },
+      { "eyebrow": "Timezones", "title": "DST-Safe Conversion", "description": "Understand UTC, named zones, and ambiguous or nonexistent clocks.", "path": "guides/timezones-and-dst.md" },
+      { "eyebrow": "Cheat Sheet", "title": "Quick Lookup", "description": "Find the operation you need by task, synonym, or method name.", "path": "Cheat-Sheet.md" },
+      { "eyebrow": "API Reference", "title": "Public API", "description": "Browse current preferred declarations and their contracts.", "path": "API-Reference.md" }
+    ]
+  }
+}
