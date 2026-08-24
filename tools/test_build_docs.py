@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -248,6 +249,11 @@ class BuildDocsTests(unittest.TestCase):
             "# Historical release notes\n\nKept for archived links.\n",
             encoding="utf-8",
         )
+        (source / "PR-0.0.1.md").write_text("# Internal PR summary\n", encoding="utf-8")
+        (source / "API-Audit-v0.0.1.md").write_text("# Internal API audit\n", encoding="utf-8")
+        internal = source / "decisions" / "0002-notes.md"
+        internal.parent.mkdir(parents=True, exist_ok=True)
+        internal.write_text("# Internal decision record\n", encoding="utf-8")
         (source / "version-navigation-policy.json").write_text(
             json.dumps(
                 {
@@ -302,8 +308,15 @@ class BuildDocsTests(unittest.TestCase):
             legacy_nav = (output / "Getting-Started.html").read_text(encoding="utf-8")
             self.assertIn('class="docs-navigation"', legacy_nav)
             self.assertIn('href="ChronoKit-FP.html"', legacy_nav)
-            self.assertNotIn("RELEASE-NOTES-ancient.html", legacy_nav)
-            self.assertTrue((output / "RELEASE-NOTES-ancient.html").is_file())
+            self.assertIn('href="Getting-Started.html"', legacy_nav)
+            for internal in (
+                "RELEASE-NOTES-ancient.html",
+                "PR-0.0.1.html",
+                "API-Audit-v0.0.1.html",
+                "decisions/0002-notes.html",
+            ):
+                self.assertNotIn(internal, legacy_nav)
+                self.assertTrue((output / internal).is_file(), internal)
 
     def test_release_with_its_own_layout_uses_explicit_navigation_not_the_policy(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -360,6 +373,114 @@ class BuildDocsTests(unittest.TestCase):
             self.assertIn('href="ChronoKit-FP.html"', guide)
             self.assertIn('href="Getting-Started.html"', guide)
             self.assertNotIn("RELEASE-NOTES-ancient.html", guide)
+
+    def test_future_release_with_schema_two_layout_needs_no_special_case(self) -> None:
+        from check_built_docs import check_site  # noqa: PLC0415
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "docs"
+            source.mkdir()
+            for name, heading in (
+                ("index.md", "ChronoKit-FP documentation"),
+                ("Getting-Started.md", "Getting Started"),
+                ("Learning-Path.md", "Learning Path"),
+                ("new-recipes.md", "Common Recipes"),
+                ("PR-internal.md", "Internal PR"),
+                ("RELEASE-NOTES-v1.8.0.md", "Release notes"),
+                ("API-Audit-v1.8.0.md", "API audit"),
+            ):
+                path = source / name
+                if name.startswith(("PR-", "RELEASE-NOTES-", "API-Audit-")):
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(f"# {heading}\n\nDocumentation for {name}.\n", encoding="utf-8")
+            layout = {
+                "schema_version": 2,
+                "release": "1.8.0",
+                "site_title": "ChronoKit-FP documentation",
+                "description": "Future release with modern layout metadata.",
+                "required_pages": [
+                    "index.md",
+                    "Getting-Started.md",
+                    "Learning-Path.md",
+                    "new-recipes.md",
+                    "PR-internal.md",
+                    "RELEASE-NOTES-v1.8.0.md",
+                    "API-Audit-v1.8.0.md",
+                ],
+                "navigation": [
+                    {
+                        "title": "Getting Started",
+                        "pages": [
+                            {"path": "index.md", "title": "Introduction"},
+                            {"path": "Getting-Started.md", "title": "Installation & Quick Start"},
+                            {"path": "Learning-Path.md", "title": "Learning Path"},
+                        ],
+                    },
+                    {"title": "Guides", "pages": [{"path": "new-recipes.md", "title": "Common Recipes"}]},
+                ],
+                "hidden_pages": ["PR-internal.md", "RELEASE-NOTES-v1.8.0.md", "API-Audit-v1.8.0.md"],
+            }
+            (source / "layout.json").write_text(json.dumps(layout), encoding="utf-8")
+            versions = source / "versions.json"
+            versions.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "current": "1.8.0",
+                        "site_url": "https://example.invalid/chronokit-fp",
+                        "repository_url": "https://github.com/example/chronokit-fp",
+                        "versions": [
+                            {"release": "1.8.0", "source_ref": "v1.8.0"},
+                            {"release": "1.7.0", "source_ref": "v1.7.0"},
+                            {"release": "1.6.0", "source_ref": "v1.6.0"},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            policy = {
+                "schema_version": 1,
+                "site_title": "ChronoKit-FP documentation",
+                "description": "Compatibility navigation for older releases.",
+                "sections": [
+                    {
+                        "title": "Getting Started",
+                        "pages": [
+                            {"path": "Getting-Started.md", "title": "Installation & Quick Start"},
+                            {"path": "Learning-Path.md", "title": "Learning Path"},
+                        ],
+                    },
+                    {"title": "Guides", "pages": [{"path": "new-recipes.md", "title": "Common Recipes"}]},
+                ],
+            }
+            (source / "version-navigation-policy.json").write_text(json.dumps(policy), encoding="utf-8")
+
+            site = root / "site"
+            build_site(source, site / "1.8.0", site, versions, release="1.8.0")
+            (source / "layout.json").unlink()
+            build_site(source, site / "1.7.0", site, versions, release="1.7.0")
+            build_site(source, site / "1.6.0", site, versions, release="1.6.0")
+
+            latest = (site / "1.8.0" / "index.html").read_text(encoding="utf-8")
+            self.assertIn('href="new-recipes.html"', latest)
+            self.assertNotIn("PR-internal.html", latest)
+            self.assertNotIn("RELEASE-NOTES-v1.8.0.html", latest)
+            self.assertNotIn("API-Audit-v1.8.0.html", latest)
+            labels = [match.group(1) for match in re.finditer(r"<option[^>]*>([^<]+)</option>", latest)]
+            self.assertIn("v1.8.0 (current)", labels)
+            self.assertIn("v1.7.0", labels)
+            self.assertIn("v1.6.0", labels)
+
+            historical = (site / "1.7.0" / "Getting-Started.html").read_text(encoding="utf-8")
+            self.assertIn('href="new-recipes.html"', historical)
+            self.assertNotIn("PR-internal.html", historical)
+
+            explicit_identity = json.loads((site / "1.8.0" / "release.json").read_text(encoding="utf-8"))
+            compatibility_identity = json.loads((site / "1.7.0" / "release.json").read_text(encoding="utf-8"))
+            self.assertEqual("explicit", explicit_identity["navigation"])
+            self.assertEqual("compatibility", compatibility_identity["navigation"])
+            self.assertEqual([], check_site(site))
 
     def test_version_selector_marks_only_current_and_selects_the_viewed_version(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

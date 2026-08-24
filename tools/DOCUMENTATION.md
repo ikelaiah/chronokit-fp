@@ -15,6 +15,12 @@ offline copy.
 `hidden_pages` are still generated and indexed so existing bookmarks remain
 useful; they are simply not first-class navigation.
 
+`python tools/check_built_docs.py` enforces the navigation contract on every
+generated page: release notes, PR summaries, API audits/transitions and decision
+records may never appear in the sidebar, sidebar links must stay inside their
+own version directory, and any page with a version selector must keep the
+search box, theme toggle, and main content anchor.
+
 ## Add a version
 
 Add a `release` and `source_ref` entry to `docs/versions.json`. Always keep
