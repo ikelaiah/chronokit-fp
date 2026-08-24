@@ -169,5 +169,154 @@ class SelectorTests(unittest.TestCase):
             self.assertIn('.catch(() => { window.location.assign(targetIndex); })', java_script)
 
 
+class NavigationContractTests(unittest.TestCase):
+    def simple_versions(self) -> dict[str, object]:
+        return {
+            "schema_version": 1,
+            "current": "1.9.1",
+            "site_url": "https://example.invalid/chronokit-fp",
+            "repository_url": "https://github.com/example/chronokit-fp",
+            "versions": [{"release": "1.9.1", "source_ref": "v1.9.1"}],
+        }
+
+    def write_versions(self, source: Path) -> None:
+        (source / "versions.json").write_text(json.dumps(self.simple_versions()), encoding="utf-8")
+
+    def build_compat_site(self, root: Path, policy_paths: list[str], history_pages: list[str]) -> Path:
+        source = root / "docs"
+        output = root / "site" / "1.9.1"
+        source.mkdir()
+        (source / "index.md").write_text("# Index\n\n[Guide](guide.md)\n", encoding="utf-8")
+        (source / "guide.md").write_text("# Guide\n\nAll good.\n", encoding="utf-8")
+        for page in history_pages:
+            target = source / page
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"# {page}\n\nInternal record.\n", encoding="utf-8")
+        policy = {
+            "schema_version": 1,
+            "site_title": "ChronoKit-FP documentation",
+            "description": "Practical ChronoKit-FP documentation.",
+            "sections": [{"title": "Guides", "pages": [{"path": path, "title": path} for path in policy_paths]}],
+        }
+        (source / "version-navigation-policy.json").write_text(json.dumps(policy), encoding="utf-8")
+        self.write_versions(source)
+        build_site(source, output, output.parent, source / "versions.json")
+        return output.parent
+
+    def test_compat_policy_that_leaks_internal_files_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_compat_site(
+                Path(directory),
+                ["guide.md", "RELEASE-NOTES-v1.9.1.md", "PR-v1.9.1.md"],
+                ["RELEASE-NOTES-v1.9.1.md", "PR-v1.9.1.md"],
+            )
+            errors = check_site(site)
+            self.assertTrue(any("internal/history page appears in the sidebar" in error for error in errors))
+            self.assertTrue(any("RELEASE-NOTES-v1.9.1.html" in error for error in errors))
+            self.assertTrue(any("PR-v1.9.1.html" in error for error in errors))
+
+    def test_compat_policy_that_leaks_audits_and_decisions_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_compat_site(
+                Path(directory),
+                ["guide.md", "API-Audit-v1.5.0.md", "V2-DECISION.md", "decisions/0001-domain-internals.md"],
+                ["API-Audit-v1.5.0.md", "V2-DECISION.md", "decisions/0001-domain-internals.md"],
+            )
+            errors = check_site(site)
+            self.assertTrue(any("internal/history page appears in the sidebar" in error for error in errors))
+
+    def test_compat_sidebar_excludes_internal_files_not_in_the_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_compat_site(
+                Path(directory),
+                ["guide.md"],
+                ["PR-v1.9.1.md", "RELEASE-NOTES-v1.9.1.md", "API-Audit-v1.5.0.md", "decisions/0001-domain-internals.md"],
+            )
+            self.assertEqual([], check_site(site))
+            self.assertTrue((site / "1.9.1" / "PR-v1.9.1.html").is_file())
+            self.assertTrue((site / "1.9.1" / "RELEASE-NOTES-v1.9.1.html").is_file())
+            content = (site / "1.9.1" / "guide.html").read_text(encoding="utf-8")
+            self.assertNotIn("RELEASE-NOTES-v1.9.1.html", content)
+
+    def test_explicit_layout_may_intentionally_expose_a_history_named_page(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "docs"
+            source.mkdir()
+            (source / "index.md").write_text("# Index\n", encoding="utf-8")
+            (source / "guide.md").write_text("# Guide\n", encoding="utf-8")
+            (source / "RELEASE-NOTES-v1.9.1.md").write_text("# Release record\n", encoding="utf-8")
+            (source / "layout.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "release": "1.9.1",
+                        "site_title": "ChronoKit-FP documentation",
+                        "description": "Modern explicit navigation.",
+                        "required_pages": ["index.md", "guide.md", "RELEASE-NOTES-v1.9.1.md"],
+                        "navigation": [
+                            {"title": "Getting Started", "pages": [{"path": "index.md", "title": "Introduction"}]},
+                            {"title": "Guides", "pages": [{"path": "guide.md", "title": "Guide"}, {"path": "RELEASE-NOTES-v1.9.1.md", "title": "Release History"}]},
+                        ],
+                        "hidden_pages": [],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            self.write_versions(source)
+            build_site(source, root / "site" / "1.9.1", root / "site", source / "versions.json")
+            self.assertEqual([], check_site(root / "site"))
+            content = (root / "site" / "1.9.1" / "index.html").read_text(encoding="utf-8")
+            self.assertIn("Release History", content)
+
+    def test_sidebar_link_escaping_its_version_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "docs"
+            source.mkdir()
+            (source / "index.md").write_text("# Index\n\n[Guide](guide.md)\n", encoding="utf-8")
+            (source / "guide.md").write_text("# Guide\n\nAll good.\n", encoding="utf-8")
+            versions_path = source / "versions.json"
+            versions_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "current": "1.9.1",
+                        "site_url": "https://example.invalid/chronokit-fp",
+                        "repository_url": "https://github.com/example/chronokit-fp",
+                        "versions": [
+                            {"release": "1.9.1", "source_ref": "v1.9.1"},
+                            {"release": "1.9.0", "source_ref": "v1.9.0"},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (source / "layout.json").write_text(json.dumps({"schema_version": 1, "release": "1.9.1"}), encoding="utf-8")
+            build_site(source, root / "site" / "1.9.1", root / "site", versions_path)
+            (source / "layout.json").write_text(json.dumps({"schema_version": 1, "release": "1.9.0"}), encoding="utf-8")
+            build_site(source, root / "site" / "1.9.0", root / "site", versions_path, release="1.9.0")
+
+            page = root / "site" / "1.9.1" / "index.html"
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    'class="nav-link" href="guide.html"',
+                    'class="nav-link" href="../1.9.0/index.html"',
+                ),
+                encoding="utf-8",
+            )
+            errors = check_site(root / "site")
+            self.assertTrue(any("sidebar link escapes its own version directory" in error for error in errors))
+
+    def test_missing_theme_or_search_on_a_selector_page_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_compat_site(Path(directory), ["guide.md"], [])
+            page = site / "1.9.1" / "index.html"
+            page.write_text(page.read_text(encoding="utf-8").replace(' id="search"', ""), encoding="utf-8")
+            errors = check_site(site)
+            self.assertTrue(any("missing UI elements" in error for error in errors))
+            self.assertTrue(any("search" in error for error in errors))
+
+
 if __name__ == "__main__":
     unittest.main()
