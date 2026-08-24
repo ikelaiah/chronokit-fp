@@ -30,9 +30,19 @@ two modes:
   one, from its immutable tag. Use it for anything published.
 
 Older release tags predate `layout.json` and `index.md`. The builder falls
-back to a synthesized flat layout and generates a version landing page from
-the tag's actual content; historical pages are never rewritten to match the
-current template.
+back to the curated navigation policy from
+`docs/version-navigation-policy.json` (owned by `main`) so historical releases
+get a usable, user-facing sidebar instead of a dump of every Markdown file.
+Only pages that actually exist in the release source appear; internal documents
+such as `PR-*`, `RELEASE-NOTES-*`, API audits/transitions and decision records
+stay buildable, searchable and linkable but are not primary navigation. When a
+release source has no `index.md`, a version landing page is generated from the
+tag's actual content. Historical pages are never rewritten to match the current
+template.
+
+A future release whose tag already contains a schema-2 `docs/layout.json` uses
+its own explicit navigation; the policy fallback only applies when the release
+source lacks `layout.json`.
 
 Run `python tools/check_release.py --pre-tag` before tagging a release and
 `--released` after the tag exists. See [../RELEASING.md](../RELEASING.md) for

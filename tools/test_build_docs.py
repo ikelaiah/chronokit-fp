@@ -244,6 +244,30 @@ class BuildDocsTests(unittest.TestCase):
             "# ChronoKit-FP tasks\n\nEvery supported task by name.\n",
             encoding="utf-8",
         )
+        (source / "RELEASE-NOTES-ancient.md").write_text(
+            "# Historical release notes\n\nKept for archived links.\n",
+            encoding="utf-8",
+        )
+        (source / "version-navigation-policy.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "site_title": "ChronoKit-FP documentation",
+                    "description": "Practical ChronoKit-FP documentation.",
+                    "sections": [
+                        {
+                            "title": "Getting Started",
+                            "pages": [{"path": "Getting-Started.md", "title": "Installation & Quick Start"}],
+                        },
+                        {
+                            "title": "Guides",
+                            "pages": [{"path": "ChronoKit-FP.md", "title": "Task Guide"}],
+                        },
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
         versions = source / "versions.json"
         versions.write_text(
             json.dumps(
@@ -277,6 +301,65 @@ class BuildDocsTests(unittest.TestCase):
             self.assertTrue((output / "ChronoKit-FP.html").is_file())
             legacy_nav = (output / "Getting-Started.html").read_text(encoding="utf-8")
             self.assertIn('class="docs-navigation"', legacy_nav)
+            self.assertIn('href="ChronoKit-FP.html"', legacy_nav)
+            self.assertNotIn("RELEASE-NOTES-ancient.html", legacy_nav)
+            self.assertTrue((output / "RELEASE-NOTES-ancient.html").is_file())
+
+    def test_release_with_its_own_layout_uses_explicit_navigation_not_the_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "docs"
+            output = root / "site" / "1.9.1"
+            source.mkdir()
+            (source / "history.md").write_text("# Internal history\n", encoding="utf-8")
+            (source / "layout.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": 2,
+                        "release": "1.9.1",
+                        "site_title": "ChronoKit-FP documentation",
+                        "description": "Modern explicit navigation.",
+                        "required_pages": ["index.md", "history.md"],
+                        "navigation": [
+                            {"title": "Getting Started", "pages": [{"path": "index.md", "title": "Introduction"}]}
+                        ],
+                        "hidden_pages": ["history.md"],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (source / "index.md").write_text("# ChronoKit-FP documentation\n\nIntroduction.\n", encoding="utf-8")
+            versions = source / "versions.json"
+            versions.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "current": "1.9.1",
+                        "site_url": "https://example.invalid/chronokit-fp",
+                        "repository_url": "https://github.com/example/chronokit-fp",
+                        "versions": [{"release": "1.9.1", "source_ref": "v1.9.1"}],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            build_site(source, output, output.parent, versions)
+
+            index = (output / "index.html").read_text(encoding="utf-8")
+            self.assertIn('href="index.html"', index)
+            self.assertNotIn("history.html", index)
+            self.assertTrue((output / "history.html").is_file())
+
+    def test_release_without_layout_metadata_gets_the_curated_policy_fallback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source, output, site_root = self.write_legacy_fixture(Path(directory))
+
+            build_site(source, output, site_root, source / "versions.json")
+
+            guide = (output / "Getting-Started.html").read_text(encoding="utf-8")
+            self.assertIn('href="ChronoKit-FP.html"', guide)
+            self.assertIn('href="Getting-Started.html"', guide)
+            self.assertNotIn("RELEASE-NOTES-ancient.html", guide)
 
     def test_version_selector_marks_only_current_and_selects_the_viewed_version(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

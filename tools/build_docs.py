@@ -196,21 +196,48 @@ def legacy_navigation(source: Path) -> tuple[NavigationSection, ...]:
     return tuple(NavigationSection(title, tuple(pages)) for title, pages in grouped.items() if pages)
 
 
-def legacy_layout(source: Path, config: SiteConfig) -> DocumentationLayout:
-    return DocumentationLayout(
-        "ChronoKit-FP documentation",
-        f"Practical {config.release} ChronoKit-FP documentation for Free Pascal and Lazarus.",
-        legacy_navigation(source),
-        tuple(),
-        {},
-        legacy=True,
-    )
+def navigation_policy_layout(source: Path, config: SiteConfig, policy_path: Path) -> DocumentationLayout:
+    try:
+        policy = json.loads(policy_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"invalid navigation policy {policy_path}: {exc}") from exc
+    if policy.get("schema_version") != 1 or not isinstance(policy.get("sections"), list):
+        raise ValueError(f"unsupported navigation policy {policy_path}")
+    site_title = str(policy.get("site_title") or "ChronoKit-FP documentation").strip()
+    description = str(
+        policy.get("description") or f"Practical {config.release} ChronoKit-FP documentation for Free Pascal and Lazarus."
+    ).strip()
+    navigation: list[NavigationSection] = []
+    seen: set[str] = set()
+    for raw_section in policy["sections"]:
+        if not isinstance(raw_section, dict) or not isinstance(raw_section.get("title"), str):
+            raise ValueError(f"invalid navigation policy section in {policy_path}")
+        raw_pages = raw_section.get("pages")
+        if not isinstance(raw_pages, list):
+            raise ValueError(f"navigation policy section needs pages in {policy_path}")
+        title = raw_section["title"].strip()
+        pages: list[NavigationPage] = []
+        for item in raw_pages:
+            if not isinstance(item, dict) or not isinstance(item.get("path"), str) or not isinstance(item.get("title"), str):
+                raise ValueError(f"invalid navigation policy page in {policy_path}")
+            path = safe_document_path(item["path"], "navigation policy page")
+            if path in seen or not (source / path).is_file():
+                continue
+            seen.add(path)
+            pages.append(NavigationPage(path, item["title"].strip(), title))
+        if pages:
+            navigation.append(NavigationSection(title, tuple(pages)))
+    return DocumentationLayout(site_title, description, tuple(navigation), tuple(), {}, legacy=True)
 
 
-def load_layout(source: Path, config: SiteConfig) -> DocumentationLayout:
+def load_layout(source: Path, config: SiteConfig, policy_path: Path | None = None) -> DocumentationLayout:
     layout_path = source / "layout.json"
     if not layout_path.is_file():
-        return legacy_layout(source, config)
+        if policy_path is not None and policy_path.is_file():
+            return navigation_policy_layout(source, config, policy_path)
+        raise ValueError(
+            f"release {config.release} has no layout metadata and no navigation policy was provided"
+        )
     try:
         data = json.loads(layout_path.read_text(encoding="utf-8"))
         schema = data.get("schema_version")
@@ -651,7 +678,10 @@ def write_legacy_index(source: Path, output: Path, layout: DocumentationLayout, 
 
 def build_site(source: Path, output: Path, site_root: Path, versions_path: Path, offline_archive: Path | None = None, release: str | None = None) -> int:
     source, output, site_root = source.resolve(), output.resolve(), site_root.resolve()
-    config = load_config(versions_path.resolve(), release); layout = load_layout(source, config)
+    versions_path = versions_path.resolve()
+    config = load_config(versions_path, release)
+    policy_path = versions_path.parent / "version-navigation-policy.json"
+    layout = load_layout(source, config, policy_path)
     if output.name != config.release or output.parent != site_root:
         raise ValueError("versioned output must be site-root/<current release>")
     documents = sorted(source.rglob("*.md"))
