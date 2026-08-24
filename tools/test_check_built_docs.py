@@ -169,5 +169,103 @@ class SelectorTests(unittest.TestCase):
             self.assertIn('.catch(() => { window.location.assign(targetIndex); })', java_script)
 
 
+class NavigationContractTests(unittest.TestCase):
+    def simple_versions(self) -> dict[str, object]:
+        return {
+            "schema_version": 1,
+            "current": "1.9.1",
+            "site_url": "https://example.invalid/chronokit-fp",
+            "repository_url": "https://github.com/example/chronokit-fp",
+            "versions": [{"release": "1.9.1", "source_ref": "v1.9.1"}],
+        }
+
+    def write_versions(self, source: Path) -> None:
+        (source / "versions.json").write_text(json.dumps(self.simple_versions()), encoding="utf-8")
+
+    def build_legacy_site(self, root: Path, history_pages: list[str]) -> Path:
+        source = root / "docs"
+        source.mkdir()
+        (source / "index.md").write_text("# Index\n\n[Guide](guide.md)\n", encoding="utf-8")
+        (source / "guide.md").write_text("# Guide\n\nAll good.\n", encoding="utf-8")
+        for page in history_pages:
+            target = source / page
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"# {page}\n\nInternal record.\n", encoding="utf-8")
+        (source / "layout.json").write_text(json.dumps({"schema_version": 1, "release": "1.9.1"}), encoding="utf-8")
+        self.write_versions(source)
+        build_site(source, root / "site" / "1.9.1", root / "site", source / "versions.json")
+        return root / "site"
+
+    def test_sidebar_dump_with_release_notes_or_pr_summaries_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_legacy_site(Path(directory), ["RELEASE-NOTES-v1.9.1.md", "PR-v1.9.1.md"])
+            errors = check_site(site)
+            self.assertTrue(any("internal/history page appears in the sidebar" in error for error in errors))
+            self.assertTrue(any("RELEASE-NOTES-v1.9.1.html" in error for error in errors))
+            self.assertTrue(any("PR-v1.9.1.html" in error for error in errors))
+
+    def test_sidebar_dump_with_audits_and_decisions_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_legacy_site(
+                Path(directory),
+                ["API-Audit-v1.5.0.md", "V2-DECISION.md", "decisions/0001-domain-internals.md"],
+            )
+            errors = check_site(site)
+            self.assertTrue(any("internal/history page appears in the sidebar" in error for error in errors))
+
+    def test_curated_sidebar_without_internal_pages_is_accepted(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_legacy_site(Path(directory), [])
+            self.assertEqual([], check_site(site))
+
+    def test_sidebar_link_escaping_its_version_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "docs"
+            source.mkdir()
+            (source / "index.md").write_text("# Index\n\n[Guide](guide.md)\n", encoding="utf-8")
+            (source / "guide.md").write_text("# Guide\n\nAll good.\n", encoding="utf-8")
+            versions_path = source / "versions.json"
+            versions_path.write_text(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "current": "1.9.1",
+                        "site_url": "https://example.invalid/chronokit-fp",
+                        "repository_url": "https://github.com/example/chronokit-fp",
+                        "versions": [
+                            {"release": "1.9.1", "source_ref": "v1.9.1"},
+                            {"release": "1.9.0", "source_ref": "v1.9.0"},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (source / "layout.json").write_text(json.dumps({"schema_version": 1, "release": "1.9.1"}), encoding="utf-8")
+            build_site(source, root / "site" / "1.9.1", root / "site", versions_path)
+            (source / "layout.json").write_text(json.dumps({"schema_version": 1, "release": "1.9.0"}), encoding="utf-8")
+            build_site(source, root / "site" / "1.9.0", root / "site", versions_path, release="1.9.0")
+
+            page = root / "site" / "1.9.1" / "index.html"
+            page.write_text(
+                page.read_text(encoding="utf-8").replace(
+                    'class="nav-link" href="guide.html"',
+                    'class="nav-link" href="../1.9.0/index.html"',
+                ),
+                encoding="utf-8",
+            )
+            errors = check_site(root / "site")
+            self.assertTrue(any("sidebar link escapes its own version directory" in error for error in errors))
+
+    def test_missing_theme_or_search_on_a_selector_page_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_legacy_site(Path(directory), [])
+            page = site / "1.9.1" / "index.html"
+            page.write_text(page.read_text(encoding="utf-8").replace(' id="search"', ""), encoding="utf-8")
+            errors = check_site(site)
+            self.assertTrue(any("missing UI elements" in error for error in errors))
+            self.assertTrue(any("search" in error for error in errors))
+
+
 if __name__ == "__main__":
     unittest.main()

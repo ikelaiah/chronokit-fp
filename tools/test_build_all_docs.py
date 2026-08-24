@@ -157,11 +157,17 @@ class HistoricalNavigationTests(unittest.TestCase):
         return (self.site / version / "Getting-Started.html").read_text(encoding="utf-8")
 
     def nav_hrefs(self, version: str) -> set[str]:
-        content = self.page(version)
-        return {
-            match.group(1)
-            for match in re.finditer(r'class="nav-link[^"]*"[^>]*href="([^"]+\.html)"', content)
-        }
+        version_dir = self.site / version
+        page = version_dir / "Getting-Started.html"
+        content = page.read_text(encoding="utf-8")
+        hrefs: set[str] = set()
+        for href in re.findall(r'class="nav-link[^"]*"[^>]*href="([^"]+\.html)"', content):
+            try:
+                target = (page.parent / href).resolve()
+                hrefs.add(target.relative_to(version_dir).as_posix())
+            except ValueError:
+                continue
+        return hrefs
 
     def nav_sections(self, version: str) -> list[str]:
         content = self.page(version)
@@ -233,6 +239,34 @@ class HistoricalNavigationTests(unittest.TestCase):
         self.assertIn("ChronoKit-FP.html", hrefs)
         self.assertNotIn("PR-v1.1.0.html", hrefs)
         self.assertNotIn("RELEASE-NOTES-v1.1.0.html", hrefs)
+
+    def test_every_historical_sidebar_matches_the_curated_policy(self) -> None:
+        policy = json.loads((ROOT / "docs" / "version-navigation-policy.json").read_text(encoding="utf-8"))
+        policy_pages = {
+            item["path"].rsplit(".", 1)[0] + ".html"
+            for section in policy["sections"]
+            for item in section["pages"]
+        }
+        versions = json.loads((ROOT / "docs" / "versions.json").read_text(encoding="utf-8"))["versions"]
+        for entry in versions:
+            version = entry["release"]
+            version_dir = self.site / version
+            built = {path.relative_to(version_dir).as_posix() for path in version_dir.rglob("*.html")}
+            expected = {page for page in policy_pages if page in built}
+            self.assertEqual(expected, self.nav_hrefs(version), version)
+
+    def test_site_navigation_policy_is_well_formed(self) -> None:
+        policy = json.loads((ROOT / "docs" / "version-navigation-policy.json").read_text(encoding="utf-8"))
+        self.assertEqual(1, policy.get("schema_version"))
+        self.assertTrue(policy.get("sections"))
+        for section in policy["sections"]:
+            self.assertTrue(section.get("title"))
+            for item in section["pages"]:
+                path = item["path"]
+                self.assertTrue(path.endswith(".md"), path)
+                self.assertNotIn("..", path)
+                self.assertFalse(path.startswith("/"), path)
+                self.assertTrue(item.get("title"))
 
     def test_all_seven_releases_remain_in_every_selector(self) -> None:
         for version in ("1.7.0", "1.6.0", "1.4.0", "1.1.0"):
