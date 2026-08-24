@@ -156,3 +156,23 @@ jobs:
       - name: Verify clean consumer installation paths
         shell: pwsh
         run: pwsh -NoProfile -File tools\TestCleanConsumers.ps1
+
+  documentation-checks:
+    name: Documentation and release metadata checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run documentation builder tests
+        run: |
+          python3 tools/test_build_docs.py
+          python3 tools/test_build_all_docs.py
+          python3 tools/test_check_built_docs.py
+          python3 tools/test_check_docs.py
+          python3 tools/check_docs.py
+
+      - name: Run release metadata validation in pre-tag mode
+        run: python3 tools/check_release.py --pre-tag
