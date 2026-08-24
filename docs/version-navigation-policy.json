@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "site_title": "ChronoKit-FP documentation",
+  "description": "Practical date, time, business-calendar and timezone documentation for Free Pascal and Lazarus.",
+  "sections": [
+    {
+      "title": "Getting Started",
+      "pages": [
+        { "path": "Getting-Started.md", "title": "Installation & Quick Start" },
+        { "path": "Learning-Path.md", "title": "Learning Path" },
+        { "path": "Decision-Guides.md", "title": "Decision Guides" },
+        { "path": "Cheat-Sheet.md", "title": "Cheat Sheet" }
+      ]
+    },
+    {
+      "title": "Guides",
+      "pages": [
+        { "path": "ChronoKit-FP.md", "title": "Task Guide" },
+        { "path": "Business-Calendars.md", "title": "Business Calendars" },
+        { "path": "Troubleshooting.md", "title": "Troubleshooting" }
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        { "path": "API-Reference.md", "title": "API Reference" },
+        { "path": "Business-Calendar-API.md", "title": "Business Calendar API" },
+        { "path": "Timezone-Contract.md", "title": "Timezone Contract" },
+        { "path": "MIGRATION-v1.6-to-v2.0.md", "title": "Migration & Deprecated APIs" }
+      ]
+    }
+  ]
+}

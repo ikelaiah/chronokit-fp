@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -12,6 +13,7 @@ from pathlib import Path
 
 
 TOOLS = Path(__file__).resolve().parent
+ROOT = TOOLS.parent
 sys.path.insert(0, str(TOOLS))
 
 from build_all_docs import build_all, RELEASED_MODE  # noqa: E402
@@ -123,8 +125,6 @@ class BuildAllDocsTests(unittest.TestCase):
 
 class RealRepositoryBuildTests(unittest.TestCase):
     def test_released_build_creates_every_declared_release_from_its_tag(self) -> None:
-        TOOLS = Path(__file__).resolve().parent
-        ROOT = TOOLS.parent
         with tempfile.TemporaryDirectory() as directory:
             site_root = Path(directory) / "site"
             build_all(ROOT, site_root, mode=RELEASED_MODE)
@@ -138,6 +138,128 @@ class RealRepositoryBuildTests(unittest.TestCase):
                 self.assertTrue((directory / "index.html").is_file(), release)
                 identity = json.loads((directory / "release.json").read_text(encoding="utf-8"))
                 self.assertEqual(entry["source_ref"], identity["source_ref"], release)
+
+
+class HistoricalNavigationTests(unittest.TestCase):
+    """Curated sidebar regression coverage against the real released site."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._temporary = tempfile.TemporaryDirectory()
+        cls.site = Path(cls._temporary.name) / "site"
+        build_all(ROOT, cls.site, mode=RELEASED_MODE)
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._temporary.cleanup()
+
+    def page(self, version: str) -> str:
+        return (self.site / version / "Getting-Started.html").read_text(encoding="utf-8")
+
+    def nav_hrefs(self, version: str) -> set[str]:
+        content = self.page(version)
+        return {
+            match.group(1)
+            for match in re.finditer(r'class="nav-link[^"]*"[^>]*href="([^"]+\.html)"', content)
+        }
+
+    def nav_sections(self, version: str) -> list[str]:
+        content = self.page(version)
+        sections = re.findall(r'<section class="sidebar-section"><h2>([^<]+)</h2>', content)
+        seen: set[str] = set()
+        unique: list[str] = []
+        for section in sections:
+            if section not in seen:
+                seen.add(section)
+                unique.append(section)
+        return unique
+
+    def selector_labels(self, version: str) -> list[str]:
+        content = self.page(version)
+        return [match.group(1) for match in re.finditer(r"<option[^>]*>([^<]+)</option>", content)]
+
+    def test_v7_sidebar_exposes_the_user_facing_sections(self) -> None:
+        self.assertEqual(["Getting Started", "Guides", "Reference"], self.nav_sections("1.7.0"))
+        expected = {
+            "Getting-Started.html",
+            "Learning-Path.html",
+            "Decision-Guides.html",
+            "Cheat-Sheet.html",
+            "ChronoKit-FP.html",
+            "Business-Calendars.html",
+            "Troubleshooting.html",
+            "API-Reference.html",
+            "Business-Calendar-API.html",
+            "Timezone-Contract.html",
+            "MIGRATION-v1.6-to-v2.0.html",
+        }
+        self.assertEqual(expected, self.nav_hrefs("1.7.0"))
+
+    def test_v7_sidebar_excludes_internal_and_history_documents(self) -> None:
+        hrefs = self.nav_hrefs("1.7.0")
+        for internal in (
+            "PR-v1.7.0.html",
+            "RELEASE-NOTES-v1.7.0.html",
+            "API-Audit-v1.5.0.html",
+            "API-Audit-v1.7.0.html",
+            "API-Additions-v1.7.0.html",
+            "API-Deprecations-v1.6.0.html",
+            "V2-DECISION.html",
+            "decisions/0001-domain-internals.html",
+        ):
+            self.assertNotIn(internal, hrefs)
+
+    def test_internal_pages_still_build_for_links(self) -> None:
+        for internal in (
+            "PR-v1.7.0.html",
+            "RELEASE-NOTES-v1.7.0.html",
+            "API-Audit-v1.5.0.html",
+            "V2-DECISION.html",
+            "decisions/0001-domain-internals.html",
+        ):
+            self.assertTrue((self.site / "1.7.0" / internal).is_file(), internal)
+
+    def test_six_sidebar_is_sensible(self) -> None:
+        hrefs = self.nav_hrefs("1.6.0")
+        self.assertNotIn("Learning-Path.html", hrefs)
+        self.assertIn("MIGRATION-v1.6-to-v2.0.html", hrefs)
+        self.assertNotIn("PR-v1.6.0.html", hrefs)
+        self.assertNotIn("RELEASE-NOTES-v1.6.0.html", hrefs)
+
+    def test_one_sidebar_is_sensible(self) -> None:
+        hrefs = self.nav_hrefs("1.1.0")
+        self.assertIn("Getting-Started.html", hrefs)
+        self.assertIn("Cheat-Sheet.html", hrefs)
+        self.assertIn("ChronoKit-FP.html", hrefs)
+        self.assertNotIn("PR-v1.1.0.html", hrefs)
+        self.assertNotIn("RELEASE-NOTES-v1.1.0.html", hrefs)
+
+    def test_all_seven_releases_remain_in_every_selector(self) -> None:
+        for version in ("1.7.0", "1.6.0", "1.4.0", "1.1.0"):
+            labels = self.selector_labels(version)
+            self.assertEqual(len(labels), 7, version)
+            self.assertEqual(
+                ["v1.7.0", "v1.6.0", "v1.5.0", "v1.4.0", "v1.3.0", "v1.2.0", "v1.1.0"],
+                [label.split(" (current)")[0] for label in labels],
+                version,
+            )
+
+    def test_only_the_current_release_is_marked_current(self) -> None:
+        for version in ("1.7.0", "1.4.0", "1.1.0"):
+            labels = self.selector_labels(version)
+            current = [label for label in labels if label.endswith("(current)")]
+            self.assertEqual(["v1.7.0 (current)"], current, version)
+
+    def test_generated_site_passes_the_built_site_checker(self) -> None:
+        sys.path.insert(0, str(TOOLS))
+        from check_built_docs import check_site  # noqa: E402
+
+        self.assertEqual([], check_site(self.site))
+
+    def test_version_switching_assets_include_the_page_preserving_handler(self) -> None:
+        site_js = (self.site / "1.7.0" / "assets" / "site.js").read_text(encoding="utf-8")
+        self.assertIn('method: "HEAD"', site_js)
+        self.assertIn("response.ok ? target : targetIndex", site_js)
 
 
 if __name__ == "__main__":

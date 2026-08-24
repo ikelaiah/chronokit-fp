@@ -91,6 +91,11 @@ A release PR must not merge while any of these fail.
 - `--released`: every release, including the current one, is built from its
   immutable tag. This is the only mode used for publishing.
 
+Releases whose tag predates `docs/layout.json` receive the curated navigation
+policy from `docs/version-navigation-policy.json` on `main`; their content stays
+immutable while the sidebar stays usable. A release whose tag already contains
+a schema-2 `docs/layout.json` uses its own explicit navigation instead.
+
 ## Why immutable tags
 
 Published documentation must never change under a version URL. `main` moves
