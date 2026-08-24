@@ -155,6 +155,19 @@ Common types:
 - `refactor` - Code refactoring
 - `release` - Release preparation
 
+## 🚢 Releasing
+
+Follow [RELEASING.md](RELEASING.md) when preparing or publishing a release.
+The release checks run in CI and refuse to merge a release PR that forgets any
+publication metadata.
+
+When preparing a release, never replace `docs/versions.json` with a
+single-version catalogue. Add the new release at the TOP, update `current`,
+retain all historical entries, and use the immutable `vX.Y.Z` tag as
+`source_ref`. Run the repository release checker
+(`tools/check_release.py --pre-tag`) before opening the PR. These rules apply
+equally to human maintainers and coding agents.
+
 ## 🐛 Reporting Issues
 
 - Use the issue tracker

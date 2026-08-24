@@ -196,8 +196,21 @@ def legacy_navigation(source: Path) -> tuple[NavigationSection, ...]:
     return tuple(NavigationSection(title, tuple(pages)) for title, pages in grouped.items() if pages)
 
 
+def legacy_layout(source: Path, config: SiteConfig) -> DocumentationLayout:
+    return DocumentationLayout(
+        "ChronoKit-FP documentation",
+        f"Practical {config.release} ChronoKit-FP documentation for Free Pascal and Lazarus.",
+        legacy_navigation(source),
+        tuple(),
+        {},
+        legacy=True,
+    )
+
+
 def load_layout(source: Path, config: SiteConfig) -> DocumentationLayout:
     layout_path = source / "layout.json"
+    if not layout_path.is_file():
+        return legacy_layout(source, config)
     try:
         data = json.loads(layout_path.read_text(encoding="utf-8"))
         schema = data.get("schema_version")
@@ -619,6 +632,23 @@ def write_offline_archive(site_root: Path, archive: Path, release: str) -> str:
     return digest
 
 
+def write_legacy_index(source: Path, output: Path, layout: DocumentationLayout, config: SiteConfig) -> Path:
+    documents = sorted(path.relative_to(source).as_posix() for path in source.rglob("*.md"))
+    preferred = "Getting-Started.md" if "Getting-Started.md" in documents else (documents[0] if documents else "")
+    if not preferred:
+        raise ValueError("release source contains no Markdown documentation")
+    target = relative_url(output, output / Path(preferred).with_suffix(".html"))
+    page = output / "index.html"
+    canonical = f"{config.site_url}/{config.release}/"
+    page.write_text(f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark">
+<meta name="description" content="{html.escape(layout.description, quote=True)}"><meta name="chronokit-release" content="{html.escape(config.release, quote=True)}"><link rel="canonical" href="{html.escape(canonical, quote=True)}">
+<title>ChronoKit-FP {html.escape(config.release)} documentation</title><meta http-equiv="refresh" content="0; url={html.escape(target, quote=True)}"><link rel="stylesheet" href="{html.escape(relative_url(output, output / "assets" / "site.css"), quote=True)}"></head>
+<body><main><p>Opening <a href="{html.escape(target, quote=True)}">ChronoKit-FP {html.escape(config.release)} documentation</a>.</p></main></body></html>
+""", encoding="utf-8")
+    return page
+
+
 def build_site(source: Path, output: Path, site_root: Path, versions_path: Path, offline_archive: Path | None = None, release: str | None = None) -> int:
     source, output, site_root = source.resolve(), output.resolve(), site_root.resolve()
     config = load_config(versions_path.resolve(), release); layout = load_layout(source, config)
@@ -641,6 +671,8 @@ def build_site(source: Path, output: Path, site_root: Path, versions_path: Path,
         page.write_text(page_shell(title, rendered, config, layout, by_path.get(relative_path), page, output, relative_path), encoding="utf-8")
         item = by_path.get(relative_path)
         search_entries.append({"title": title, "section": item.section if item else "Documentation", "headings": [text for level, text, _identifier in rendered.headings if level >= 2], "url": relative.with_suffix(".html").as_posix(), "text": rendered.text})
+    if not (source / "index.md").is_file():
+        write_legacy_index(source, output, layout, config)
     search_json = json.dumps(search_entries, ensure_ascii=False, separators=(",", ":"))
     (output / "search-index.json").write_text(json.dumps(search_entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (output / "search-index.js").write_text("globalThis.ChronoKitSearchIndex=" + search_json.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026") + ";\n", encoding="utf-8")

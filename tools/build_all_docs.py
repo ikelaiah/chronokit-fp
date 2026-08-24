@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""Build every release declared in docs/versions.json into one Pages site."""
+"""Build every release declared in docs/versions.json into one Pages site.
+
+Two modes:
+
+--development-current (default)
+    declared current release → current checkout (preview of unreleased work)
+    historical releases      → immutable release tags
+
+--released
+    every release            → immutable release tag
+
+Published documentation is always sourced from immutable release tags. The
+development mode exists only so unreleased content can be previewed locally
+before a tag is cut; it must never be used to publish.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +25,10 @@ import tempfile
 from pathlib import Path
 
 from build_docs import build_site
+
+DEVELOPMENT_MODE = "development-current"
+RELEASED_MODE = "released"
+MOVING_SOURCE_REFS = ("main", "master", "HEAD", "head")
 
 
 def load_versions(path: Path) -> tuple[str, list[dict[str, str]]]:
@@ -28,13 +46,19 @@ def load_versions(path: Path) -> tuple[str, list[dict[str, str]]]:
         raise ValueError(f"invalid version metadata {path}: {exc}") from exc
 
 
+def is_immutable_ref(source_ref: str) -> bool:
+    return source_ref != "" and source_ref not in MOVING_SOURCE_REFS
+
+
 def run_git(root: Path, arguments: list[str]) -> None:
     result = subprocess.run(["git", "-C", str(root), *arguments], text=True, capture_output=True, check=False)
     if result.returncode:
         raise RuntimeError(f"git {' '.join(arguments)} failed:\n{result.stdout}{result.stderr}")
 
 
-def build_all(root: Path, site_root: Path, offline_dir: Path | None = None) -> int:
+def build_all(root: Path, site_root: Path, offline_dir: Path | None = None, mode: str = DEVELOPMENT_MODE) -> int:
+    if mode not in {DEVELOPMENT_MODE, RELEASED_MODE}:
+        raise ValueError(f"unknown build mode: {mode}")
     root = root.resolve()
     versions_path = root / "docs" / "versions.json"
     current, versions = load_versions(versions_path)
@@ -45,9 +69,13 @@ def build_all(root: Path, site_root: Path, offline_dir: Path | None = None) -> i
             release = entry["release"]
             source_root = root
             worktree = None
-            if release != current:
+            built_from_checkout = mode == DEVELOPMENT_MODE and release == current
+            if not built_from_checkout:
+                ref = entry["source_ref"]
+                if mode == RELEASED_MODE and not is_immutable_ref(ref):
+                    raise ValueError(f"published release {release} must not use moving source_ref {ref!r}")
                 worktree = checkout_root / release
-                run_git(root, ["worktree", "add", "--detach", str(worktree), entry["source_ref"]])
+                run_git(root, ["worktree", "add", "--detach", str(worktree), ref])
                 source_root = worktree
             try:
                 archive = None
@@ -74,11 +102,13 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--site-root", type=Path, default=Path("build/docs-site"))
     parser.add_argument("--offline-dir", type=Path)
+    parser.add_argument("--development-current", action="store_true", help="build declared current release from the current checkout")
+    parser.add_argument("--released", action="store_true", help="build every release, including current, from its immutable tag")
     args = parser.parse_args()
     root = args.root.resolve()
     site_root = args.site_root if args.site_root.is_absolute() else root / args.site_root
     offline_dir = args.offline_dir if args.offline_dir is None or args.offline_dir.is_absolute() else root / args.offline_dir
-    build_all(root, site_root, offline_dir)
+    build_all(root, site_root, offline_dir, RELEASED_MODE if args.released else DEVELOPMENT_MODE)
     return 0
 
 

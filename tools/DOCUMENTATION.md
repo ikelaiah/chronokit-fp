@@ -17,10 +17,26 @@ useful; they are simply not first-class navigation.
 
 ## Add a version
 
-Add a `release` and `source_ref` entry to `docs/versions.json`. Only add a
-historical release after its ref contains the compatible documentation source.
-The current release is built from the checkout; older releases are built in
-temporary detached worktrees.
+Add a `release` and `source_ref` entry to `docs/versions.json`. Always keep
+every previously published entry. Set the new release at the TOP and update
+`current`. Published releases must reference their immutable tag (`vX.Y.Z`);
+never use `main` for a published `source_ref`. A versioned build is produced in
+two modes:
+
+- `build_all_docs.py --development-current` (default) builds the declared
+  current release from the current checkout and historical releases from their
+  tags. Use it to preview unreleased work.
+- `build_all_docs.py --released` builds every release, including the current
+  one, from its immutable tag. Use it for anything published.
+
+Older release tags predate `layout.json` and `index.md`. The builder falls
+back to a synthesized flat layout and generates a version landing page from
+the tag's actual content; historical pages are never rewritten to match the
+current template.
+
+Run `python tools/check_release.py --pre-tag` before tagging a release and
+`--released` after the tag exists. See [../RELEASING.md](../RELEASING.md) for
+the full release checklist.
 
 ## Local verification
 
@@ -29,7 +45,9 @@ python tools/test_build_docs.py
 python tools/test_build_all_docs.py
 python tools/test_check_built_docs.py
 python tools/test_check_docs.py
+python tools/test_check_release.py
 python tools/check_docs.py
+python tools/check_release.py --pre-tag
 python tools/build_all_docs.py --site-root site --offline-dir artifacts
 python tools/check_built_docs.py --site site
 ```
