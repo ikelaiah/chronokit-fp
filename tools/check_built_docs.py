@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Validate local links and release metadata in a built ChronoKit-FP docs site."""
+"""Validate local links, release metadata, and navigation in a built docs site.
+
+Navigation contract enforced on every generated page:
+
+* no internal/history document (PR summaries, release notes, API audits,
+  transition specs, decision records) may appear as primary sidebar navigation;
+* every sidebar link must stay inside its own version directory;
+* any page carrying the version selector must also provide the search box,
+  the theme toggle, and the main content anchor.
+"""
 
 from __future__ import annotations
 
@@ -16,6 +25,7 @@ class PageParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
         self.links: list[str] = []
+        self.nav_links: list[str] = []
         self.identifiers: set[str] = set()
         self.duplicate_identifiers: set[str] = set()
         self.release_values: list[str] = []
@@ -42,6 +52,9 @@ class PageParser(HTMLParser):
             self._option_label = []
         if tag in {"a", "link"} and values.get("href"):
             self.links.append(str(values["href"]))
+            css_classes = (values.get("class") or "").split()
+            if tag == "a" and "nav-link" in css_classes and "external-link" not in css_classes:
+                self.nav_links.append(str(values["href"]))
         if tag in {"img", "script"} and values.get("src"):
             self.links.append(str(values["src"]))
         if tag == "meta" and values.get("name") == "chronokit-release" and values.get("content"):
@@ -87,7 +100,15 @@ def local_target(page: Path, raw_link: str, site: Path) -> tuple[Path | None, st
     return target, unquote(split.fragment)
 
 
-def check_page(page: Path, site: Path, release: str, current: str, releases: set[str]) -> list[str]:
+NAV_INTERNAL_PATTERNS = (
+    re.compile(r"^(?:PR-|RELEASE-NOTES-|API-Audit-|API-Additions-|API-Deprecations-)"),
+    re.compile(r"^V2-DECISION"),
+    re.compile(r"^(?:decisions|history|internal|development)/"),
+)
+REQUIRED_UI_IDS = ("search", "theme-toggle", "content")
+
+
+def check_page(page: Path, site: Path, release: str, current: str, releases: set[str], version_dir: Path, enforce_internal_nav: bool) -> list[str]:
     errors: list[str] = []
     parsed = page_data(page)
     source = page.read_text(encoding="utf-8")
@@ -114,6 +135,26 @@ def check_page(page: Path, site: Path, release: str, current: str, releases: set
             continue
         if fragment and target.suffix.lower() == ".html" and fragment not in page_data(target).identifiers:
             errors.append(f"{page}: missing link anchor: {link}")
+    for nav_link in parsed.nav_links:
+        target, fragment = local_target(page, nav_link, site)
+        if target is None:
+            if fragment == "escapes built site":
+                errors.append(f"{page}: sidebar link escapes the built site: {nav_link}")
+            continue
+        if target.suffix.lower() != ".html":
+            errors.append(f"{page}: sidebar link is not an HTML page: {nav_link}")
+            continue
+        try:
+            relative = target.relative_to(version_dir)
+        except ValueError:
+            errors.append(f"{page}: sidebar link escapes its own version directory: {nav_link}")
+            continue
+        if enforce_internal_nav and any(pattern.match(relative.as_posix()) for pattern in NAV_INTERNAL_PATTERNS):
+            errors.append(f"{page}: internal/history page appears in the sidebar: {nav_link}")
+    if parsed.has_selector:
+        missing_ui = sorted(set(REQUIRED_UI_IDS) - parsed.identifiers)
+        if missing_ui:
+            errors.append(f"{page}: page with a version selector is missing UI elements: {', '.join(missing_ui)}")
     for target_value in parsed.version_targets:
         target, _fragment = local_target(page, target_value, site)
         if target is None or not target.is_file():
@@ -188,11 +229,17 @@ def check_site(site: Path) -> list[str]:
         for asset in ("assets/site.css", "assets/site.js", "search-index.js"):
             if not (directory / asset).is_file():
                 errors.append(f"{directory}: missing required asset: {asset}")
+        navigation_mode = None
+        try:
+            navigation_mode = json.loads((directory / "release.json").read_text(encoding="utf-8")).get("navigation")
+        except (OSError, json.JSONDecodeError):
+            pass
+        enforce_internal_nav = navigation_mode != "explicit"
         pages = sorted(directory.rglob("*.html"))
         if not pages:
             errors.append(f"{directory}: no HTML pages")
         for page in pages:
-            errors.extend(check_page(page, site, release, current, release_names))
+            errors.extend(check_page(page, site, release, current, release_names, directory, enforce_internal_nav))
     return errors
 
 

@@ -65,6 +65,7 @@ class DocumentationLayout:
     project_links: tuple[ProjectLink, ...]
     homepage: dict[str, object]
     legacy: bool = False
+    navigation_mode: str = "explicit"
 
     @property
     def pages(self) -> tuple[NavigationPage, ...]:
@@ -227,7 +228,7 @@ def navigation_policy_layout(source: Path, config: SiteConfig, policy_path: Path
             pages.append(NavigationPage(path, item["title"].strip(), title))
         if pages:
             navigation.append(NavigationSection(title, tuple(pages)))
-    return DocumentationLayout(site_title, description, tuple(navigation), tuple(), {}, legacy=True)
+    return DocumentationLayout(site_title, description, tuple(navigation), tuple(), {}, legacy=True, navigation_mode="compatibility")
 
 
 def load_layout(source: Path, config: SiteConfig, policy_path: Path | None = None) -> DocumentationLayout:
@@ -706,7 +707,7 @@ def build_site(source: Path, output: Path, site_root: Path, versions_path: Path,
     search_json = json.dumps(search_entries, ensure_ascii=False, separators=(",", ":"))
     (output / "search-index.json").write_text(json.dumps(search_entries, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (output / "search-index.js").write_text("globalThis.ChronoKitSearchIndex=" + search_json.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026") + ";\n", encoding="utf-8")
-    (output / "release.json").write_text(json.dumps({"schema_version": 2, "release": config.release, "source_ref": config.source_ref, "page_count": len(documents)}, indent=2) + "\n", encoding="utf-8")
+    (output / "release.json").write_text(json.dumps({"schema_version": 2, "release": config.release, "source_ref": config.source_ref, "page_count": len(documents), "navigation": layout.navigation_mode}, indent=2) + "\n", encoding="utf-8")
     write_landing_page(site_root, config)
     if offline_archive:
         write_offline_archive(site_root, offline_archive.resolve(), config.release)
