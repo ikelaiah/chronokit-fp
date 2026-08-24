@@ -39,7 +39,26 @@
   });
   colorPreference.addEventListener?.("change", () => { if (!storedTheme()) updateThemeControl(); });
 
-  versionSelect?.addEventListener("change", () => { window.location.assign(versionSelect.value); });
+  function versionSegmentIndex(pathParts) {
+    for (let i = 0; i < pathParts.length; i += 1) {
+      if (/^\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.\-]+)?$/.test(pathParts[i])) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  versionSelect?.addEventListener("change", () => {
+    const targetIndex = String(versionSelect.value || "");
+    const targetRoot = targetIndex.replace(/index\.html$/i, "");
+    const pathParts = window.location.pathname.split("/").filter(Boolean);
+    const versionIndex = versionSegmentIndex(pathParts);
+    const pageRelative = versionIndex >= 0 ? pathParts.slice(versionIndex + 1).join("/") : "";
+    const target = targetRoot + pageRelative;
+    fetch(target, { method: "HEAD" })
+      .then((response) => { window.location.assign(response.ok ? target : targetIndex); })
+      .catch(() => { window.location.assign(targetIndex); });
+  });
 
   function closeResults() {
     if (!results || !search) return;

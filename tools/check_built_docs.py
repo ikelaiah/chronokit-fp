@@ -21,6 +21,11 @@ class PageParser(HTMLParser):
         self.release_values: list[str] = []
         self.version_targets: list[str] = []
         self.title_count = 0
+        self.has_selector = False
+        self.version_options: list[tuple[str, str, bool]] = []
+        self._option_value: str | None = None
+        self._option_selected = False
+        self._option_label: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
@@ -29,6 +34,12 @@ class PageParser(HTMLParser):
             if identifier in self.identifiers:
                 self.duplicate_identifiers.add(identifier)
             self.identifiers.add(identifier)
+        if tag == "select" and values.get("id") == "version-select":
+            self.has_selector = True
+        if tag == "option":
+            self._option_value = str(values.get("value", ""))
+            self._option_selected = "selected" in values
+            self._option_label = []
         if tag in {"a", "link"} and values.get("href"):
             self.links.append(str(values["href"]))
         if tag in {"img", "script"} and values.get("src"):
@@ -39,6 +50,16 @@ class PageParser(HTMLParser):
             self.version_targets.append(str(values["value"]))
         if tag == "title":
             self.title_count += 1
+
+    def handle_data(self, data: str) -> None:
+        if self._option_value is not None:
+            self._option_label.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "option" and self._option_value is not None:
+            label = "".join(self._option_label).strip()
+            self.version_options.append((self._option_value, label, self._option_selected))
+            self._option_value = None
 
 
 @lru_cache(maxsize=None)
@@ -66,7 +87,7 @@ def local_target(page: Path, raw_link: str, site: Path) -> tuple[Path | None, st
     return target, unquote(split.fragment)
 
 
-def check_page(page: Path, site: Path, release: str) -> list[str]:
+def check_page(page: Path, site: Path, release: str, current: str, releases: set[str]) -> list[str]:
     errors: list[str] = []
     parsed = page_data(page)
     source = page.read_text(encoding="utf-8")
@@ -97,6 +118,32 @@ def check_page(page: Path, site: Path, release: str) -> list[str]:
         target, _fragment = local_target(page, target_value, site)
         if target is None or not target.is_file():
             errors.append(f"{page}: missing version target: {target_value}")
+    if parsed.has_selector:
+        option_releases: set[str] = set()
+        for _target, label, selected in parsed.version_options:
+            match = re.search(r"\bv(\d+\.\d+\.\d+)\b", label)
+            if not match:
+                errors.append(f"{page}: version option without a release label: {label!r}")
+                continue
+            option_releases.add(match.group(1))
+            if match.group(1) == release and not selected:
+                errors.append(f"{page}: viewed release {release} is not selected in the version selector")
+            if label.endswith("(current)") and match.group(1) != current:
+                errors.append(f"{page}: non-current release {match.group(1)} is labelled (current)")
+            if match.group(1) == current and not label.endswith("(current)"):
+                errors.append(f"{page}: current release {current} is not labelled (current)")
+        if option_releases != releases:
+            missing = sorted(releases - option_releases)
+            extra = sorted(option_releases - releases)
+            detail = []
+            if missing:
+                detail.append(f"missing: {', '.join(missing)}")
+            if extra:
+                detail.append(f"extra: {', '.join(extra)}")
+            errors.append(f"{page}: version selector does not match the catalogue ({'; '.join(detail)})")
+        current_labels = [label for _target, label, _selected in parsed.version_options if "(current)" in label]
+        if len(current_labels) != 1:
+            errors.append(f"{page}: expected exactly one (current) version, found {len(current_labels)}")
     return errors
 
 
@@ -111,6 +158,10 @@ def check_site(site: Path) -> list[str]:
             raise ValueError("versions must be a non-empty list")
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         return [f"{site / 'versions.json'}: invalid version metadata: {exc}"]
+    try:
+        release_names = {str(entry["release"]) for entry in entries}
+    except (KeyError, TypeError) as exc:
+        return [f"{site / 'versions.json'}: invalid release record: {exc}"]
     landing = site / "index.html"
     if not landing.is_file():
         errors.append(f"{landing}: missing landing page")
@@ -141,7 +192,7 @@ def check_site(site: Path) -> list[str]:
         if not pages:
             errors.append(f"{directory}: no HTML pages")
         for page in pages:
-            errors.extend(check_page(page, site, release))
+            errors.extend(check_page(page, site, release, current, release_names))
     return errors
 
 

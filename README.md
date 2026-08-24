@@ -283,7 +283,8 @@ end.
 The complete, searchable, versioned documentation is published at
 [ikelaiah.github.io/chronokit-fp](https://ikelaiah.github.io/chronokit-fp/).
 It includes light/dark themes, API search, the learning path, practical guides,
-and a version selector.
+and a version selector covering every published release. Release preparation
+and publishing follow the [release guide](RELEASING.md).
 
 The source Markdown remains in this repository. Useful direct links include:
 

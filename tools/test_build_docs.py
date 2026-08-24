@@ -231,6 +231,75 @@ class BuildDocsTests(unittest.TestCase):
             ).lower()
             self.assertNotIn("stringkit", generated)
 
+    def write_legacy_fixture(self, root: Path) -> tuple[Path, Path, Path]:
+        source = root / "docs"
+        output = root / "site" / "1.1.0"
+        site_root = output.parent
+        source.mkdir()
+        (source / "Getting-Started.md").write_text(
+            "# Getting Started\n\nInstall and run your first example.\n",
+            encoding="utf-8",
+        )
+        (source / "ChronoKit-FP.md").write_text(
+            "# ChronoKit-FP tasks\n\nEvery supported task by name.\n",
+            encoding="utf-8",
+        )
+        versions = source / "versions.json"
+        versions.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "current": "1.1.0",
+                    "site_url": "https://example.invalid/chronokit-fp",
+                    "repository_url": "https://github.com/example/chronokit-fp",
+                    "versions": [
+                        {"release": "1.1.0", "source_ref": "v1.1.0"},
+                        {"release": "1.0.0", "source_ref": "v1.0.0"},
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return source, output, site_root
+
+    def test_builds_an_older_release_without_layout_or_index_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source, output, site_root = self.write_legacy_fixture(Path(directory))
+
+            build_site(source, output, site_root, source / "versions.json")
+
+            index = output / "index.html"
+            self.assertTrue(index.is_file())
+            content = index.read_text(encoding="utf-8")
+            self.assertIn('meta http-equiv="refresh"', content)
+            self.assertIn("Getting-Started.html", content)
+            self.assertTrue((output / "Getting-Started.html").is_file())
+            self.assertTrue((output / "ChronoKit-FP.html").is_file())
+            legacy_nav = (output / "Getting-Started.html").read_text(encoding="utf-8")
+            self.assertIn('class="docs-navigation"', legacy_nav)
+
+    def test_version_selector_marks_only_current_and_selects_the_viewed_version(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            source, output, site_root = self.write_legacy_fixture(Path(directory))
+            versions = source / "versions.json"
+            metadata = json.loads(versions.read_text(encoding="utf-8"))
+            metadata["current"] = "1.1.0"
+            metadata["versions"] = [
+                {"release": "1.1.0", "source_ref": "v1.1.0"},
+                {"release": "1.0.0", "source_ref": "v1.0.0"},
+            ]
+            versions.write_text(json.dumps(metadata), encoding="utf-8")
+
+            build_site(source, output, site_root, versions, release="1.1.0")
+            build_site(source, site_root / "1.0.0", site_root, versions, release="1.0.0")
+
+            latest = (output / "Getting-Started.html").read_text(encoding="utf-8")
+            historical = (site_root / "1.0.0" / "Getting-Started.html").read_text(encoding="utf-8")
+            self.assertIn("v1.1.0 (current)", latest)
+            self.assertIn("v1.1.0 (current)", historical)
+            self.assertNotIn("v1.0.0 (current)", historical)
+            self.assertTrue((site_root / "1.0.0" / "index.html").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

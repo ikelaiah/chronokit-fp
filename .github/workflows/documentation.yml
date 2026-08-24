@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Source ref to publish as the current documentation release
+        description: Branch to deploy from (must contain docs/versions.json)
         required: true
         default: main
   release:
@@ -23,11 +23,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out documentation source
+      - name: Check out documentation source on main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.source_ref }}
+          ref: ${{ github.event_name == 'release' && 'main' || inputs.source_ref }}
           fetch-depth: 0
+          fetch-tags: true
+
+      - name: Read documentation release
+        id: version
+        run: echo "release=$(python3 -c 'import json; print(json.load(open("docs/versions.json"))["current"])')" >> "$GITHUB_OUTPUT"
 
       - name: Test documentation tooling
         run: |
@@ -37,13 +42,12 @@ jobs:
           python3 tools/test_check_docs.py
           python3 tools/check_docs.py
 
-      - name: Read documentation release
-        id: version
-        run: echo "release=$(python3 -c 'import json; print(json.load(open("docs/versions.json"))["current"])')" >> "$GITHUB_OUTPUT"
+      - name: Validate release metadata in released mode
+        run: python3 tools/check_release.py --released --expected-version ${{ steps.version.outputs.release }}
 
-      - name: Build versioned documentation
+      - name: Build versioned documentation from immutable tags
         run: |
-          python3 tools/build_all_docs.py --site-root site --offline-dir artifacts
+          python3 tools/build_all_docs.py --site-root site --offline-dir artifacts --released
           python3 tools/check_built_docs.py --site site
 
       - name: Configure GitHub Pages

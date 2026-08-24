@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import tempfile
 import unittest
@@ -73,6 +74,99 @@ class CheckBuiltDocsTests(unittest.TestCase):
             (site / "1.9.1" / "assets" / "site.js").unlink()
             errors = check_site(site)
             self.assertTrue(any("missing required asset" in error for error in errors))
+
+
+class SelectorTests(unittest.TestCase):
+    def build_two_version_site(self, root: Path) -> Path:
+        source = root / "docs"
+        source.mkdir()
+        (source / "index.md").write_text("# Index\n\n[Guide](guide.md)\n", encoding="utf-8")
+        (source / "guide.md").write_text("# Guide\n\nAll good.\n", encoding="utf-8")
+        (source / "layout.json").write_text(json.dumps({"schema_version": 1, "release": "1.9.1"}), encoding="utf-8")
+        versions = source / "versions.json"
+        versions.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "current": "1.9.1",
+                    "site_url": "https://example.invalid/chronokit-fp",
+                    "repository_url": "https://github.com/example/chronokit-fp",
+                    "versions": [
+                        {"release": "1.9.1", "source_ref": "v1.9.1"},
+                        {"release": "1.9.0", "source_ref": "v1.9.0"},
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        build_site(source, root / "site" / "1.9.1", root / "site", versions)
+        (source / "layout.json").write_text(json.dumps({"schema_version": 1, "release": "1.9.0"}), encoding="utf-8")
+        build_site(source, root / "site" / "1.9.0", root / "site", versions, release="1.9.0")
+        return root / "site"
+
+    def test_every_selector_lists_every_version_and_marks_only_current(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_two_version_site(Path(directory))
+            self.assertEqual([], check_site(site))
+
+    def test_historical_selector_is_selecting_itself_not_current(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_two_version_site(Path(directory))
+            for page in (site / "1.9.0").rglob("*.html"):
+                content = page.read_text(encoding="utf-8")
+                self.assertIn('selected>v1.9.0</option>', content)
+                self.assertIn('(current)</option>', content)
+                self.assertNotIn('selected>v1.9.1</option>', content)
+
+    def test_dropped_version_from_selector_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_two_version_site(Path(directory))
+            page = site / "1.9.1" / "index.html"
+            content = page.read_text(encoding="utf-8")
+            content = re.sub(r"<option[^>]*>v1\.9\.0</option>", "", content)
+            page.write_text(content, encoding="utf-8")
+            errors = check_site(site)
+            self.assertTrue(any("version selector does not match the catalogue" in error for error in errors))
+            self.assertTrue(any("missing: 1.9.0" in error for error in errors))
+
+    def test_duplicate_current_label_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_two_version_site(Path(directory))
+            page = site / "1.9.1" / "index.html"
+            page.write_text(page.read_text(encoding="utf-8").replace("v1.9.0</option>", "v1.9.0 (current)</option>"), encoding="utf-8")
+            errors = check_site(site)
+            self.assertTrue(any("non-current release 1.9.0 is labelled (current)" in error for error in errors))
+            self.assertTrue(any("expected exactly one (current) version" in error for error in errors))
+
+    def test_unselected_viewed_version_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_two_version_site(Path(directory))
+            page = site / "1.9.0" / "index.html"
+            content = page.read_text(encoding="utf-8")
+            page.write_text(content.replace(' selected>v1.9.0<', '>v1.9.0<'), encoding="utf-8")
+            errors = check_site(site)
+            self.assertTrue(any("viewed release 1.9.0 is not selected" in error for error in errors))
+
+    def test_pages_keep_theme_search_navigation_and_version_assets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_two_version_site(Path(directory))
+            for release in ("1.9.1", "1.9.0"):
+                page = site / release / "index.html"
+                content = page.read_text(encoding="utf-8")
+                self.assertIn('id="theme-toggle"', content, release)
+                self.assertIn('id="search"', content, release)
+                self.assertIn('class="docs-navigation"', content, release)
+                self.assertIn('id="version-select"', content, release)
+                self.assertTrue((site / release / "search-index.js").is_file(), release)
+                self.assertTrue((site / release / "assets" / "site.js").is_file(), release)
+
+    def test_version_switch_preserves_the_page_and_falls_back_safely(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            site = self.build_two_version_site(Path(directory))
+            java_script = (site / "1.9.1" / "assets" / "site.js").read_text(encoding="utf-8")
+            self.assertIn('method: "HEAD"', java_script)
+            self.assertIn('response.ok ? target : targetIndex', java_script)
+            self.assertIn('.catch(() => { window.location.assign(targetIndex); })', java_script)
 
 
 if __name__ == "__main__":
